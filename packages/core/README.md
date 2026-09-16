@@ -1,15 +1,15 @@
-# @pebbles/core
+# @cheetos/core
 
-Shared primitives and utilities for building and consuming `pebbles` registries.
+Shared primitives and utilities for building and consuming `cheetos` registries.
 
-This package powers the default [`pebbles`](https://www.npmjs.com/package/pebbles) CLI and [`@pebbles/registry`](../registry) content.
+This package powers the default [`cheetos`](https://www.npmjs.com/package/cheetos) CLI and [`@cheetos/registry`](../registry) content.
 
 ## Compile a registry
 
 Third-party authors compile a registry source tree into an index plus compiled items:
 
 ```ts
-import { buildRegistry } from "@pebbles/core";
+import { buildRegistry } from "@cheetos/core";
 
 await buildRegistry({
 	sourceDir: "/path/to/my-registry/registry",
@@ -20,7 +20,7 @@ await buildRegistry({
 	// typesFileName: "types.json",
 	// conditionsFileName: "conditions/conditions.json",
 	// compiledDirName: "r",
-	// bundleExternalPackages: ["acme-helpers"], // always includes @pebbles/core
+	// bundleExternalPackages: ["acme-helpers"], // always includes @cheetos/core
 });
 ```
 
@@ -41,4 +41,4 @@ Consumers join index `source` values against the index location with `joinIndexS
 
 ## Install lifecycle
 
-Each item has two optional lifecycle hook phases: `beforeWrite` (preparing Pebbles-managed files, commands, dependencies, and bindings before any disk writes occur) and `afterInstall` (running live environment activation and tool initialization commands after files are written and packages installed). Each phase accepts script paths relative to the item folder (`..` is allowed as long as the file stays under the registry source). Other registry items belong in `dependsOn`. The CLI runs `beforeWrite` scripts, prompts for file overwrite confirmation if targets already exist, writes planned files, merges `package.json` scripts, optionally installs dependencies, then runs `afterInstall` scripts in plan order. `afterInstall` still runs if the user declines package installation, and must not return a value.
+Each item has two optional lifecycle hook phases: `beforeWrite` (preparing Cheetos-managed files, commands, dependencies, and bindings before any disk writes occur) and `afterInstall` (running live environment activation and tool initialization commands after files are written and packages installed). Each phase accepts script paths relative to the item folder (`..` is allowed as long as the file stays under the registry source). Other registry items belong in `dependsOn`. The CLI runs `beforeWrite` scripts, prompts for file overwrite confirmation if targets already exist, writes planned files, merges `package.json` scripts, optionally installs dependencies, then runs `afterInstall` scripts in plan order. `afterInstall` still runs if the user declines package installation, and must not return a value.

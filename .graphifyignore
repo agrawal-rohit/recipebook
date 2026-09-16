@@ -1,0 +1,9 @@
+# Exclude the docs website (app code + content) — not part of the shipped packages
+docs/
+
+# Exclude test files from the knowledge graph
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/__tests__/

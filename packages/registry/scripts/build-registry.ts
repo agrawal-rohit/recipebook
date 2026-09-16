@@ -1,5 +1,5 @@
 import path from "node:path";
-import { buildRegistry } from "@pebbles/core";
+import { buildRegistry } from "@cheetos/core";
 
 /** Compile the registry registry source tree under this package (or `process.argv[2]`). */
 async function main(): Promise<void> {
@@ -13,4 +13,7 @@ async function main(): Promise<void> {
 	);
 }
 
-void main();
+main().catch((error: unknown) => {
+	console.error(error);
+	process.exitCode = 1;
+});

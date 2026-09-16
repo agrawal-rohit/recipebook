@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@pebbles/core";
+import type { ConditionHandler } from "@cheetos/core";
 
 /**
  * Suggest the current calendar year as the copyright year default.

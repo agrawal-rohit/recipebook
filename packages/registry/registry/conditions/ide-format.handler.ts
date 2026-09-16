@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@pebbles/core";
+import type { ConditionHandler } from "@cheetos/core";
 
 /** Marker entries that reveal which IDE or coding agent a project is configured for. */
 interface IdeMarker {

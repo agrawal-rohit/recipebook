@@ -1,12 +1,12 @@
 ---
 title: Registry source
-description: Compiling and validating pebbles registries with @pebbles/core.
+description: Compiling and validating cheetos registries with @cheetos/core.
 ---
 
 ## Installing the core package
 
 ```bash
-pnpm add @pebbles/core
+pnpm add @cheetos/core
 ```
 
 ## Mental model
@@ -32,7 +32,7 @@ Authors learn four things, in this order:
 
 ```ts
 import path from "node:path";
-import { buildRegistry } from "@pebbles/core";
+import { buildRegistry } from "@cheetos/core";
 
 await buildRegistry({
 	sourceDir: path.join(packageRoot, "registry"),
@@ -148,15 +148,15 @@ GitHub Actions expressions (`${{ ... }}`) are left untouched. HTML escaping is d
 
 | Phase | When it runs | Typical use |
 | --- | --- | --- |
-| `beforeWrite` | Before planned files are written | Prepare Pebbles-managed files, commands, dependencies, or bindings from conditions |
-| write | After `beforeWrite` and user confirmation | Pebbles writes planned files to disk |
+| `beforeWrite` | Before planned files are written | Prepare Cheetos-managed files, commands, dependencies, or bindings from conditions |
+| write | After `beforeWrite` and user confirmation | Cheetos writes planned files to disk |
 | package install | After writes and `package.json` script merge | Declared ecosystem packages installed via package manager |
 | `afterInstall` | After package install (still runs if declined) | Run external tool initialization (`fallow init`, `graphify install`, git setup) |
 
-Hooks do **not** prompt. Put questions in conditions. Use `import type` from `@pebbles/core` (do not runtime-import the package):
+Hooks do **not** prompt. Put questions in conditions. Use `import type` from `@cheetos/core` (do not runtime-import the package):
 
 ```ts
-import type { BeforeWriteHook } from "@pebbles/core";
+import type { BeforeWriteHook } from "@cheetos/core";
 
 const beforeWrite: BeforeWriteHook = async (ctx) => {
 	const licenseId = ctx.conditions.licenseId;
@@ -204,7 +204,7 @@ Compiled registries include `scriptIntegrity` and `itemIntegrity` maps (`sha256-
 ## Validating compiled items
 
 ```ts
-import { parseRegistryDocument } from "@pebbles/core";
+import { parseRegistryDocument } from "@cheetos/core";
 
 const registry = parseRegistryDocument(JSON.parse(registryJson));
 ```

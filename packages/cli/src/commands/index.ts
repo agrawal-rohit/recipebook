@@ -8,9 +8,8 @@ import {
 	configSetCommand,
 	configUnsetCommand,
 } from "./config";
-import { listCommand } from "./list";
 
-/** Subcommands of `pebbles config`, dispatched from one CAC command. */
+/** Subcommands of `cheetos config`, dispatched from one CAC command. */
 enum ConfigAction {
 	GET = "get",
 	SET = "set",
@@ -18,15 +17,17 @@ enum ConfigAction {
 }
 
 /**
- * Narrow CAC's variadic add args to a string list.
+ * Narrow CAC's variadic add args to a single optional item id.
  * @param items - Positional item ids from CAC.
- * @returns Item id tokens, or an empty list when none were provided.
- * @throws Error when the value is not a string array.
+ * @returns One item id, or an empty list when none were provided.
+ * @throws Error when the value is not a string array, or more than one id is provided.
  */
-function addItemArgs(items: unknown): string[] {
+function addItemArg(items: unknown): string[] {
 	if (items === undefined) return [];
 	if (!Array.isArray(items) || items.some((item) => typeof item !== "string"))
 		throw new Error("add expected a list of item ids.");
+	if (items.length > 1)
+		throw new Error("add installs one registry item at a time.");
 	return items;
 }
 
@@ -44,20 +45,6 @@ function optionalBooleanFlag(value: unknown, name: string): true | undefined {
 }
 
 /**
- * Narrow CAC's `--type` option.
- * @param type - Parsed CAC option value.
- * @returns A string, string list, or `undefined` when the flag is omitted.
- * @throws Error when the value is present but not a string or string list.
- */
-function listTypeOption(type: unknown): string | string[] | undefined {
-	if (type === undefined) return undefined;
-	if (typeof type === "string") return type;
-	if (Array.isArray(type) && type.every((entry) => typeof entry === "string"))
-		return type;
-	throw new Error("--type must be a string or a list of strings.");
-}
-
-/**
  * Narrow an optional positional string argument.
  * @param value - Parsed CAC argument.
  * @param label - Noun phrase for error messages.
@@ -71,13 +58,13 @@ function optionalStringArg(value: unknown, label: string): string | undefined {
 }
 
 /**
- * Parse a `pebbles config` action token.
+ * Parse a `cheetos config` action token.
  * @param action - Raw CAC action argument.
  * @returns A known {@link ConfigAction}.
  * @throws Error when `action` is not get, set, or unset.
  */
 function parseConfigAction(action: unknown): ConfigAction {
-	const usage = "Usage: pebbles config <get|set|unset> [source]";
+	const usage = "Usage: cheetos config <get|set|unset> [source]";
 	if (typeof action !== "string")
 		throw new Error(`Unknown config action "${String(action)}". ${usage}`);
 
@@ -106,7 +93,7 @@ function assertNoConfigSource(
 }
 
 /**
- * Dispatch a parsed `pebbles config` action.
+ * Dispatch a parsed `cheetos config` action.
  * @param action - Raw CAC action argument.
  * @param source - Optional registry source from CAC.
  * @throws Error when the action is unknown, or get/unset is given a source.
@@ -154,35 +141,22 @@ export function registerCommandsCli(
 	loadRegistry: () => Promise<LoadedRegistry>,
 ): void {
 	const addCmd = app.command(
-		"add [...items]",
-		"Add registry items to the current working directory",
+		"add [item]",
+		"Add a registry item to the current working directory",
 	);
 	addCmd.option("--overwrite", "Overwrite existing files");
 	addCmd.action(
 		async (items: unknown, options: { overwrite?: unknown } = {}) => {
 			await runCliCommand(async () => {
 				const { registry, indexLocation } = await loadRegistry();
-				await animatedIntro("adding registry items");
+				await animatedIntro("adding registry item");
 				await addCommand(registry, indexLocation, {
-					items: addItemArgs(items),
+					items: addItemArg(items),
 					overwrite: optionalBooleanFlag(options.overwrite, "--overwrite"),
 				});
 			});
 		},
 	);
-
-	const listCmd = app.command("list", "List available registry items");
-	listCmd.option(
-		"--type <types>",
-		"Filter by type: all, or comma-separated types. Prompts for type selection when omitted",
-	);
-	listCmd.action(async (options: { type?: unknown } = {}) => {
-		await runCliCommand(async () => {
-			const { registry } = await loadRegistry();
-			await animatedIntro("here's the menu");
-			await listCommand(registry, listTypeOption(options.type));
-		});
-	});
 
 	const configCmd = app.command(
 		"config <action> [source]",

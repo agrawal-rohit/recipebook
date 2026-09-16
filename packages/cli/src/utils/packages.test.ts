@@ -6,7 +6,7 @@ import {
 	NpmPackageManager,
 	RegistryDependencyKind,
 	type RegistryEcosystemDependencies,
-} from "@pebbles/core";
+} from "@cheetos/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockConfirmInput = vi.fn();
@@ -26,9 +26,9 @@ vi.mock("../cli/tasks", () => ({
 	runWithTasks: (...args: unknown[]) => mockRunWithTasks(...args),
 }));
 
-vi.mock("@pebbles/core", async () => {
+vi.mock("@cheetos/core", async () => {
 	const actual =
-		await vi.importActual<typeof import("@pebbles/core")>("@pebbles/core");
+		await vi.importActual<typeof import("@cheetos/core")>("@cheetos/core");
 	return {
 		...actual,
 		buildPackageInstallCommands: (...args: unknown[]) =>

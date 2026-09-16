@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@pebbles/core";
+import type { ConditionHandler } from "@cheetos/core";
 
 /**
  * Suggest the authenticated GitHub username or organization from GitHub CLI.

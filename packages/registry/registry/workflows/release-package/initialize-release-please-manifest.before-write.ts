@@ -1,4 +1,4 @@
-import type { BeforeWriteHook } from "@pebbles/core";
+import type { BeforeWriteHook } from "@cheetos/core";
 
 /**
  * Initialize `.release-please-manifest.json` from the version currently in

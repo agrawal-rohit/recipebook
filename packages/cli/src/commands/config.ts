@@ -6,14 +6,14 @@ import {
 	isMissingPathError,
 	publishedRegistryUrl,
 	readJsonFileAsync,
-} from "@pebbles/core";
+} from "@cheetos/core";
 import {
 	configPath,
 	readConfig,
 	unsetRegistryConfig,
 	writeConfig,
 } from "../cli/config";
-import { defaultText, primaryText } from "../cli/labels";
+import { dimText, primaryText } from "../cli/labels";
 import { textInput } from "../cli/prompts";
 
 /**
@@ -56,8 +56,8 @@ async function defaultRegistryUrl(): Promise<string> {
 function printConfiguration(registry: string, filePath: string): void {
 	console.log();
 	console.log(primaryText("Configuration"));
-	console.log(defaultText(`  registry:    ${registry}`));
-	console.log(defaultText(`  config file: ${filePath}`));
+	console.log(dimText(`  registry:    ${registry}`));
+	console.log(dimText(`  config file: ${filePath}`));
 	console.log();
 }
 

@@ -1,4 +1,4 @@
-import type { AfterInstallHook } from "@pebbles/core";
+import type { AfterInstallHook } from "@cheetos/core";
 
 /**
  * Conditionally initialize a git repository in the consuming project after the starter template files are written.

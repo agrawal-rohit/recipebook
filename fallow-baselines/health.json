@@ -1,45 +1,7 @@
 {
   "finding_counts": {
-    "packages/cli/src/cli/animated-intro.ts": {
+    "packages/cli/src/cli/prompts.ts": {
       "crap_moderate": {
-        "count": 1
-      }
-    },
-    "packages/cli/src/commands/index.ts": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
-    "packages/cli/src/commands/list.ts": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
-    "packages/cli/src/utils/registry.ts": {
-      "complexity_high": {
-        "count": 1
-      },
-      "crap_high": {
-        "count": 1
-      }
-    },
-    "packages/core/src/build.ts": {
-      "complexity_moderate": {
-        "count": 1
-      }
-    },
-    "packages/core/src/parse.ts": {
-      "crap_high": {
-        "count": 1
-      }
-    },
-    "packages/core/src/schema.ts": {
-      "crap_moderate": {
-        "count": 1
-      }
-    },
-    "packages/registry/src/github-workflows.test.ts": {
-      "complexity_moderate": {
         "count": 1
       }
     }

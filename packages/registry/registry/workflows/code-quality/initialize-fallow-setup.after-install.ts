@@ -1,4 +1,4 @@
-import type { AfterInstallHook } from "@pebbles/core";
+import type { AfterInstallHook } from "@cheetos/core";
 
 /**
  * Initialize Fallow setup by invoking the canonical Fallow CLI against the

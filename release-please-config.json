@@ -8,7 +8,7 @@
 	"plugins": ["node-workspace"],
 	"packages": {
 		"packages/cli": {
-			"component": "pebbles"
+			"component": "cheetos"
 		},
 		"packages/core": {
 			"component": "core"

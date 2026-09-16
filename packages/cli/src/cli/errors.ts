@@ -1,4 +1,4 @@
-import { dangerHighlight, defaultText } from "./labels";
+import { dangerHighlight, dimText } from "./labels";
 
 /** User canceled an interactive prompt (Ctrl+C / Escape in Clack). */
 export class OperationCanceledError extends Error {
@@ -42,7 +42,7 @@ export function printError(message: string): void {
  * @param message - The cancel message to display.
  */
 export function printCancel(message: string): void {
-	printLabeled(defaultText(" canceled "), message);
+	printLabeled(dimText(" canceled "), message);
 }
 
 /**

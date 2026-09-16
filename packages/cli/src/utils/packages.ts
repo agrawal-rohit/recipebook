@@ -19,7 +19,7 @@ import {
 	runArgvAsync,
 	uniqueSorted,
 	writeFileAsync,
-} from "@pebbles/core";
+} from "@cheetos/core";
 import { primaryText } from "../cli/labels";
 import { confirmInput } from "../cli/prompts";
 import { runWithTasks } from "../cli/tasks";

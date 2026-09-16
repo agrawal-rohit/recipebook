@@ -1,4 +1,4 @@
-name: pebbles-codeql
+name: cheetos-codeql
 paths-ignore:
   - packages/*/dist
   - docs/.next

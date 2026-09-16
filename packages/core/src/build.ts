@@ -103,7 +103,7 @@ function assertJsonFileName(optionName: string, value: string): void {
 }
 
 /**
- * Trim and dedupe external package names, always including `@pebbles/core`.
+ * Trim and dedupe external package names, always including `@cheetos/core`.
  * @param extras - Optional additional external package names.
  * @returns External package list for install/handler bundles.
  * @throws Error when an entry is empty or whitespace-only.
@@ -111,7 +111,7 @@ function assertJsonFileName(optionName: string, value: string): void {
 function withCoreExternalPackages(
 	extras: string[] | undefined,
 ): readonly string[] {
-	const externalPackages = new Set(["@pebbles/core"]);
+	const externalPackages = new Set(["@cheetos/core"]);
 	for (const packageName of extras ?? []) {
 		const pkg = packageName.trim();
 		if (!pkg)

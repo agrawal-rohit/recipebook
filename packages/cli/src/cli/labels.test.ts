@@ -3,12 +3,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("chalk", () => ({
 	default: {
 		hex: () => (message: string) => `hex:${message}`,
-		grey: (message: string) => `grey:${message}`,
 		bgRed: (message: string) => `bgRed:${message}`,
 	},
 }));
 
-import { dangerHighlight, defaultText, primaryText } from "./labels";
+import { dangerHighlight, dimText, primaryText } from "./labels";
 
 describe("cli/labels", () => {
 	afterEach(() => {
@@ -21,9 +20,11 @@ describe("cli/labels", () => {
 		});
 	});
 
-	describe("defaultText", () => {
-		it("applies grey styling", () => {
-			expect(defaultText("hello")).toBe("grey:hello");
+	describe("dimText", () => {
+		it("styles the message without altering its text", () => {
+			const styled = dimText("hello");
+			expect(styled).toContain("hello");
+			expect(styled).not.toBe("hello");
 		});
 	});
 

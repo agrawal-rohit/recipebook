@@ -33,7 +33,7 @@ afterEach(() => {
  * @returns Absolute temp directory path.
  */
 function makeTempDir(): string {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pebbles-security-"));
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-security-"));
 	tempDirs.push(dir);
 	return dir;
 }

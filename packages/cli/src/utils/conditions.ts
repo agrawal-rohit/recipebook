@@ -16,7 +16,7 @@ import {
 	type RegistryContextValue,
 	type RegistryPackageManager,
 	type RequiredCondition,
-} from "@pebbles/core";
+} from "@cheetos/core";
 import { primaryText } from "../cli/labels";
 import {
 	confirmInput,

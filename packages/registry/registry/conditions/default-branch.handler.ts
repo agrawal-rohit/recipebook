@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@pebbles/core";
+import type { ConditionHandler } from "@cheetos/core";
 
 /** Suggest a default branch from `git symbolic-ref`, falling back to `main`. */
 const handler: ConditionHandler = {

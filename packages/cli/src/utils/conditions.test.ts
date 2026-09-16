@@ -1,5 +1,5 @@
-import type { Registry } from "@pebbles/core";
-import { RegistryConditionKind } from "@pebbles/core";
+import type { Registry } from "@cheetos/core";
+import { RegistryConditionKind } from "@cheetos/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockTextInput = vi.fn();

@@ -1418,8 +1418,8 @@ module.exports = async function beforeWrite() {
 	});
 
 	it("createHandlerRuntime isFile rejects a symlink that points outside the project", async () => {
-		const project = fs.mkdtempSync(path.join(os.tmpdir(), "pebbles-link-"));
-		const outside = fs.mkdtempSync(path.join(os.tmpdir(), "pebbles-out-"));
+		const project = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-link-"));
+		const outside = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-out-"));
 		try {
 			fs.writeFileSync(path.join(outside, "secret.txt"), "x");
 			fs.symlinkSync(
@@ -1442,8 +1442,8 @@ module.exports = async function beforeWrite() {
 	});
 
 	it("createHandlerRuntime rejects a symlinked parent directory outside the project", async () => {
-		const project = fs.mkdtempSync(path.join(os.tmpdir(), "pebbles-link-"));
-		const outside = fs.mkdtempSync(path.join(os.tmpdir(), "pebbles-out-"));
+		const project = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-link-"));
+		const outside = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-out-"));
 		try {
 			fs.writeFileSync(path.join(outside, "secret.txt"), "x");
 			fs.symlinkSync(outside, path.join(project, "linked"), "dir");

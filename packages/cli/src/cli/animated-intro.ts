@@ -10,7 +10,7 @@ const LOGO_REST_FRAME = LOGO_FRAMES[0];
 
 /** Options for the animated intro. */
 export interface AnimatedIntroOptions {
-	/** Intro title shown above the message. Default: `"pebbles"`. */
+	/** Intro title shown above the message. Default: `"cheetos"`. */
 	title?: string;
 	/** Output stream. Default: `process.stdout`. */
 	stdout?: NodeJS.WriteStream;
@@ -154,7 +154,7 @@ export function createFixedHeightRenderer(
 export async function animatedIntro(
 	message: string,
 	{
-		title = "pebbles",
+		title = "cheetos",
 		stdout = process.stdout,
 		stdin = process.stdin,
 		frameDelayMs = 150,

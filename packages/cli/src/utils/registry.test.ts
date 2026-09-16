@@ -1,6 +1,6 @@
 import path from "node:path";
-import type { Registry } from "@pebbles/core";
-import { InvalidJsonError, sha256Integrity } from "@pebbles/core";
+import type { Registry } from "@cheetos/core";
+import { InvalidJsonError, sha256Integrity } from "@cheetos/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockIsFileAsync = vi.fn<(candidate: string) => Promise<boolean>>();
@@ -8,9 +8,9 @@ const mockReadFileAsync = vi.fn();
 const mockParseRegistryDocument = vi.fn();
 const mockFetch = vi.fn();
 
-vi.mock("@pebbles/core", async () => {
+vi.mock("@cheetos/core", async () => {
 	const actual =
-		await vi.importActual<typeof import("@pebbles/core")>("@pebbles/core");
+		await vi.importActual<typeof import("@cheetos/core")>("@cheetos/core");
 	return {
 		...actual,
 		isFileAsync: (candidate: string) => mockIsFileAsync(candidate),
@@ -261,7 +261,7 @@ describe("locateRegistry", () => {
 				bundledRegistryPath: "/bundle/registry.json",
 			}),
 		).rejects.toThrow(
-			"Registry not found (registry.json). Run `pnpm run build:registry` before using pebbles.",
+			"Registry not found (registry.json). Run `pnpm run build:registry` before using cheetos.",
 		);
 	});
 });

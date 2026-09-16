@@ -17,7 +17,7 @@ import {
 	runAsync,
 	sandboxRunnerPath,
 	setScriptExecutor,
-} from "@pebbles/core";
+} from "@cheetos/core";
 import { bundledRegistryPath } from "./registry";
 
 /**

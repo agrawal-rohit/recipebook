@@ -1,16 +1,16 @@
 {
-	"name": "@pebbles/registry",
+	"name": "@cheetos/registry",
 	"version": "0.2.1",
-	"description": "An opinionated pebbles registry with project tooling configurations and GitHub Actions workflows.",
+	"description": "An opinionated cheetos registry with project tooling configurations and GitHub Actions workflows.",
 	"license": "MIT",
 	"private": true,
 	"scripts": {
-		"build": "pnpm --filter @pebbles/core run build && tsx ./scripts/build-registry.ts .",
-		"typecheck": "pnpm --filter @pebbles/core run build && tsc -p tsconfig.json --noEmit",
+		"build": "pnpm --filter @cheetos/core run build && tsx ./scripts/build-registry.ts .",
+		"typecheck": "pnpm --filter @cheetos/core run build && tsc -p tsconfig.json --noEmit",
 		"test": "vitest run --passWithNoTests --exclude 'registry/**'"
 	},
 	"dependencies": {
-		"@pebbles/core": "workspace:*",
+		"@cheetos/core": "workspace:*",
 		"spdx-license-list": "^6.12.0"
 	}
 }

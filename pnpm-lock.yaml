@@ -117,10 +117,13 @@ importers:
 
   packages/cli:
     dependencies:
+      '@clack/core':
+        specifier: 1.4.3
+        version: 1.4.3
       '@clack/prompts':
         specifier: ^1.7.0
         version: 1.7.0
-      '@pebbles/core':
+      '@cheetos/core':
         specifier: workspace:*
         version: link:../core
       cac:
@@ -151,7 +154,7 @@ importers:
 
   packages/registry:
     dependencies:
-      '@pebbles/core':
+      '@cheetos/core':
         specifier: workspace:*
         version: link:../core
       spdx-license-list:

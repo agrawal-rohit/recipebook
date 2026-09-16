@@ -1,22 +1,25 @@
+import { stripVTControlCharacters, styleText } from "node:util";
+import { getRows, SelectPrompt, wrapTextWithPrefix } from "@clack/core";
 import {
 	confirm,
-	groupMultiselect,
 	isCancel,
 	multiselect,
+	S_BAR,
+	S_BAR_END,
+	S_RADIO_ACTIVE,
+	S_RADIO_INACTIVE,
 	select,
+	symbol,
 	text,
 } from "@clack/prompts";
+import chalk from "chalk";
 import { OperationCanceledError } from "./errors";
+import { dimText, primaryText } from "./labels";
 
 /** One option in a select/multiselect prompt (matches Clack’s unexported `Option<string>`). */
 type SelectOption = NonNullable<
 	Parameters<typeof select<string>>[0]["options"]
 >[number];
-
-/** One option in a grouped multiselect (matches Clack’s unexported `Option<string>`). */
-type GroupedSelectOption = NonNullable<
-	Parameters<typeof groupMultiselect<string>>[0]["options"]
->[string][number];
 
 /**
  * Throw {@link OperationCanceledError} when Clack reports a cancel symbol.
@@ -25,6 +28,83 @@ type GroupedSelectOption = NonNullable<
  */
 function throwIfCanceled<T>(value: T): asserts value is Exclude<T, symbol> {
 	if (isCancel(value)) throw new OperationCanceledError();
+}
+
+/**
+ * Wrap text at the terminal width, applying already-styled prefixes to each line.
+ * @param text - Body text to wrap (may contain ANSI styling).
+ * @param startPrefix - Styled prefix for the first line.
+ * @param continuationPrefix - Styled prefix for every wrapped line after the first.
+ * @param reserve - Visible columns the caller prepends outside this text (e.g. a guide bar).
+ * @returns Wrapped text with styled prefixes applied, fitting within the terminal width.
+ */
+function wrapStyledText(
+	text: string,
+	startPrefix: string,
+	continuationPrefix: string,
+	reserve = 0,
+): string {
+	const widest = Math.max(
+		stripVTControlCharacters(startPrefix).length,
+		stripVTControlCharacters(continuationPrefix).length,
+	);
+	const pad = " ".repeat(reserve + widest);
+	const lines = wrapTextWithPrefix(process.stdout, text, pad, pad, pad).split(
+		"\n",
+	);
+	return lines
+		.map((line, index) => {
+			const prefix = index === 0 ? startPrefix : continuationPrefix;
+			return `${prefix}${trimBreakWhitespace(line.slice(reserve + widest))}`;
+		})
+		.join("\n");
+}
+
+/**
+ * Choose which rows to display so the active row stays visible and the frame fits the terminal.
+ * @param rows - Rendered rows in display order; a row may span several lines when it wraps.
+ * @param cursor - Index of the active row, which is always kept inside the window.
+ * @param availableLines - Terminal lines budgeted for the row list, overflow markers included.
+ * @returns Rows to render, with `...` markers where rows were hidden.
+ */
+function windowRows(
+	rows: readonly string[],
+	cursor: number,
+	availableLines: number,
+): string[] {
+	const linesFor = (start: number, end: number): number => {
+		// Each hidden end costs one `...` marker line on top of the rows it replaces.
+		let lines = (start > 0 ? 1 : 0) + (end < rows.length ? 1 : 0);
+		for (const row of rows.slice(start, end)) lines += row.split("\n").length;
+		return lines;
+	};
+
+	const offsetFor = (capacity: number): number =>
+		cursor >= capacity - 3
+			? Math.max(Math.min(cursor - capacity + 3, rows.length - capacity), 0)
+			: 0;
+
+	let capacity = Math.min(rows.length, Math.max(availableLines, 1));
+	while (capacity > 1) {
+		const offset = offsetFor(capacity);
+		if (linesFor(offset, offset + capacity) <= availableLines) break;
+		capacity -= 1;
+	}
+
+	const offset = offsetFor(capacity);
+	const visible = rows.slice(offset, offset + capacity);
+	if (offset > 0) visible.unshift(styleText("dim", "..."));
+	if (offset + capacity < rows.length) visible.push(styleText("dim", "..."));
+	return visible;
+}
+
+/**
+ * Remove the leading whitespace that wrapping leaves when it breaks a line.
+ * @param line - A wrapped line body.
+ * @returns The line with leading whitespace removed.
+ */
+function trimBreakWhitespace(line: string): string {
+	return line.trimStart();
 }
 
 /**
@@ -37,12 +117,12 @@ function selectOptionValues(options: readonly SelectOption[]): Set<string> {
 }
 
 /**
- * Collect option values from a grouped multiselect map.
+ * Collect option values from a grouped map.
  * @param options - Options keyed by group label.
  * @returns Distinct option values across every group.
  */
 function groupedOptionValues(
-	options: Record<string, GroupedSelectOption[]>,
+	options: Record<string, SelectOption[]>,
 ): Set<string> {
 	return new Set(
 		Object.values(options)
@@ -211,27 +291,110 @@ export async function multiselectInput(
 }
 
 /**
- * Prompt for multiple selections arranged under group labels.
+ * Prompt for one selection arranged under group labels.
  * @param message - Prompt message to display.
  * @param options - Options keyed by group label. At least one option is required.
- * @returns Selected values.
+ * @returns Selected value.
  * @throws {OperationCanceledError} When the user cancels.
- * @throws Error when no options are offered, or a result is not an offered value.
+ * @throws Error when no options are offered, or the result is not an offered value.
  */
-export async function groupedMultiselectInput(
+export async function groupedSelectInput(
 	message: string,
-	options: Record<string, GroupedSelectOption[]>,
-): Promise<string[]> {
+	options: Record<string, SelectOption[]>,
+): Promise<string> {
 	const allowed = groupedOptionValues(options);
 	assertSelectHasOptions(message, allowed);
 
-	const values = await groupMultiselect({
-		message,
-		options,
-	});
+	// Flatten groups into the flat row list
+	type FlatRow = SelectOption & { group: string | boolean };
+	const flatOptions: FlatRow[] = Object.entries(options).flatMap(
+		([groupLabel, groupOptions]) => [
+			{
+				value: groupLabel,
+				label: groupLabel,
+				group: true as const,
+				disabled: true,
+			},
+			...groupOptions.map((option) => ({
+				...option,
+				group: groupLabel,
+				disabled: false,
+			})),
+		],
+	);
 
-	throwIfCanceled(values);
-	return offeredMultiselectValues(message, values, allowed);
+	const guideIndent = 3;
+	const renderRow = (option: FlatRow, active: boolean): string => {
+		// A non-item row is a group header: a bold blank-line-prefixed label, no radio glyph.
+		// Headers always use `value` as the group name (set when flattening).
+		if (typeof option.group !== "string")
+			return wrapStyledText(
+				`\n${chalk.bold(primaryText(String(option.value)))}`,
+				"",
+				"",
+				guideIndent,
+			);
+
+		const label = option.label ?? String(option.value);
+		const next = flatOptions[flatOptions.indexOf(option) + 1];
+		const isLast = next === undefined || next.group === true;
+		const prefix = isLast ? `${S_BAR_END} ` : `${S_BAR} `;
+		const radio = active ? S_RADIO_ACTIVE : S_RADIO_INACTIVE;
+		// The description follows a colon and uses `dimText`, matching `list`'s item lines.
+		const hint = option.hint ? dimText(option.hint) : "";
+		const text = option.hint ? `${label}: ${hint}` : label;
+		const startPrefix = `${styleText("dim", prefix)}${styleText(active ? "green" : "dim", radio)} `;
+		const continuationPrefix = isLast
+			? "    "
+			: `${styleText("dim", S_BAR)}   `;
+
+		return wrapStyledText(text, startPrefix, continuationPrefix, guideIndent);
+	};
+
+	// Guide bars are always on (`settings.withGuide` defaults to true), matching the reference.
+	const result = await new SelectPrompt<
+		SelectOption & { group: string | boolean }
+	>({
+		options: flatOptions,
+		initialValue: flatOptions.find((option) => option.group !== true)?.value,
+		render() {
+			const state = this.state;
+			const title = `${styleText("gray", S_BAR)}\n${symbol(state)}  ${message}\n`;
+			const current = flatOptions[this.cursor];
+			const rowLabel = current ? (current.label ?? String(current.value)) : "";
+
+			if (state === "submit")
+				return `${title}${styleText("gray", S_BAR)}  ${styleText("dim", rowLabel)}`;
+			if (state === "cancel")
+				return `${title}${styleText("gray", S_BAR)}  ${styleText(["strikethrough", "dim"], rowLabel)}\n${styleText("gray", S_BAR)}`;
+
+			const guidePrefix = `${styleText("cyan", S_BAR)}  `;
+			const footerLines = [
+				`${styleText("cyan", S_BAR)}  ${styleText("dim", "↑/↓")} to navigate • ${styleText("dim", "Enter:")} confirm`,
+				styleText("cyan", S_BAR_END),
+			];
+			const availableLines =
+				getRows(process.stdout) -
+				title.split("\n").length -
+				footerLines.length -
+				1;
+			const visible = windowRows(
+				flatOptions.map((option, index) =>
+					renderRow(option, index === this.cursor),
+				),
+				this.cursor,
+				availableLines,
+			);
+			const rows = visible.join("\n").replaceAll("\n", `\n${guidePrefix}`);
+
+			return `${title}${guidePrefix}${rows}\n${footerLines.join("\n")}\n`;
+		},
+	}).prompt();
+
+	throwIfCanceled(result);
+	if (typeof result !== "string" || !allowed.has(result))
+		throw new Error(`Select prompt "${message}" returned an unexpected value.`);
+	return result;
 }
 
 /**

@@ -9,7 +9,7 @@
 	"packs": [
 		{
 			"id": "typescript-npm",
-			"title": "Secure package management for TypeScript projects with npm",
+			"title": "npm",
 			"when": {
 				"language": "typescript",
 				"packageManager": "npm"
@@ -23,7 +23,7 @@
 		},
 		{
 			"id": "typescript-pnpm",
-			"title": "Secure package management for TypeScript projects with pnpm",
+			"title": "pnpm",
 			"when": {
 				"language": "typescript",
 				"packageManager": "pnpm"
@@ -37,7 +37,7 @@
 		},
 		{
 			"id": "typescript-yarn",
-			"title": "Secure package management for TypeScript projects with Yarn",
+			"title": "yarn",
 			"when": {
 				"language": "typescript",
 				"packageManager": "yarn"
@@ -51,7 +51,7 @@
 		},
 		{
 			"id": "typescript-bun",
-			"title": "Secure package management for TypeScript projects with Bun",
+			"title": "bun",
 			"when": {
 				"language": "typescript",
 				"packageManager": "bun"
@@ -65,7 +65,7 @@
 		},
 		{
 			"id": "typescript-nub",
-			"title": "Secure package management for TypeScript projects with Nub",
+			"title": "nub",
 			"when": {
 				"language": "typescript",
 				"packageManager": "nub"

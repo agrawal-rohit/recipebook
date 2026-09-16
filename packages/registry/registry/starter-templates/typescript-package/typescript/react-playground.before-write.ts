@@ -1,4 +1,4 @@
-import type { BeforeWriteHook } from "@pebbles/core";
+import type { BeforeWriteHook } from "@cheetos/core";
 
 /**
  * Point the react-app scaffold dependency at the package's playground folder.

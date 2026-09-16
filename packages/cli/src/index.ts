@@ -18,9 +18,9 @@ function registryFlagValue(flag: unknown): string | undefined {
 	return flag.trim();
 }
 
-/** Run the pebbles CLI. */
+/** Run the cheetos CLI. */
 export default async function run(): Promise<void> {
-	const app = cac("pebbles");
+	const app = cac("cheetos");
 	app.option("--registry <source>", "Use a custom registry URL");
 
 	/**

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in contributing to `pebbles`! This guide will help you get started with the development process, from setting up your environment to submitting changes.
+Thanks for your interest in contributing to `cheetos`! This guide will help you get started with the development process, from setting up your environment to submitting changes.
 
 ## Table of Contents
 
@@ -20,9 +20,9 @@ Thanks for your interest in contributing to `pebbles`! This guide will help you 
 
 If you have questions, ideas, or need help:
 
-- Search existing [GitHub Discussions](https://github.com/agrawal-rohit/pebbles/discussions) first
+- Search existing [GitHub Discussions](https://github.com/agrawal-rohit/cheetos/discussions) first
 - Open a new discussion for questions and proposals
-- Create a [GitHub Issue](https://github.com/agrawal-rohit/pebbles/issues) for bug reports
+- Create a [GitHub Issue](https://github.com/agrawal-rohit/cheetos/issues) for bug reports
 
 Please be specific about your environment and include steps to reproduce issues when reporting bugs.
 
@@ -32,12 +32,12 @@ Please be specific about your environment and include steps to reproduce issues 
 2. Install dependencies: `pnpm install`
 3. Build the workspace: `pnpm run build`
 4. Build the default registry: `pnpm run build:registry`
-5. Test the CLI package locally: `pnpm --filter pebbles pack`
+5. Test the CLI package locally: `pnpm --filter cheetos pack`
 
 The repository is a pnpm workspace with the following structure:
 
-- `packages/cli`: published as `pebbles`
-- `packages/core`: published as `@pebbles/core`
+- `packages/cli`: published as `cheetos`
+- `packages/core`: published as `@cheetos/core`
 - `packages/registry`: private default registry content
 - `docs`: documentation site
 
@@ -129,7 +129,7 @@ Every push to `main` runs the `Release` workflow:
 2. Review the Release PR (CI must pass; one approval is required)
 3. Squash-merge the Release PR to:
    - bump only the packages that changed
-   - create component tags (for example `pebbles@v0.3.0`, `core@v0.3.0`)
+   - create component tags (for example `cheetos@v0.3.0`, `core@v0.3.0`)
    - publish only the released packages to npm with trusted publishing
 
 The workflow in [`.github/workflows/release.yml`](./.github/workflows/release.yml)
@@ -139,8 +139,8 @@ package, edit only [`release-please-config.json`](./release-please-config.json)
 and [`.release-please-manifest.json`](./.release-please-manifest.json). For a
 Python or Rust repo, keep the release-please job and swap the publish step.
 
-**Note:** `pebbles` and `@pebbles/core` version independently.
-`@pebbles/registry` is private, excluded from release-please, and never
+**Note:** `cheetos` and `@cheetos/core` version independently.
+`@cheetos/registry` is private, excluded from release-please, and never
 published to npm. Because the CLI depends on core via `workspace:*`, releasing
 core also patch-bumps the CLI so a core fix always ships in a new CLI release.
 
@@ -151,11 +151,11 @@ the Release PR flow above. If a pre-release is needed, cut it explicitly and
 test it the same way you would test a stable publish:
 
 ```bash
-# For pebbles itself
-npx pebbles@1.2.3-rc.1 --help
+# For cheetos itself
+npx cheetos@1.2.3-rc.1 --help
 
-# For @pebbles/core
-npm install @pebbles/core@1.2.3-rc.1
+# For @cheetos/core
+npm install @cheetos/core@1.2.3-rc.1
 ```
 
 Found a bug? Fix it on `main`, merge the change, and merge the next Release PR
@@ -170,9 +170,9 @@ when you are ready to publish the next version.
 
 ## Code Registry
 
-`pebbles` uses a JSON registry inspired by [shadcn](https://ui.shadcn.com/docs/registry) to distribute all registry items _(e.g. starter templates, UI components, configurations, and agent instructions)_. Each unit is a self-contained folder holding its manifest and its source files. A unit can be wired to other items through the `registryDependencies` property to make composable units.
+`cheetos` uses a JSON registry inspired by [shadcn](https://ui.shadcn.com/docs/registry) to distribute all registry items _(e.g. starter templates, UI components, configurations, and agent instructions)_. Each unit is a self-contained folder holding its manifest and its source files. A unit can be wired to other items through the `registryDependencies` property to make composable units.
 
-The default registry content lives under `packages/registry/registry/`. Shared registry conditions are centralized in `packages/registry/registry/conditions/conditions.json` (handlers colocated under `conditions/`). Item type display metadata is centralized in `packages/registry/registry/types.json`. Compilation is provided by `@pebbles/core` (`buildRegistry`); `@pebbles/registry` is content plus a short build script.
+The default registry content lives under `packages/registry/registry/`. Shared registry conditions are centralized in `packages/registry/registry/conditions/conditions.json` (handlers colocated under `conditions/`). Item type display metadata is centralized in `packages/registry/registry/types.json`. Compilation is provided by `@cheetos/core` (`buildRegistry`); `@cheetos/registry` is content plus a short build script.
 
 ### Registry Layout
 
@@ -193,12 +193,12 @@ packages/registry/registry/
 └── …
 ```
 
-The compiled items are written next to the package root by `pnpm run build:registry` (`buildRegistry` from `@pebbles/core`):
+The compiled items are written next to the package root by `pnpm run build:registry` (`buildRegistry` from `@cheetos/core`):
 
 - `packages/registry/registry.json` — lean index metadata (committed; regenerated and staged by the pre-commit hook)
 - `packages/registry/r/{itemId}.json` or `packages/registry/r/{itemId}/{variantId}.json` — compiled items (gitignored; generated locally and copied into the CLI npm tarball at `prepack`)
 
-`registry.json` is regenerated and staged automatically by the pre-commit hook whenever anything under `packages/registry/registry/` or the core compiler changes. Compiled item files under `r/` are build output only — not committed — and ship with the published `pebbles` package.
+`registry.json` is regenerated and staged automatically by the pre-commit hook whenever anything under `packages/registry/registry/` or the core compiler changes. Compiled item files under `r/` are build output only — not committed — and ship with the published `cheetos` package.
 
 `registry.json` only holds index metadata for individual items, so the index stays lean as the registry grows. Source manifests keep item-relative file `source` paths, ecosystem-tagged `dependencies`, optional `beforeWrite` / `afterInstall` scripts, and variant descriptions. The build inlines those files into compact payloads under `r/`, bundles install scripts to `r/{itemId}.beforeWrite.{index}.js` and `r/{itemId}.afterInstall.{index}.js` (and pack scripts under `r/{itemId}/{packId}.…`, plus condition handlers to `r/_handlers/{key}.handler.js`), and writes a compact index entry keyed by item id. Payloads keep `target`, inlined `content`, and `dependencies` keyed by ecosystem — no item or variant identity fields. Consumers join index `source` values and script URIs against the index location. Third-party registries that host remotely should keep `registry.json` and `r/` side by side (GitHub raw, S3, or a CDN). The default registry ships payloads inside the CLI package instead.
 
@@ -206,10 +206,10 @@ Payload `content` is the source template text. Condition defaults and install li
 
 ### Install scripts and condition handlers
 
-Colocate a TypeScript install script next to the manifest (or under `registry/conditions/` for shared conditions). Use `import type` from `@pebbles/core` — do not runtime-import the package (the build rejects it).
+Colocate a TypeScript install script next to the manifest (or under `registry/conditions/` for shared conditions). Use `import type` from `@cheetos/core` — do not runtime-import the package (the build rejects it).
 
 ```ts
-import type { BeforeWriteHook } from "@pebbles/core";
+import type { BeforeWriteHook } from "@cheetos/core";
 
 const beforeWrite: BeforeWriteHook = async (ctx) => {
 	const licenseId = ctx.conditions.licenseId;
@@ -229,7 +229,7 @@ See `packages/registry/registry/configurations/license/` for an SPDX license pic
 Third-party registries compile the same way — pass the registry source tree and output directory explicitly:
 
 ```ts
-import { buildRegistry } from "@pebbles/core";
+import { buildRegistry } from "@cheetos/core";
 
 await buildRegistry({
 	sourceDir: path.join(packageRoot, "registry"),
@@ -250,14 +250,14 @@ When proposing a new registry item:
 1. Add a new folder under `packages/registry/registry/` with a `registry-item.json` (`id`, `title`, `description`, `type`, plus `files`, `variants`, and/or `handler`) and its files
 2. Declare the item `type` in `packages/registry/registry/types.json` with a `label` and optional `description` _(required for every registry)_
 3. Include everything needed for a complete working setup; depend on existing concern items instead of copying files
-4. Run `pnpm run build:registry`, `pnpm cov`, and `pnpm --filter pebbles pack`
+4. Run `pnpm run build:registry`, `pnpm cov`, and `pnpm --filter cheetos pack`
 5. Document what the item provides in your pull request
 6. Include examples of generated output
 
 ## Security
 
 - **Do not** report security vulnerabilities in public issues
-- Use GitHub's [private vulnerability reporting](https://github.com/agrawal-rohit/pebbles/security/advisories/new)
+- Use GitHub's [private vulnerability reporting](https://github.com/agrawal-rohit/cheetos/security/advisories/new)
 
 ## Maintainer Guidelines
 

@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { type Registry, RegistryConditionKind } from "@pebbles/core";
+import { type Registry, RegistryConditionKind } from "@cheetos/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockMultiselectInput = vi.fn();
-const mockGroupedMultiselectInput = vi.fn();
+const mockGroupedSelectInput = vi.fn();
 const mockSelectInput = vi.fn();
 const mockConfirmInput = vi.fn();
 const mockTextInput = vi.fn();
@@ -33,8 +33,7 @@ vi.mock("../cli/tasks", async () => {
 
 vi.mock("../cli/prompts", () => ({
 	multiselectInput: (...args: unknown[]) => mockMultiselectInput(...args),
-	groupedMultiselectInput: (...args: unknown[]) =>
-		mockGroupedMultiselectInput(...args),
+	groupedSelectInput: (...args: unknown[]) => mockGroupedSelectInput(...args),
 	selectInput: (...args: unknown[]) => mockSelectInput(...args),
 	confirmInput: (...args: unknown[]) => mockConfirmInput(...args),
 	textInput: (...args: unknown[]) => mockTextInput(...args),
@@ -57,9 +56,9 @@ vi.mock("../utils/scripts", async () => {
 	};
 });
 
-vi.mock("@pebbles/core", async () => {
+vi.mock("@cheetos/core", async () => {
 	const actual =
-		await vi.importActual<typeof import("@pebbles/core")>("@pebbles/core");
+		await vi.importActual<typeof import("@cheetos/core")>("@cheetos/core");
 	return {
 		...actual,
 		buildInstallPlan: (...args: unknown[]) => mockBuildInstallPlan(...args),
@@ -407,14 +406,12 @@ describe("commands/add", () => {
 	});
 
 	it("prompts for items grouped by type when none are provided", async () => {
-		mockGroupedMultiselectInput.mockResolvedValue([
-			"pr-template-configuration",
-		]);
+		mockGroupedSelectInput.mockResolvedValue("pr-template-configuration");
 
 		await addCommand(registry, indexLocation, {});
 
-		expect(mockGroupedMultiselectInput).toHaveBeenCalledWith(
-			"Which registry items should be added?",
+		expect(mockGroupedSelectInput).toHaveBeenCalledWith(
+			"Which registry item should be added?",
 			{
 				Configurations: [
 					{
@@ -428,14 +425,57 @@ describe("commands/add", () => {
 		expect(mockWriteFileAsync).toHaveBeenCalled();
 	});
 
-	it("prompts when items is an empty array", async () => {
-		mockGroupedMultiselectInput.mockResolvedValue([
-			"pr-template-configuration",
+	it("passes the item title to the grouped prompt", async () => {
+		const packedRegistry: Registry = {
+			types: { configuration: { label: "Configurations" } },
+			items: {
+				"pr-template-configuration": {
+					title: "Pull Request Template",
+					description: "PR template",
+					type: "configuration",
+					packs: [
+						{
+							id: "light",
+							title: "Light",
+							when: {},
+							source: "r/pr/light.json",
+						},
+						{ id: "dark", title: "Dark", when: {}, source: "r/pr/dark.json" },
+					],
+				},
+			},
+		};
+		mockGroupedSelectInput.mockResolvedValue("pr-template-configuration");
+		mockBuildInstallPlan.mockReturnValue([
+			{ itemId: "pr-template-configuration", sources: ["r/pr/light.json"] },
 		]);
+		mockLoadCompiledItems.mockResolvedValue(
+			new Map([["r/pr/light.json", { files: [] }]]),
+		);
+
+		await addCommand(packedRegistry, indexLocation, {});
+
+		const [, groupedOptions] = mockGroupedSelectInput.mock.calls[0] as [
+			string,
+			Record<string, Array<{ label: string; value: string; hint?: string }>>,
+		];
+		expect(groupedOptions).toEqual({
+			Configurations: [
+				{
+					label: "Pull Request Template",
+					value: "pr-template-configuration",
+					hint: "PR template",
+				},
+			],
+		});
+	});
+
+	it("prompts when items is an empty array", async () => {
+		mockGroupedSelectInput.mockResolvedValue("pr-template-configuration");
 
 		await addCommand(registry, indexLocation, { items: [] });
 
-		expect(mockGroupedMultiselectInput).toHaveBeenCalled();
+		expect(mockGroupedSelectInput).toHaveBeenCalled();
 	});
 
 	it("sorts grouped prompt options by title", async () => {
@@ -456,7 +496,7 @@ describe("commands/add", () => {
 				},
 			},
 		};
-		mockGroupedMultiselectInput.mockResolvedValue(["alpha-configuration"]);
+		mockGroupedSelectInput.mockResolvedValue("alpha-configuration");
 		mockBuildInstallPlan.mockReturnValue([
 			{
 				itemId: "alpha-configuration",
@@ -469,8 +509,8 @@ describe("commands/add", () => {
 
 		await addCommand(sortedRegistry, indexLocation, {});
 
-		expect(mockGroupedMultiselectInput).toHaveBeenCalledWith(
-			"Which registry items should be added?",
+		expect(mockGroupedSelectInput).toHaveBeenCalledWith(
+			"Which registry item should be added?",
 			{
 				Configurations: [
 					{
@@ -509,18 +549,11 @@ describe("commands/add", () => {
 				},
 			},
 		};
-		mockGroupedMultiselectInput.mockResolvedValue([
-			"pr-template-configuration",
-			"code-quality-workflow",
-		]);
+		mockGroupedSelectInput.mockResolvedValue("pr-template-configuration");
 		mockBuildInstallPlan.mockReturnValue([
 			{
 				itemId: "pr-template-configuration",
 				sources: ["r/pr-template-configuration.json"],
-			},
-			{
-				itemId: "code-quality-workflow",
-				sources: ["r/code-quality-workflow.json"],
 			},
 		]);
 		mockLoadCompiledItems.mockResolvedValue(
@@ -552,9 +585,9 @@ describe("commands/add", () => {
 
 		await addCommand(groupedRegistry, indexLocation, {});
 
-		expect(mockGroupedMultiselectInput).toHaveBeenCalledTimes(1);
-		expect(mockGroupedMultiselectInput).toHaveBeenCalledWith(
-			"Which registry items should be added?",
+		expect(mockGroupedSelectInput).toHaveBeenCalledTimes(1);
+		expect(mockGroupedSelectInput).toHaveBeenCalledWith(
+			"Which registry item should be added?",
 			{
 				Configurations: [
 					expect.objectContaining({ value: "pr-template-configuration" }),
@@ -565,13 +598,13 @@ describe("commands/add", () => {
 			},
 		);
 		expect(mockBuildInstallPlan).toHaveBeenCalledWith(
-			["pr-template-configuration", "code-quality-workflow"],
+			["pr-template-configuration"],
 			groupedRegistry.items,
 			{},
 			undefined,
 		);
 		expect(consoleLogSpy).toHaveBeenCalledWith(
-			expect.stringContaining("Installed 2 items."),
+			expect.stringContaining("Installed 1 item."),
 		);
 	});
 
@@ -612,137 +645,6 @@ describe("commands/add", () => {
 				overwrite: true,
 			}),
 		).rejects.toThrow("exists and is a directory");
-	});
-
-	it("rejects colliding compiled item targets across items", async () => {
-		const multiRegistry: Registry = {
-			...registry,
-			items: {
-				...registry.items,
-				other: {
-					title: "Other",
-					description: "Other item",
-					type: "configuration",
-					source: "r/other.json",
-				},
-			},
-		};
-		mockBuildInstallPlan.mockReturnValue([
-			{
-				itemId: "pr-template-configuration",
-				sources: ["r/pr-template-configuration.json"],
-			},
-			{
-				itemId: "other",
-				sources: ["r/other.json"],
-			},
-		]);
-		mockLoadCompiledItems.mockResolvedValue(
-			new Map([
-				[
-					"r/pr-template-configuration.json",
-					{
-						files: [
-							{
-								target: ".github/pull_request_template.md",
-								content: "# A",
-							},
-						],
-					},
-				],
-				[
-					"r/other.json",
-					{
-						files: [
-							{
-								target: ".github/pull_request_template.md",
-								content: "# B",
-							},
-						],
-					},
-				],
-			]),
-		);
-
-		await expect(
-			addCommand(multiRegistry, indexLocation, {
-				items: ["pr-template-configuration", "other"],
-				overwrite: true,
-			}),
-		).rejects.toThrow("Multiple compiled items write to the same target");
-	});
-
-	it("merges duplicate package declarations into one install command", async () => {
-		const multiRegistry: Registry = {
-			...registry,
-			items: {
-				"pr-template-configuration": {
-					...registry.items["pr-template-configuration"],
-				},
-				other: {
-					title: "Other",
-					description: "Other item",
-					type: "configuration",
-					source: "r/other.json",
-				},
-			},
-		};
-		mockBuildInstallPlan.mockReturnValue([
-			{
-				itemId: "pr-template-configuration",
-				sources: ["r/pr-template-configuration.json"],
-			},
-			{
-				itemId: "other",
-				sources: ["r/other.json"],
-			},
-		]);
-		mockLoadCompiledItems.mockResolvedValue(
-			new Map([
-				[
-					"r/pr-template-configuration.json",
-					{
-						files: [
-							{
-								target: "a.md",
-								content: "a",
-							},
-						],
-						dependencies: {
-							npm: { dev: ["vitest@^3"] },
-						},
-					},
-				],
-				[
-					"r/other.json",
-					{
-						files: [
-							{
-								target: "b.md",
-								content: "b",
-							},
-						],
-						dependencies: {
-							npm: { dev: ["vitest@^3", "zod"] },
-						},
-					},
-				],
-			]),
-		);
-		mockSelectInput.mockResolvedValue("npm");
-		mockConfirmInput.mockResolvedValue(true);
-
-		await addCommand(multiRegistry, indexLocation, {
-			items: ["pr-template-configuration", "other"],
-			overwrite: true,
-		});
-
-		expect(mockRunArgvAsync).toHaveBeenCalledTimes(1);
-		expect(mockRunArgvAsync).toHaveBeenCalledWith(
-			"pnpm",
-			["add", "--ignore-scripts", "-D", "vitest@^3", "zod"],
-			expect.objectContaining({ cwd: tempDir, stdio: "inherit" }),
-		);
 	});
 
 	it("auto-selects a sole select condition option without prompting", async () => {
@@ -806,17 +708,13 @@ describe("commands/add", () => {
 		).rejects.toThrow("No registry items are available.");
 	});
 
-	it("rejects when the grouped item prompt selects nothing", async () => {
-		mockGroupedMultiselectInput.mockResolvedValue([]);
-
-		await expect(addCommand(registry, indexLocation, {})).rejects.toThrow(
-			"Select at least one registry item to add.",
-		);
-	});
-
 	it("omits undeclared-type items from the item prompt (core parse-time validation rejects them first)", async () => {
-		mockGroupedMultiselectInput.mockResolvedValue([]);
-
+		// The real groupedSelectInput fails fast on an empty options map; mirror that.
+		mockGroupedSelectInput.mockRejectedValue(
+			new Error(
+				'Select prompt "Which registry item should be added?" has no options.',
+			),
+		);
 		await expect(
 			addCommand(
 				{
@@ -833,9 +731,11 @@ describe("commands/add", () => {
 				indexLocation,
 				{},
 			),
-		).rejects.toThrow("Select at least one registry item to add.");
-		expect(mockGroupedMultiselectInput).toHaveBeenCalledWith(
-			"Which registry items should be added?",
+		).rejects.toThrow(
+			'Select prompt "Which registry item should be added?" has no options.',
+		);
+		expect(mockGroupedSelectInput).toHaveBeenCalledWith(
+			"Which registry item should be added?",
 			{},
 		);
 	});
@@ -844,6 +744,17 @@ describe("commands/add", () => {
 		await expect(
 			addCommand(registry, indexLocation, { items: ["missing"] }),
 		).rejects.toThrow('Registry item not found: "missing"');
+		expect(mockPrepareScriptExecution).not.toHaveBeenCalled();
+	});
+
+	it("rejects when more than one item id is passed", async () => {
+		await expect(
+			addCommand(registry, indexLocation, {
+				items: ["pr-template-configuration", "code-quality-workflow"],
+			}),
+		).rejects.toThrow(
+			"add installs one registry item at a time; pass a single item id.",
+		);
 		expect(mockPrepareScriptExecution).not.toHaveBeenCalled();
 	});
 
@@ -873,14 +784,12 @@ describe("commands/add", () => {
 				},
 			},
 		};
-		mockGroupedMultiselectInput.mockResolvedValue([
-			"pr-template-configuration",
-		]);
+		mockGroupedSelectInput.mockResolvedValue("pr-template-configuration");
 
 		await addCommand(sparseRegistry, indexLocation, {});
 
-		expect(mockGroupedMultiselectInput).toHaveBeenCalledWith(
-			"Which registry items should be added?",
+		expect(mockGroupedSelectInput).toHaveBeenCalledWith(
+			"Which registry item should be added?",
 			{
 				Configurations: [
 					expect.objectContaining({ value: "pr-template-configuration" }),
@@ -1250,7 +1159,7 @@ module.exports = {
 			addCommand(registry, indexLocation, {
 				items: ["pr-template-configuration"],
 			}),
-		).rejects.toThrow("No registry items were selected for installation.");
+		).rejects.toThrow("No registry item was selected for installation.");
 	});
 
 	it("passes packIds into beforeWrite scripts when present", async () => {
@@ -2216,7 +2125,7 @@ module.exports = async function beforeWrite() {
 
 		await expect(
 			addCommand(conflictRegistry, indexLocation, {
-				items: ["left", "right"],
+				items: ["left"],
 				overwrite: true,
 			}),
 		).rejects.toThrow(
@@ -2332,7 +2241,7 @@ module.exports = async function beforeWrite() {
 
 		await expect(
 			addCommand(conflictRegistry, indexLocation, {
-				items: ["left", "right"],
+				items: ["left"],
 				overwrite: true,
 			}),
 		).rejects.toThrow(
@@ -2394,7 +2303,7 @@ module.exports = async function beforeWrite() {
 
 		await expect(
 			addCommand(conflictRegistry, indexLocation, {
-				items: ["left", "right"],
+				items: ["left"],
 				overwrite: true,
 			}),
 		).rejects.toThrow(
@@ -2456,7 +2365,7 @@ module.exports = async function beforeWrite() {
 
 		await expect(
 			addCommand(conflictRegistry, indexLocation, {
-				items: ["left", "right"],
+				items: ["left"],
 				overwrite: true,
 			}),
 		).rejects.toThrow(
@@ -2515,7 +2424,7 @@ module.exports = async function beforeWrite() {
 
 		await expect(
 			addCommand(conflictRegistry, indexLocation, {
-				items: ["left", "right"],
+				items: ["left"],
 				overwrite: true,
 			}),
 		).rejects.toThrow(
@@ -2571,7 +2480,7 @@ module.exports = async function beforeWrite() {
 		};
 
 		await addCommand(sharedRegistry, indexLocation, {
-			items: ["left", "right"],
+			items: ["left"],
 			overwrite: true,
 		});
 

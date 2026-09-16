@@ -10,9 +10,9 @@ vi.mock("../cli/prompts", () => ({
 	textInput: (...args: unknown[]) => mockTextInput(...args),
 }));
 
-vi.mock("@pebbles/core", async () => {
+vi.mock("@cheetos/core", async () => {
 	const actual =
-		await vi.importActual<typeof import("@pebbles/core")>("@pebbles/core");
+		await vi.importActual<typeof import("@cheetos/core")>("@cheetos/core");
 	return {
 		...actual,
 		readJsonFileAsync: (...args: unknown[]) => mockReadJsonFileAsync(...args),
@@ -49,7 +49,7 @@ describe("commands/config", () => {
 	 */
 	async function makeTempRoot(): Promise<string> {
 		const root = await fs.promises.mkdtemp(
-			path.join(os.tmpdir(), "pebbles-config-cmd-"),
+			path.join(os.tmpdir(), "cheetos-config-cmd-"),
 		);
 		tempRoots.push(root);
 		return root;
@@ -69,7 +69,7 @@ describe("commands/config", () => {
 			const output = logSpy.mock.calls.map((call) => call.join(" ")).join("\n");
 			expect(output).toContain("Configuration");
 			expect(output).toContain("https://example.com/registry.json");
-			expect(output).toContain(path.join(root, "pebbles", "config.json"));
+			expect(output).toContain(path.join(root, "cheetos", "config.json"));
 
 			await expect(configUnsetCommand(env)).resolves.toBe(true);
 			await expect(configUnsetCommand(env)).resolves.toBe(false);
@@ -90,7 +90,7 @@ describe("commands/config", () => {
 
 			const saved = JSON.parse(
 				await fs.promises.readFile(
-					path.join(root, "pebbles", "config.json"),
+					path.join(root, "cheetos", "config.json"),
 					"utf8",
 				),
 			) as { registry: string };
@@ -139,7 +139,7 @@ describe("commands/config", () => {
 			);
 			const saved = JSON.parse(
 				await fs.promises.readFile(
-					path.join(root, "pebbles", "config.json"),
+					path.join(root, "cheetos", "config.json"),
 					"utf8",
 				),
 			) as { registry: string };
@@ -260,7 +260,7 @@ describe("commands/config", () => {
 
 			const saved = JSON.parse(
 				await fs.promises.readFile(
-					path.join(root, "pebbles", "config.json"),
+					path.join(root, "cheetos", "config.json"),
 					"utf8",
 				),
 			) as { registry: string };
@@ -277,9 +277,9 @@ describe("commands/config", () => {
 
 			const output = logSpy.mock.calls.map((call) => call.join(" ")).join("\n");
 			expect(output).toMatch(
-				/registry:\s+https:\/\/raw\.githubusercontent\.com\/agrawal-rohit\/pebbles\/pebbles@1\.2\.3\/packages\/registry\/registry\.json/,
+				/registry:\s+https:\/\/raw\.githubusercontent\.com\/agrawal-rohit\/cheetos\/cheetos@1\.2\.3\/packages\/registry\/registry\.json/,
 			);
-			expect(output).toContain(path.join(root, "pebbles", "config.json"));
+			expect(output).toContain(path.join(root, "cheetos", "config.json"));
 		});
 
 		it("prints the default registry URL after unset", async () => {
@@ -296,9 +296,9 @@ describe("commands/config", () => {
 			const output = logSpy.mock.calls.map((call) => call.join(" ")).join("\n");
 			expect(output).not.toContain("Restored the default registry.");
 			expect(output).toMatch(
-				/registry:\s+https:\/\/raw\.githubusercontent\.com\/agrawal-rohit\/pebbles\/pebbles@1\.2\.3\/packages\/registry\/registry\.json/,
+				/registry:\s+https:\/\/raw\.githubusercontent\.com\/agrawal-rohit\/cheetos\/cheetos@1\.2\.3\/packages\/registry\/registry\.json/,
 			);
-			expect(output).toContain(path.join(root, "pebbles", "config.json"));
+			expect(output).toContain(path.join(root, "cheetos", "config.json"));
 		});
 
 		it.each([

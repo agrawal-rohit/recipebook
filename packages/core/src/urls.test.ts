@@ -252,7 +252,7 @@ describe("joinRelativePathUnderRoot", () => {
 describe("publishedRegistryUrl", () => {
 	it("builds the release-tag index URL for a version", () => {
 		expect(publishedRegistryUrl("1.2.3")).toBe(
-			"https://raw.githubusercontent.com/agrawal-rohit/pebbles/pebbles@1.2.3/packages/registry/registry.json",
+			"https://raw.githubusercontent.com/agrawal-rohit/cheetos/cheetos@1.2.3/packages/registry/registry.json",
 		);
 	});
 });

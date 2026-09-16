@@ -27,7 +27,7 @@ describe("cli/config", () => {
 	 */
 	async function makeTempRoot(): Promise<string> {
 		const root = await fs.promises.mkdtemp(
-			path.join(os.tmpdir(), "pebbles-config-"),
+			path.join(os.tmpdir(), "cheetos-config-"),
 		);
 		tempRoots.push(root);
 		return root;
@@ -36,14 +36,14 @@ describe("cli/config", () => {
 	it("uses XDG_CONFIG_HOME when set", () => {
 		const filePath = configPath({ XDG_CONFIG_HOME: "/custom/xdg" });
 
-		expect(filePath).toBe(path.join("/custom/xdg", "pebbles", "config.json"));
+		expect(filePath).toBe(path.join("/custom/xdg", "cheetos", "config.json"));
 	});
 
 	it("falls back to ~/.config when XDG_CONFIG_HOME is unset", () => {
 		vi.spyOn(os, "homedir").mockReturnValue("/home/user");
 
 		expect(configPath({})).toBe(
-			path.join("/home/user", ".config", "pebbles", "config.json"),
+			path.join("/home/user", ".config", "cheetos", "config.json"),
 		);
 	});
 
@@ -53,7 +53,7 @@ describe("cli/config", () => {
 
 		try {
 			expect(configPath()).toBe(
-				path.join("/from-process-env", "pebbles", "config.json"),
+				path.join("/from-process-env", "cheetos", "config.json"),
 			);
 		} finally {
 			if (previous === undefined) delete process.env.XDG_CONFIG_HOME;
@@ -67,7 +67,7 @@ describe("cli/config", () => {
 		const filePath = configPath({ XDG_CONFIG_HOME: "   " });
 
 		expect(filePath).toBe(
-			path.join("/home/user", ".config", "pebbles", "config.json"),
+			path.join("/home/user", ".config", "cheetos", "config.json"),
 		);
 	});
 
@@ -163,7 +163,7 @@ describe("cli/config", () => {
 		await fs.promises.writeFile(filePath, "{not-json", "utf8");
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Malformed pebbles config at ${filePath}`,
+			`Malformed cheetos config at ${filePath}`,
 		);
 	});
 
@@ -179,7 +179,7 @@ describe("cli/config", () => {
 		await fs.promises.writeFile(filePath, contents, "utf8");
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Malformed pebbles config at ${filePath}: Config root must be a JSON object.`,
+			`Malformed cheetos config at ${filePath}: Config root must be a JSON object.`,
 		);
 	});
 
@@ -195,7 +195,7 @@ describe("cli/config", () => {
 		await fs.promises.writeFile(filePath, contents, "utf8");
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Malformed pebbles config at ${filePath}: "registry" must be a non-empty string URL or file path.`,
+			`Malformed cheetos config at ${filePath}: "registry" must be a non-empty string URL or file path.`,
 		);
 	});
 
@@ -210,7 +210,7 @@ describe("cli/config", () => {
 		});
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Malformed pebbles config at ${filePath}: not-an-error`,
+			`Malformed cheetos config at ${filePath}: not-an-error`,
 		);
 	});
 
@@ -257,7 +257,7 @@ describe("cli/config", () => {
 		);
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Malformed pebbles config at ${filePath}: Unknown config key "future".`,
+			`Malformed cheetos config at ${filePath}: Unknown config key "future".`,
 		);
 	});
 
@@ -275,12 +275,12 @@ describe("cli/config", () => {
 		await fs.promises.symlink(realFile, filePath);
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Cannot read pebbles config at ${filePath}: file is a symbolic link.`,
+			`Cannot read cheetos config at ${filePath}: file is a symbolic link.`,
 		);
 		await expect(
 			writeConfig({ registry: "https://example.com/other.json" }, env),
 		).rejects.toThrow(
-			`Cannot write pebbles config at ${filePath}: file is a symbolic link.`,
+			`Cannot write cheetos config at ${filePath}: file is a symbolic link.`,
 		);
 	});
 
@@ -291,12 +291,12 @@ describe("cli/config", () => {
 		await fs.promises.mkdir(filePath, { recursive: true });
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Cannot read pebbles config at ${filePath}: path is a directory.`,
+			`Cannot read cheetos config at ${filePath}: path is a directory.`,
 		);
 		await expect(
 			writeConfig({ registry: "https://example.com/registry.json" }, env),
 		).rejects.toThrow(
-			`Cannot write pebbles config at ${filePath}: path is a directory.`,
+			`Cannot write cheetos config at ${filePath}: path is a directory.`,
 		);
 	});
 
@@ -313,12 +313,12 @@ describe("cli/config", () => {
 		} as fs.Stats);
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Cannot read pebbles config at ${filePath}: path is neither a file nor a directory.`,
+			`Cannot read cheetos config at ${filePath}: path is neither a file nor a directory.`,
 		);
 		await expect(
 			writeConfig({ registry: "https://example.com/registry.json" }, env),
 		).rejects.toThrow(
-			`Cannot write pebbles config at ${filePath}: path is neither a file nor a directory.`,
+			`Cannot write cheetos config at ${filePath}: path is neither a file nor a directory.`,
 		);
 	});
 
@@ -330,7 +330,7 @@ describe("cli/config", () => {
 		await fs.promises.writeFile(filePath, "x".repeat(65_537), "utf8");
 
 		await expect(readConfig(env)).rejects.toThrow(
-			`Cannot read pebbles config at ${filePath}: file is too large.`,
+			`Cannot read cheetos config at ${filePath}: file is too large.`,
 		);
 	});
 

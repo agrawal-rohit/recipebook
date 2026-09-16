@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@pebbles/core";
+import type { ConditionHandler } from "@cheetos/core";
 
 /**
  * Suggest SonarQube project key by parsing remote.origin.url formatted as org_repo.

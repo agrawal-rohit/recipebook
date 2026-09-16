@@ -1,4 +1,4 @@
-import type { AfterInstallHook } from "@pebbles/core";
+import type { AfterInstallHook } from "@cheetos/core";
 
 /** Indicate which installer was used so error messages stay actionable. */
 type Installer = "uv" | "pipx" | "pip";

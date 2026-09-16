@@ -26,10 +26,10 @@ import {
 	selectPackageManager,
 	setScriptExecutor,
 	uniqueKnownRegistryItems,
-} from "@pebbles/core";
+} from "@cheetos/core";
 import chalk from "chalk";
-import { defaultText, primaryText } from "../cli/labels";
-import { groupedMultiselectInput, selectInput } from "../cli/prompts";
+import { dimText, primaryText } from "../cli/labels";
+import { groupedSelectInput, selectInput } from "../cli/prompts";
 import { runWithTasks, task, taskGroup } from "../cli/tasks";
 import {
 	captureItemLocalConditionsForPlan,
@@ -50,7 +50,7 @@ import { prepareScriptExecution, projectScriptHelpers } from "../utils/scripts";
 
 /** Options accepted by the add command. */
 interface AddCommandOptions {
-	/** Registry items (`id` or `id@pack`) from positional arguments. */
+	/** Registry item (`id` or `id@pack`) from the positional argument (At most one item) */
 	items?: string[];
 	/** Overwrite existing files without prompting. */
 	overwrite?: boolean;
@@ -76,9 +76,9 @@ type InterpolationOptionOwner =
 	| { readonly kind: "item"; readonly itemId: string };
 
 /**
- * Prompt for registry items in one list grouped by type when none were provided on the command line.
+ * Prompt for one registry item in a list grouped by type when none was provided on the command line.
  * @param registry - Loaded registry.
- * @returns Selected item ids.
+ * @returns Selected item id.
  */
 async function promptForItems(registry: Registry): Promise<string[]> {
 	const items = Object.entries(registry.items);
@@ -91,8 +91,8 @@ async function promptForItems(registry: Registry): Promise<string[]> {
 				.filter(([, item]) => item.type === type)
 				.sort(([, a], [, b]) => a.title.localeCompare(b.title))
 				.map(([id, item]) => ({
-					label: item.title,
 					value: id,
+					label: item.title,
 					hint: item.description,
 				}));
 			return group.length > 0
@@ -101,15 +101,11 @@ async function promptForItems(registry: Registry): Promise<string[]> {
 		}),
 	);
 
-	const selected = await groupedMultiselectInput(
-		"Which registry items should be added?",
+	const selected = await groupedSelectInput(
+		"Which registry item should be added?",
 		options,
 	);
-
-	if (selected.length === 0)
-		throw new Error("Select at least one registry item to add.");
-
-	return selected;
+	return [selected];
 }
 
 /**
@@ -136,7 +132,7 @@ function registryItemForInstall(registry: Registry, itemId: string): IndexItem {
  */
 function assertInstallPlan(plan: InstallNode[], registry: Registry): void {
 	if (plan.length === 0)
-		throw new Error("No registry items were selected for installation.");
+		throw new Error("No registry item was selected for installation.");
 	for (const node of plan) registryItemForInstall(registry, node.itemId);
 }
 
@@ -584,7 +580,7 @@ async function finalizeInstalledItems(
 }
 
 /**
- * Install registry items into the current project directory.
+ * Install one registry item into the current project directory.
  * @param registry - Loaded registry.
  * @param indexLocation - Absolute path or HTTPS URL of the index document.
  * @param options - Add command options.
@@ -599,6 +595,10 @@ export async function addCommand(
 		options.items && options.items.length > 0
 			? options.items
 			: await promptForItems(registry);
+	if (selected.length > 1)
+		throw new Error(
+			"add installs one registry item at a time; pass a single item id.",
+		);
 	const items = uniqueKnownRegistryItems(selected, registry.items);
 
 	try {
@@ -739,7 +739,7 @@ export async function addCommand(
 
 		const itemWord = installItems.length === 1 ? "item" : "items";
 		console.log();
-		console.log(defaultText(`Installed ${installItems.length} ${itemWord}.`));
+		console.log(dimText(`Installed ${installItems.length} ${itemWord}.`));
 
 		const secrets = mergeSecretNames(
 			...installItems.map((item) => item.compiledItem.secrets),

@@ -1,24 +1,16 @@
 ---
 title: CLI
-description: Running pebbles with the bundled or custom registry.
+description: Running cheetos with the bundled or custom registry.
 ---
-
-## Default behavior
-
-`npx pebbles` uses the default registry bundled into the CLI package.
-
-```bash
-npx pebbles list
-```
 
 ## Adding registry items
 
-Install items from the bundled or custom registry into the current project:
+Install one item from the bundled or custom registry into the current project (`add` installs at most one item per invocation):
 
 ```bash
-npx pebbles add pr-template-configuration
-npx pebbles add testing-configuration --overwrite
-npx pebbles add
+npx cheetos add pr-template-configuration
+npx cheetos add testing-configuration --overwrite
+npx cheetos add
 ```
 
 `add` captures shared and item-local conditions (local `infer` handlers can suggest prompt defaults), selects every matching pack plus any base files, fetches compiled items from the index location, runs any local item hooks, writes files into the project, and optionally installs Node packages using the selected Node package manager.
@@ -27,7 +19,7 @@ That keeps the default experience fast and offline-capable after install.
 
 ## Socket Firewall (sfw)
 
-Socket Firewall Free ([docs](https://docs.socket.dev/docs/socket-firewall-free)) blocks known malicious packages at install time. It is an **ecosystem tool, not a pebbles feature** — the CLI itself only ever runs plain package-manager commands.
+Socket Firewall Free ([docs](https://docs.socket.dev/docs/socket-firewall-free)) blocks known malicious packages at install time. It is an **ecosystem tool, not a cheetos feature** — the CLI itself only ever runs plain package-manager commands.
 
 To install `sfw` globally, run:
 
@@ -54,23 +46,23 @@ The bundled `setup-workspace` action sets up `sfw` via `SocketDev/action` and ru
 
 ## Using a custom registry
 
-Pass `--registry` to point `pebbles` at another registry document:
+Pass `--registry` to point `cheetos` at another registry document:
 
 ```bash
-npx pebbles --registry https://example.com/registry.json list
+npx cheetos --registry https://example.com/registry.json add pr-template-configuration
 ```
 
 You can also set an environment variable:
 
 ```bash
-export PEBBLES_REGISTRY="https://example.com/registry.json"
-npx pebbles list
+export CHEETOS_REGISTRY="https://example.com/registry.json"
+npx cheetos add pr-template-configuration
 ```
 
 Resolution order is:
 
 1. `--registry <url-or-path>`
-2. `PEBBLES_REGISTRY`
+2. `CHEETOS_REGISTRY`
 3. `./registry.json` in the current working directory
 4. the registry document bundled into the CLI package (after install / `prepack`)
 5. workspace fallback `packages/registry/registry.json` during local development

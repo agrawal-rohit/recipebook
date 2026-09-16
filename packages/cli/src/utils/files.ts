@@ -5,7 +5,7 @@ import {
 	isMissingPathError,
 	joinRelativePathUnderRoot,
 	writeFileAsync,
-} from "@pebbles/core";
+} from "@cheetos/core";
 import { primaryText } from "../cli/labels";
 import { confirmInput } from "../cli/prompts";
 

@@ -923,7 +923,7 @@ async function invokeHostMethod(
 		case "readFile":
 			return runtime.readFile(argument);
 		case "run": {
-			console.error(`[pebbles:script] run: ${argument}`);
+			console.error(`[cheetos:script] run: ${argument}`);
 			return runtime.run(argument);
 		}
 		/* v8 ignore next 4 — exhaustive check for future HostMethod members */
@@ -954,7 +954,7 @@ async function withSandboxChild<T>(
 	) => Promise<T>,
 ): Promise<T> {
 	const sandboxTempDir = fs.mkdtempSync(
-		path.join(os.tmpdir(), "pebbles-sandbox-"),
+		path.join(os.tmpdir(), "cheetos-sandbox-"),
 	);
 	const child = spawn(
 		process.execPath,
