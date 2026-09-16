@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in contributing to `{{packageName}}`! This guide will help you get started with the development process, from setting up your environment to submitting changes.
+Thanks for your interest in contributing to `{{projectName}}`! This guide will help you get started with the development process, from setting up your environment to submitting changes.
 
 ## Table of Contents
 
@@ -19,9 +19,9 @@ Thanks for your interest in contributing to `{{packageName}}`! This guide will h
 
 If you have questions, ideas, or need help:
 
-- Search existing [GitHub Discussions](https://github.com/{{githubUsername}}/{{packageName}}/discussions) first
+- Search existing [GitHub Discussions](https://github.com/{{githubUsername}}/{{projectName}}/discussions) first
 - Open a new discussion for questions and proposals
-- Create a [GitHub Issue](https://github.com/{{githubUsername}}/{{packageName}}/issues) for bug reports
+- Create a [GitHub Issue](https://github.com/{{githubUsername}}/{{projectName}}/issues) for bug reports
 
 Please be specific about your environment and include steps to reproduce issues when reporting bugs.
 
@@ -31,7 +31,7 @@ Please be specific about your environment and include steps to reproduce issues 
 - Install dependencies: `{{packageManager}} install`
 - Start development (watch): `{{pmRun}} dev`
 {{#hasPlayground}}
-- Start the local playground: `{{pmRun}} playground`
+- Start the playground: `{{pmRun}} playground`
 {{/hasPlayground}}
 - Run the test suite: `{{pmRun}} test`
 - Build the library: `{{pmRun}} build`
@@ -122,7 +122,7 @@ Every push to `{{defaultBranch}}` runs the Release workflow:
 ## Security
 
 - **Do not** report security vulnerabilities in public issues
-- Use GitHub's [private vulnerability reporting](https://github.com/{{githubUsername}}/{{packageName}}/security/advisories)
+- Use GitHub's [private vulnerability reporting](https://github.com/{{githubUsername}}/{{projectName}}/security/advisories)
 
 ## Maintainer Guidelines
 

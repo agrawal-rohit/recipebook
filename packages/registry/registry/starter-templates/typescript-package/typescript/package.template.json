@@ -1,5 +1,5 @@
 {
-	"name": "{{packageName}}",
+	"name": "{{projectName}}",
 	"version": "0.0.1",
 	"type": "module",
 	{{#packageDescription}}
@@ -7,9 +7,9 @@
 	{{/packageDescription}}
 	{{#publishToNpm}}
 	"license": "{{licenseId}}",
-	"homepage": "https://github.com/{{githubUsername}}/{{packageName}}#readme",
-	"bugs": "https://github.com/{{githubUsername}}/{{packageName}}/issues",
-	"repository": "https://github.com/{{githubUsername}}/{{packageName}}",
+	"homepage": "https://github.com/{{githubUsername}}/{{projectName}}#readme",
+	"bugs": "https://github.com/{{githubUsername}}/{{projectName}}/issues",
+	"repository": "https://github.com/{{githubUsername}}/{{projectName}}",
 	"author": "{{authorName}}",
 	{{/publishToNpm}}
 	{{^publishToNpm}}
@@ -28,6 +28,9 @@
 			"default": "./dist/index.js"
 		}
 	}{{#hasPlayground}},
+	"scripts": {
+		"playground": "vite --config {{projectName}}/playground/vite.config.ts"
+	},
 	"peerDependencies": {
 		"react": "^19",
 		"react-dom": "^19"

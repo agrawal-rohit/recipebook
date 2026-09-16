@@ -6,7 +6,8 @@
 	"requires": [
 		"language",
 		"authorName",
-		"githubUsername"
+		"githubUsername",
+		"projectName"
 	],
 	"conditions": {
 		"packageKind": {
@@ -28,12 +29,6 @@
 					}
 				}
 			]
-		},
-		"packageName": {
-			"kind": "text",
-			"required": true,
-			"label": "Package name",
-			"description": "Package name (e.g. foobar, @org/foobar)."
 		},
 		"packageDescription": {
 			"kind": "text",
@@ -95,19 +90,19 @@
 	"files": [
 		{
 			"source": "package.template.json",
-			"target": "{{packageName}}/package.json"
+			"target": "{{projectName}}/package.json"
 		},
 		{
 			"source": ".gitignore",
-			"target": "{{packageName}}/.gitignore"
+			"target": "{{projectName}}/.gitignore"
 		},
 		{
 			"source": "README.md",
-			"target": "{{packageName}}/README.md"
+			"target": "{{projectName}}/README.md"
 		},
 		{
 			"source": "CONTRIBUTING.md",
-			"target": "{{packageName}}/CONTRIBUTING.md"
+			"target": "{{projectName}}/CONTRIBUTING.md"
 		}
 	],
 	"packs": [
@@ -121,7 +116,7 @@
 			"files": [
 				{
 					"source": "basic",
-					"target": "{{packageName}}"
+					"target": "{{projectName}}"
 				}
 			]
 		},
@@ -133,35 +128,25 @@
 				"packageKind": "react"
 			},
 			"dependsOn": [
-				"react-agent-instruction"
+				"react-agent-instruction",
+				"react-app-starter-template"
+			],
+			"beforeWrite": [
+				"react-playground.before-write.ts"
 			],
 			"dependencies": {
 				"npm": {
 					"dev": [
-						"react@^19",
-						"react-dom@^19",
-						"@types/react@^19",
-						"@types/react-dom@^19",
-						"@vitejs/plugin-react@^4",
-						"vite@^7",
-						"@tailwindcss/vite@^4",
-						"tailwindcss@^4",
 						"@testing-library/jest-dom@^6",
 						"@testing-library/react@^16",
-						"happy-dom@^20",
-						"@fontsource-variable/geist@^5"
+						"happy-dom@^20"
 					]
-				}
-			},
-			"commands": {
-				"npm": {
-					"playground": "vite --config playground/vite.config.ts"
 				}
 			},
 			"files": [
 				{
 					"source": "react",
-					"target": "{{packageName}}"
+					"target": "{{projectName}}"
 				}
 			]
 		}

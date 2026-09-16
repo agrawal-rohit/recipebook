@@ -1,0 +1,20 @@
+{
+	"name": "{{projectName}}{{#appSubdir}}{{.}}{{/appSubdir}}",
+	"version": "0.0.1",
+	"type": "module",
+	{{#packageDescription}}
+	"description": "{{packageDescription}}",
+	{{/packageDescription}}
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"dev": "{{pmRun}} dev",
+		"build": "{{pmRun}} build",
+		"preview": "{{pmRun}} preview"
+	},
+	"dependencies": {
+		"react": "^19",
+		"react-dom": "^19"
+	}
+}

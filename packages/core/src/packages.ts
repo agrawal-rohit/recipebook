@@ -518,6 +518,22 @@ export function compiledItem(parts: {
 }
 
 /**
+ * Reject a file target that is empty or escapes the project root.
+ * @param target - Compiled item file target.
+ * @throws Error when the target is empty or not a safe relative path.
+ */
+function assertSafeFileTarget(target: string): void {
+	if (target.length === 0)
+		throw new Error(
+			"Compiled item file target must be a non-empty relative path.",
+		);
+	if (isEscapingRelativePath(target))
+		throw new Error(
+			`Compiled item file target "${target}" must be a relative path (no absolute paths, URLs, or "..").`,
+		);
+}
+
+/**
  * Fail when two compiled item files share the same install target.
  * @param files - Combined file list.
  * @param messageForTarget - Error message for a duplicate target.
@@ -529,14 +545,7 @@ export function assertUniqueCompiledItemTargets(
 ): void {
 	const seen = new Set<string>();
 	for (const file of files) {
-		if (file.target.length === 0)
-			throw new Error(
-				"Compiled item file target must be a non-empty relative path.",
-			);
-		if (isEscapingRelativePath(file.target))
-			throw new Error(
-				`Compiled item file target "${file.target}" must be a relative path (no absolute paths, URLs, or "..").`,
-			);
+		assertSafeFileTarget(file.target);
 		if (seen.has(file.target)) throw new Error(messageForTarget(file.target));
 		seen.add(file.target);
 	}
@@ -573,18 +582,52 @@ export function mergeCompiledItemFields(
 }
 
 /**
+ * Fold files so a repeated target only fails when its content differs.
+ * The build inlines item-level files into pack payloads, so install-time
+ * folding of a base payload plus its pack must tolerate identical repeats.
+ * @param files - Combined file list in fold order.
+ * @param messageForTarget - Error for a colliding file target.
+ * @returns Files with exact-duplicate targets dropped (first occurrence wins).
+ * @throws Error when a target repeats with different content or is unsafe.
+ */
+function dedupeCompiledItemFiles(
+	files: CompiledItemFile[],
+	messageForTarget: (target: string) => string,
+): CompiledItemFile[] {
+	for (const file of files) assertSafeFileTarget(file.target);
+	const byTarget = new Map<string, string>();
+	for (const file of files) {
+		const existingContent = byTarget.get(file.target);
+		if (existingContent === undefined) {
+			byTarget.set(file.target, file.content);
+			continue;
+		}
+		if (existingContent !== file.content)
+			throw new Error(messageForTarget(file.target));
+	}
+	const seen = new Set<string>();
+	return files.filter((file) => {
+		if (seen.has(file.target)) return false;
+		seen.add(file.target);
+		return true;
+	});
+}
+
+/**
  * Concatenate files and merge deps/commands/secrets from compiled items.
  * @param items - Payloads to fold in order (base first).
- * @param duplicateTargetMessage - Error for a colliding file target.
+ * @param duplicateTargetMessage - Error for a conflicting file target.
  * @returns Folded compiled item.
- * @throws Error when two files share a target.
+ * @throws Error when two files share a target with different content.
  */
 export function foldCompiledItems(
 	items: CompiledItem[],
 	duplicateTargetMessage: (target: string) => string,
 ): CompiledItem {
-	const files = items.flatMap((item) => item.files);
-	assertUniqueCompiledItemTargets(files, duplicateTargetMessage);
+	const files = dedupeCompiledItemFiles(
+		items.flatMap((item) => item.files),
+		duplicateTargetMessage,
+	);
 	return compiledItem({ files, ...mergeCompiledItemFields(...items) });
 }
 

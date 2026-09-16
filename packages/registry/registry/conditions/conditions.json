@@ -29,6 +29,12 @@
 		"description": "GitHub owner used in repository URLs.",
 		"handler": "conditions/github-username.handler.ts"
 	},
+	"projectName": {
+		"kind": "text",
+		"required": true,
+		"label": "Project name",
+		"description": "Project name (e.g. foobar, @org/foobar)."
+	},
 	"defaultBranch": {
 		"kind": "text",
 		"required": true,

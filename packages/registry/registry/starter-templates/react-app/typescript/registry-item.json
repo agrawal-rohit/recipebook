@@ -1,0 +1,49 @@
+{
+	"id": "react-app-starter-template",
+	"title": "React App",
+	"description": "A standalone React application scaffold with Vite and Tailwind CSS, reusable as an in-package playground via the appSubdir binding.",
+	"type": "starter-template",
+	"requires": [
+		"language",
+		"projectName"
+	],
+	"dependencies": {
+		"npm": {
+			"runtime": [
+				"react@^19",
+				"react-dom@^19"
+			],
+			"dev": [
+				"@types/react@^19",
+				"@types/react-dom@^19",
+				"@vitejs/plugin-react@^4",
+				"vite@^7",
+				"@tailwindcss/vite@^4",
+				"tailwindcss@^4",
+				"@fontsource-variable/geist@^5"
+			]
+		}
+	},
+	"files": [
+		{
+			"source": "package.template.json",
+			"target": "{{projectName}}{{#appSubdir}}{{.}}{{/appSubdir}}/package.json"
+		},
+		{
+			"source": "index.html",
+			"target": "{{projectName}}{{#appSubdir}}{{.}}{{/appSubdir}}/index.html"
+		},
+		{
+			"source": "vite.config.ts",
+			"target": "{{projectName}}{{#appSubdir}}{{.}}{{/appSubdir}}/vite.config.ts"
+		},
+		{
+			"source": "tsconfig.json",
+			"target": "{{projectName}}{{#appSubdir}}{{.}}{{/appSubdir}}/tsconfig.json"
+		},
+		{
+			"source": "src",
+			"target": "{{projectName}}{{#appSubdir}}{{.}}{{/appSubdir}}/src"
+		}
+	]
+}

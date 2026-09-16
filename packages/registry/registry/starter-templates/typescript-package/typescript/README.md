@@ -1,15 +1,15 @@
 <div align="center">
-  <h2>{{packageName}}</h2>
+  <h2>{{projectName}}</h2>
 </div>
 
 <div align="center">
   <p align="center" style="width: 80%; margin: auto">
     <a href="https://github.com/agrawal-rohit/tuckshop"><img alt="Made with tuckshop" src="https://img.shields.io/badge/made_with-tuckshop-635BFF"></a>
-    <img alt="Status" src="https://img.shields.io/github/actions/workflow/status/{{githubUsername}}/{{packageName}}/build.yml">
+    <img alt="Status" src="https://img.shields.io/github/actions/workflow/status/{{githubUsername}}/{{projectName}}/build.yml">
     {{#publishToNpm}}
-    <img alt="Downloads" src="https://img.shields.io/npm/dt/{{packageName}}">
+    <img alt="Downloads" src="https://img.shields.io/npm/dt/{{projectName}}">
     {{/publishToNpm}}
-    <img alt="License" src="https://img.shields.io/github/license/{{githubUsername}}/{{packageName}}" />
+    <img alt="License" src="https://img.shields.io/github/license/{{githubUsername}}/{{projectName}}" />
   </p>
 
 [Installation](#installation) • [Demo](#demo) • [Usage](#usage) • [Contributing](#contributing) • [License](#license)
@@ -22,10 +22,10 @@
 
 ## Installation
 
-`{{packageName}}` can be installed using [npm](https://www.npmjs.com/) (or your favorite package manager):
+`{{projectName}}` can be installed using [npm](https://www.npmjs.com/) (or your favorite package manager):
 
 ```bash
-$ {{packageManager}} install {{packageName}}
+$ {{packageManager}} install {{projectName}}
 ```
 
 ## Demo

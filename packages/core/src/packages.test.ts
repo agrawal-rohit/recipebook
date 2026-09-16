@@ -198,6 +198,32 @@ describe("core/packages", () => {
 				),
 			).toThrow("duplicate README.md");
 		});
+
+		it("drops identical repeats of a target (base inlined into pack)", () => {
+			expect(
+				foldCompiledItems(
+					[
+						{
+							files: [
+								{ target: "config.js", content: "shared" },
+								{ target: "base.js", content: "base" },
+							],
+						},
+						{
+							files: [
+								{ target: "config.js", content: "shared" },
+								{ target: "pack.js", content: "pack" },
+							],
+						},
+					],
+					(target) => `duplicate ${target}`,
+				).files,
+			).toEqual([
+				{ target: "config.js", content: "shared" },
+				{ target: "base.js", content: "base" },
+				{ target: "pack.js", content: "pack" },
+			]);
+		});
 	});
 
 	describe("mergeCompiledItemFields", () => {

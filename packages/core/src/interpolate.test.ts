@@ -166,7 +166,7 @@ describe("core/interpolate", () => {
 				{
 					files: [
 						{
-							target: "{{packageName}}/ci.yml",
+							target: "{{projectName}}/ci.yml",
 							content: `branch: {{defaultBranch}}\nsha: ${ghaSha}\nrun: {{pmRun}} test\n`,
 						},
 					],
@@ -174,7 +174,7 @@ describe("core/interpolate", () => {
 				},
 				{
 					defaultBranch: "main",
-					packageName: "my-package",
+					projectName: "my-package",
 					pmRun: "pnpm",
 					pmExec: "pnpm exec",
 				},
