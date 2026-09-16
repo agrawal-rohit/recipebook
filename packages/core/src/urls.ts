@@ -130,11 +130,11 @@ export function assertSafeRemoteUrl(url: URL): void {
 
 /**
  * Index URL for the published default registry at a release tag.
- * @param version - Published CLI / registry package version (used in the `tuckshop@` tag).
+ * @param version - Published CLI / registry package version (used in the `pebbles@` tag).
  * @returns Absolute HTTPS URL to `packages/registry/registry.json`.
  */
 export function publishedRegistryUrl(version: string): string {
-	return `https://raw.githubusercontent.com/agrawal-rohit/tuckshop/tuckshop@${version}/packages/registry/registry.json`;
+	return `https://raw.githubusercontent.com/agrawal-rohit/pebbles/pebbles@${version}/packages/registry/registry.json`;
 }
 
 /**

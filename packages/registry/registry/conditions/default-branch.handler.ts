@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@tuckshop/core";
+import type { ConditionHandler } from "@pebbles/core";
 
 /** Suggest a default branch from `git symbolic-ref`, falling back to `main`. */
 const handler: ConditionHandler = {

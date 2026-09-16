@@ -3,7 +3,7 @@ import {
 	RESERVED_CATALOG_TYPE_KEY,
 	type Registry,
 	type RegistryItemTypeDefinition,
-} from "@tuckshop/core";
+} from "@pebbles/core";
 import chalk from "chalk";
 import { defaultText, primaryText } from "../cli/labels";
 import { multiselectInput } from "../cli/prompts";

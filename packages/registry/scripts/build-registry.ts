@@ -1,5 +1,5 @@
 import path from "node:path";
-import { buildRegistry } from "@tuckshop/core";
+import { buildRegistry } from "@pebbles/core";
 
 /** Compile the registry registry source tree under this package (or `process.argv[2]`). */
 async function main(): Promise<void> {

@@ -12,7 +12,7 @@ import {
 	type Registry,
 	readFileAsync,
 	verifyItemIntegrity,
-} from "@tuckshop/core";
+} from "@pebbles/core";
 
 /** Maximum JSON document size for registry indexes and compiled items. */
 const JSON_DOCUMENT_BYTE_LIMIT = 5_000_000;
@@ -20,7 +20,7 @@ const JSON_DOCUMENT_BYTE_LIMIT = 5_000_000;
 export interface LocateRegistryOptions {
 	/** Explicit registry flag value from the CLI. */
 	registry?: string;
-	/** Registry source persisted via `tuckshop config set`. */
+	/** Registry source persisted via `pebbles config set`. */
 	savedRegistry?: string;
 	/** Absolute path to the packaged default registry.json. */
 	bundledRegistryPath?: string;
@@ -61,7 +61,7 @@ export async function locateRegistry(
 
 	// Source reading order: CLI flag > env > saved config > bundled.
 	const source =
-		options.registry ?? process.env.TUCKSHOP_REGISTRY ?? options.savedRegistry;
+		options.registry ?? process.env.PEBBLES_REGISTRY ?? options.savedRegistry;
 
 	// If a source is explicitly provided, use it.
 	if (source) {
@@ -82,7 +82,7 @@ export async function locateRegistry(
 		if (await isFileAsync(candidate)) return candidate;
 
 	throw new Error(
-		"Registry not found (registry.json). Run `pnpm run build:registry` before using tuckshop.",
+		"Registry not found (registry.json). Run `pnpm run build:registry` before using pebbles.",
 	);
 }
 
@@ -250,7 +250,7 @@ async function loadDocumentBytes(
 /**
  * Load the registry selected by CLI flags, env, saved config, or bundled defaults.
  * @param registryOverride - Optional `--registry` flag value.
- * @param savedRegistry - Optional registry source persisted via `tuckshop config set`.
+ * @param savedRegistry - Optional registry source persisted via `pebbles config set`.
  * @returns Parsed registry and the index path or URL it was loaded from.
  * @throws Error when the located registry cannot be loaded safely.
  */

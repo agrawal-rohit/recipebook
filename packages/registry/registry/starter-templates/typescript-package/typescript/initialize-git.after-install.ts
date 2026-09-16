@@ -1,4 +1,4 @@
-import type { AfterInstallHook } from "@tuckshop/core";
+import type { AfterInstallHook } from "@pebbles/core";
 
 /**
  * Conditionally initialize a git repository in the consuming project after the starter template files are written.

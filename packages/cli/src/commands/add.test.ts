@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { type Registry, RegistryConditionKind } from "@tuckshop/core";
+import { type Registry, RegistryConditionKind } from "@pebbles/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockMultiselectInput = vi.fn();
@@ -57,9 +57,9 @@ vi.mock("../utils/scripts", async () => {
 	};
 });
 
-vi.mock("@tuckshop/core", async () => {
+vi.mock("@pebbles/core", async () => {
 	const actual =
-		await vi.importActual<typeof import("@tuckshop/core")>("@tuckshop/core");
+		await vi.importActual<typeof import("@pebbles/core")>("@pebbles/core");
 	return {
 		...actual,
 		buildInstallPlan: (...args: unknown[]) => mockBuildInstallPlan(...args),

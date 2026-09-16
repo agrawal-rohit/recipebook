@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@tuckshop/core";
+import type { ConditionHandler } from "@pebbles/core";
 
 /** Suggest a Node.js major version from `.nvmrc`, `.node-version`, or `package.json` engines. */
 const handler: ConditionHandler = {

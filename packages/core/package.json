@@ -1,7 +1,7 @@
 {
-	"name": "@tuckshop/core",
+	"name": "@pebbles/core",
 	"version": "0.2.1",
-	"description": "Shared primitives and utilities for building a `tuckshop` registry",
+	"description": "Shared primitives and utilities for building a `pebbles` registry",
 	"license": "MIT",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",

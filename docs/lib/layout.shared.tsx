@@ -3,7 +3,7 @@ import Logo from "@/components/logo";
 
 export const gitConfig = {
 	user: "agrawal-rohit",
-	repo: "tuckshop",
+	repo: "pebbles",
 	branch: "main",
 	docsContentPath: "docs/content/docs",
 };

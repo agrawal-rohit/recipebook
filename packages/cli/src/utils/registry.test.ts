@@ -1,6 +1,6 @@
 import path from "node:path";
-import type { Registry } from "@tuckshop/core";
-import { InvalidJsonError, sha256Integrity } from "@tuckshop/core";
+import type { Registry } from "@pebbles/core";
+import { InvalidJsonError, sha256Integrity } from "@pebbles/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockIsFileAsync = vi.fn<(candidate: string) => Promise<boolean>>();
@@ -8,9 +8,9 @@ const mockReadFileAsync = vi.fn();
 const mockParseRegistryDocument = vi.fn();
 const mockFetch = vi.fn();
 
-vi.mock("@tuckshop/core", async () => {
+vi.mock("@pebbles/core", async () => {
 	const actual =
-		await vi.importActual<typeof import("@tuckshop/core")>("@tuckshop/core");
+		await vi.importActual<typeof import("@pebbles/core")>("@pebbles/core");
 	return {
 		...actual,
 		isFileAsync: (candidate: string) => mockIsFileAsync(candidate),
@@ -73,7 +73,7 @@ describe("locateRegistry", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.spyOn(process, "cwd").mockReturnValue("/workspace");
-		Reflect.deleteProperty(process.env, "TUCKSHOP_REGISTRY");
+		Reflect.deleteProperty(process.env, "PEBBLES_REGISTRY");
 	});
 
 	afterEach(() => {
@@ -182,8 +182,8 @@ describe("locateRegistry", () => {
 		).resolves.toBe(fallbackRegistry);
 	});
 
-	it("uses TUCKSHOP_REGISTRY from the environment when no flag is provided", async () => {
-		vi.stubEnv("TUCKSHOP_REGISTRY", "https://example.com/env-registry.json");
+	it("uses PEBBLES_REGISTRY from the environment when no flag is provided", async () => {
+		vi.stubEnv("PEBBLES_REGISTRY", "https://example.com/env-registry.json");
 
 		await expect(
 			locateRegistry({
@@ -201,8 +201,8 @@ describe("locateRegistry", () => {
 		).resolves.toBe("https://example.com/saved-registry.json");
 	});
 
-	it("prefers TUCKSHOP_REGISTRY over a saved registry config", async () => {
-		vi.stubEnv("TUCKSHOP_REGISTRY", "https://example.com/env-registry.json");
+	it("prefers PEBBLES_REGISTRY over a saved registry config", async () => {
+		vi.stubEnv("PEBBLES_REGISTRY", "https://example.com/env-registry.json");
 
 		await expect(
 			locateRegistry({
@@ -213,7 +213,7 @@ describe("locateRegistry", () => {
 	});
 
 	it("prefers an explicit flag over env and saved registry config", async () => {
-		vi.stubEnv("TUCKSHOP_REGISTRY", "https://example.com/env-registry.json");
+		vi.stubEnv("PEBBLES_REGISTRY", "https://example.com/env-registry.json");
 
 		await expect(
 			locateRegistry({
@@ -261,7 +261,7 @@ describe("locateRegistry", () => {
 				bundledRegistryPath: "/bundle/registry.json",
 			}),
 		).rejects.toThrow(
-			"Registry not found (registry.json). Run `pnpm run build:registry` before using tuckshop.",
+			"Registry not found (registry.json). Run `pnpm run build:registry` before using pebbles.",
 		);
 	});
 });
@@ -272,7 +272,7 @@ describe("loadRuntimeRegistry", () => {
 		vi.stubGlobal("fetch", mockFetch);
 		mockParseRegistryDocument.mockReturnValue(sampleRegistry);
 		mockFetchOk();
-		Reflect.deleteProperty(process.env, "TUCKSHOP_REGISTRY");
+		Reflect.deleteProperty(process.env, "PEBBLES_REGISTRY");
 	});
 
 	afterEach(() => {

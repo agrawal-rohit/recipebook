@@ -60,11 +60,11 @@ describe("index", () => {
 
 	describe("run", () => {
 		it("should initialize CAC with correct name and register the commands CLI", async () => {
-			vi.stubGlobal("process", { argv: ["node", "tuckshop"] });
+			vi.stubGlobal("process", { argv: ["node", "pebbles"] });
 
 			await run();
 
-			expect(cac).toHaveBeenCalledWith("tuckshop");
+			expect(cac).toHaveBeenCalledWith("pebbles");
 			expect(mockApp.option).toHaveBeenCalledWith(
 				"--registry <source>",
 				"Use a custom registry URL",
@@ -74,18 +74,18 @@ describe("index", () => {
 				expect.any(Function),
 			);
 			expect(mockApp.help).toHaveBeenCalled();
-			expect(mockApp.parse).toHaveBeenCalledWith(["node", "tuckshop"], {
+			expect(mockApp.parse).toHaveBeenCalledWith(["node", "pebbles"], {
 				run: false,
 			});
 			expect(mockApp.runMatchedCommand).toHaveBeenCalledTimes(1);
 		});
 
 		it("should output help when no arguments are provided", async () => {
-			vi.stubGlobal("process", { argv: ["node", "tuckshop"] });
+			vi.stubGlobal("process", { argv: ["node", "pebbles"] });
 
 			await run();
 
-			expect(mockApp.parse).toHaveBeenCalledWith(["node", "tuckshop"], {
+			expect(mockApp.parse).toHaveBeenCalledWith(["node", "pebbles"], {
 				run: false,
 			});
 			expect(mockApp.runMatchedCommand).toHaveBeenCalledTimes(1);
@@ -93,7 +93,7 @@ describe("index", () => {
 		});
 
 		it("should parse arguments when provided", async () => {
-			const argv = ["node", "tuckshop", "list"];
+			const argv = ["node", "pebbles", "list"];
 			vi.stubGlobal("process", { argv });
 			mockApp.matchedCommand = { name: "list" };
 			mockApp.matchedCommandName = "list";
@@ -107,7 +107,7 @@ describe("index", () => {
 		});
 
 		it("should output help when no command matches", async () => {
-			const argv = ["node", "tuckshop", "nope"];
+			const argv = ["node", "pebbles", "nope"];
 			vi.stubGlobal("process", { argv });
 			mockApp.matchedCommand = undefined;
 
@@ -119,7 +119,7 @@ describe("index", () => {
 		});
 
 		it("should not re-print help after cac already handled --help", async () => {
-			const argv = ["node", "tuckshop", "config", "--help"];
+			const argv = ["node", "pebbles", "config", "--help"];
 			vi.stubGlobal("process", { argv });
 			mockApp.matchedCommand = undefined;
 			mockApp.matchedCommandName = undefined;
@@ -132,7 +132,7 @@ describe("index", () => {
 		});
 
 		it("should surface CAC validation errors from the matched command", async () => {
-			const argv = ["node", "tuckshop", "package"];
+			const argv = ["node", "pebbles", "package"];
 			vi.stubGlobal("process", { argv });
 			vi.mocked(mockApp.runMatchedCommand).mockRejectedValue(
 				new Error("Unknown option `--wat`"),
@@ -148,7 +148,7 @@ describe("index", () => {
 		it("should pass through a global --registry override before registration", async () => {
 			const argv = [
 				"node",
-				"tuckshop",
+				"pebbles",
 				"--registry",
 				"https://example.com/registry.json",
 				"list",
@@ -176,7 +176,7 @@ describe("index", () => {
 		it("should pass through a global --registry=value override before registration", async () => {
 			const argv = [
 				"node",
-				"tuckshop",
+				"pebbles",
 				"--registry=https://example.com/registry.json",
 				"list",
 			];
@@ -201,7 +201,7 @@ describe("index", () => {
 
 		it("should reject a boolean --registry flag when loading the registry", async () => {
 			vi.stubGlobal("process", {
-				argv: ["node", "tuckshop", "list", "--registry"],
+				argv: ["node", "pebbles", "list", "--registry"],
 			});
 			mockApp.matchedCommand = { name: "list" };
 			mockApp.options = { registry: true };
@@ -222,7 +222,7 @@ describe("index", () => {
 
 		it("should reject an empty --registry value when loading the registry", async () => {
 			vi.stubGlobal("process", {
-				argv: ["node", "tuckshop", "--registry=", "list"],
+				argv: ["node", "pebbles", "--registry=", "list"],
 			});
 			mockApp.matchedCommand = { name: "list" };
 			mockApp.options = { registry: "" };
@@ -245,7 +245,7 @@ describe("index", () => {
 			vi.stubGlobal("process", {
 				argv: [
 					"node",
-					"tuckshop",
+					"pebbles",
 					"--registry",
 					"  https://example.com/registry.json  ",
 					"list",
@@ -265,7 +265,7 @@ describe("index", () => {
 		});
 
 		it("should forward a saved registry when no flag is present", async () => {
-			vi.stubGlobal("process", { argv: ["node", "tuckshop", "list"] });
+			vi.stubGlobal("process", { argv: ["node", "pebbles", "list"] });
 			mockApp.matchedCommand = { name: "list" };
 			vi.mocked(readConfig).mockResolvedValue({
 				registry: "https://example.com/saved-registry.json",
@@ -286,7 +286,7 @@ describe("index", () => {
 			vi.stubGlobal("process", {
 				argv: [
 					"node",
-					"tuckshop",
+					"pebbles",
 					"--registry",
 					"https://example.com/flag-registry.json",
 					"list",
@@ -315,7 +315,7 @@ describe("index", () => {
 
 		it("should skip registry loading when only config commands run", async () => {
 			vi.stubGlobal("process", {
-				argv: ["node", "tuckshop", "config", "get"],
+				argv: ["node", "pebbles", "config", "get"],
 			});
 			mockApp.matchedCommand = { name: "config" };
 			mockApp.matchedCommandName = "config";

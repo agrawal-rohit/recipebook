@@ -1,4 +1,4 @@
-import type { Registry } from "@tuckshop/core";
+import type { Registry } from "@pebbles/core";
 import cac, { type CAC } from "cac";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -407,23 +407,17 @@ describe("commands/index", () => {
 	});
 
 	it("matches config get/set/unset against real CAC argv", async () => {
-		const app = cac("tuckshop");
+		const app = cac("pebbles");
 		registerCommandsCli(app, mockLoadRegistry);
 
-		app.parse(["node", "tuckshop", "config", "get"], { run: false });
+		app.parse(["node", "pebbles", "config", "get"], { run: false });
 		await app.runMatchedCommand();
 		expect(mockConfigGetCommand).toHaveBeenCalledWith();
 		expect(mockLoadRegistry).not.toHaveBeenCalled();
 
 		mockConfigGetCommand.mockClear();
 		app.parse(
-			[
-				"node",
-				"tuckshop",
-				"config",
-				"set",
-				"https://example.com/registry.json",
-			],
+			["node", "pebbles", "config", "set", "https://example.com/registry.json"],
 			{ run: false },
 		);
 		await app.runMatchedCommand();
@@ -431,23 +425,17 @@ describe("commands/index", () => {
 			"https://example.com/registry.json",
 		);
 
-		app.parse(["node", "tuckshop", "config", "unset"], { run: false });
+		app.parse(["node", "pebbles", "config", "unset"], { run: false });
 		await app.runMatchedCommand();
 		expect(mockConfigUnsetCommand).toHaveBeenCalled();
 	});
 
 	it("rejects config get with a source against real CAC argv", async () => {
-		const app = cac("tuckshop");
+		const app = cac("pebbles");
 		registerCommandsCli(app, mockLoadRegistry);
 
 		app.parse(
-			[
-				"node",
-				"tuckshop",
-				"config",
-				"get",
-				"https://example.com/registry.json",
-			],
+			["node", "pebbles", "config", "get", "https://example.com/registry.json"],
 			{ run: false },
 		);
 		await expectCommandError(
@@ -458,10 +446,10 @@ describe("commands/index", () => {
 	});
 
 	it("lets CAC reject bare config when the required action is missing", async () => {
-		const app = cac("tuckshop");
+		const app = cac("pebbles");
 		registerCommandsCli(app, mockLoadRegistry);
 
-		app.parse(["node", "tuckshop", "config"], { run: false });
+		app.parse(["node", "pebbles", "config"], { run: false });
 		expect(() => app.runMatchedCommand()).toThrow(
 			"missing required args for command `config <action> [source]`",
 		);
@@ -469,11 +457,11 @@ describe("commands/index", () => {
 	});
 
 	it("lets CAC reject a missing required --registry value", async () => {
-		const app = cac("tuckshop");
+		const app = cac("pebbles");
 		app.option("--registry <source>", "Use a custom registry URL");
 		registerCommandsCli(app, mockLoadRegistry);
 
-		app.parse(["node", "tuckshop", "list", "--registry"], { run: false });
+		app.parse(["node", "pebbles", "list", "--registry"], { run: false });
 		expect(() => app.runMatchedCommand()).toThrow(
 			"option `--registry <source>` value is missing",
 		);
@@ -481,10 +469,10 @@ describe("commands/index", () => {
 	});
 
 	it("matches add against real CAC argv, including variadic items and --overwrite", async () => {
-		const app = cac("tuckshop");
+		const app = cac("pebbles");
 		registerCommandsCli(app, mockLoadRegistry);
 
-		app.parse(["node", "tuckshop", "add"], { run: false });
+		app.parse(["node", "pebbles", "add"], { run: false });
 		await app.runMatchedCommand();
 		expect(mockAddCommand).toHaveBeenCalledWith(
 			registry,
@@ -497,7 +485,7 @@ describe("commands/index", () => {
 
 		mockAddCommand.mockClear();
 		app.parse(
-			["node", "tuckshop", "add", "pr-template-configuration", "license"],
+			["node", "pebbles", "add", "pr-template-configuration", "license"],
 			{ run: false },
 		);
 		await app.runMatchedCommand();
@@ -512,7 +500,7 @@ describe("commands/index", () => {
 
 		mockAddCommand.mockClear();
 		app.parse(
-			["node", "tuckshop", "add", "pr-template-configuration", "--overwrite"],
+			["node", "pebbles", "add", "pr-template-configuration", "--overwrite"],
 			{ run: false },
 		);
 		await app.runMatchedCommand();
@@ -527,16 +515,16 @@ describe("commands/index", () => {
 	});
 
 	it("matches list --type against real CAC argv, including repeats", async () => {
-		const app = cac("tuckshop");
+		const app = cac("pebbles");
 		registerCommandsCli(app, mockLoadRegistry);
 
-		app.parse(["node", "tuckshop", "list", "--type", "theme"], { run: false });
+		app.parse(["node", "pebbles", "list", "--type", "theme"], { run: false });
 		await app.runMatchedCommand();
 		expect(mockListCommand).toHaveBeenCalledWith(registry, "theme");
 
 		mockListCommand.mockClear();
 		app.parse(
-			["node", "tuckshop", "list", "--type", "theme", "--type", "component"],
+			["node", "pebbles", "list", "--type", "theme", "--type", "component"],
 			{ run: false },
 		);
 		await app.runMatchedCommand();
@@ -547,10 +535,10 @@ describe("commands/index", () => {
 	});
 
 	it("lets CAC reject a missing required --type value", async () => {
-		const app = cac("tuckshop");
+		const app = cac("pebbles");
 		registerCommandsCli(app, mockLoadRegistry);
 
-		app.parse(["node", "tuckshop", "list", "--type"], { run: false });
+		app.parse(["node", "pebbles", "list", "--type"], { run: false });
 		expect(() => app.runMatchedCommand()).toThrow(
 			"option `--type <types>` value is missing",
 		);

@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@tuckshop/core";
+import type { ConditionHandler } from "@pebbles/core";
 
 /** Suggest an author name default from `git config user.name`. */
 const handler: ConditionHandler = {

@@ -1,4 +1,4 @@
-import type { BeforeWriteHook } from "@tuckshop/core";
+import type { BeforeWriteHook } from "@pebbles/core";
 import * as spdxLicenseList from "spdx-license-list/full";
 
 const licenses = spdxLicenseList as unknown as Record<

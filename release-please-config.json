@@ -8,7 +8,7 @@
 	"plugins": ["node-workspace"],
 	"packages": {
 		"packages/cli": {
-			"component": "tuckshop"
+			"component": "pebbles"
 		},
 		"packages/core": {
 			"component": "core"

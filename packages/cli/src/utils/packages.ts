@@ -19,7 +19,7 @@ import {
 	runArgvAsync,
 	uniqueSorted,
 	writeFileAsync,
-} from "@tuckshop/core";
+} from "@pebbles/core";
 import { primaryText } from "../cli/labels";
 import { confirmInput } from "../cli/prompts";
 import { runWithTasks } from "../cli/tasks";

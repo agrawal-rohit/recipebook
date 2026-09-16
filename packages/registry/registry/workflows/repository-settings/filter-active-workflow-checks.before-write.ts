@@ -1,4 +1,4 @@
-import type { BeforeWriteHook, HandlerRuntime } from "@tuckshop/core";
+import type { BeforeWriteHook, HandlerRuntime } from "@pebbles/core";
 
 /** Workflow file paths paired with the check contexts they emit. */
 const WORKFLOW_CHECK_MAP: Array<{ workflowPath: string; checks: string[] }> = [

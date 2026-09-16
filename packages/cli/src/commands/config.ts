@@ -6,7 +6,7 @@ import {
 	isMissingPathError,
 	publishedRegistryUrl,
 	readJsonFileAsync,
-} from "@tuckshop/core";
+} from "@pebbles/core";
 import {
 	configPath,
 	readConfig,

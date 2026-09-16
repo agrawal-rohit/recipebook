@@ -17,7 +17,7 @@ import {
 	runAsync,
 	sandboxRunnerPath,
 	setScriptExecutor,
-} from "@tuckshop/core";
+} from "@pebbles/core";
 import { bundledRegistryPath } from "./registry";
 
 /**

@@ -813,7 +813,7 @@ describe("buildRegistry", () => {
 		).rejects.toThrow("bundleExternalPackages entries must be non-empty.");
 	});
 
-	it("still rejects @tuckshop/core runtime imports when bundleExternalPackages is empty", async () => {
+	it("still rejects @pebbles/core runtime imports when bundleExternalPackages is empty", async () => {
 		writeItem(
 			tempDir,
 			"configuration/bad-core",
@@ -826,7 +826,7 @@ describe("buildRegistry", () => {
 			},
 			{
 				"handler.ts": `
-import { parseWithSchema } from "@tuckshop/core";
+import { parseWithSchema } from "@pebbles/core";
 export default async function beforeWrite() {
   void parseWithSchema;
   return { files: [{ target: "X", content: "x" }] };
@@ -841,7 +841,7 @@ export default async function beforeWrite() {
 				outDir: tempDir,
 				bundleExternalPackages: [],
 			}),
-		).rejects.toThrow("@tuckshop/core");
+		).rejects.toThrow("@pebbles/core");
 	});
 
 	it("rejects install scripts that runtime-import a configured external package", async () => {
@@ -1071,7 +1071,7 @@ export default async function beforeWrite() {
 		).toBe(true);
 	});
 
-	it("rejects install scripts that runtime-import @tuckshop/core", async () => {
+	it("rejects install scripts that runtime-import @pebbles/core", async () => {
 		writeItem(
 			tempDir,
 			"configuration/bad",
@@ -1084,7 +1084,7 @@ export default async function beforeWrite() {
 			},
 			{
 				"handler.ts": `
-import { parseWithSchema } from "@tuckshop/core";
+import { parseWithSchema } from "@pebbles/core";
 export default async function beforeWrite() {
   void parseWithSchema;
   return { files: [{ target: "X", content: "x" }] };
@@ -1093,7 +1093,7 @@ export default async function beforeWrite() {
 			},
 		);
 
-		await expect(runBuild()).rejects.toThrow("@tuckshop/core");
+		await expect(runBuild()).rejects.toThrow("@pebbles/core");
 	});
 
 	it("rejects a declared install script file that is missing", async () => {

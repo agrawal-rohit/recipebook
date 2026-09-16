@@ -4,7 +4,7 @@
 
 <div align="center">
   <p align="center" style="width: 80%; margin: auto">
-    <a href="https://github.com/agrawal-rohit/tuckshop"><img alt="Made with tuckshop" src="https://img.shields.io/badge/made_with-tuckshop-635BFF"></a>
+    <a href="https://github.com/agrawal-rohit/pebbles"><img alt="Made with pebbles" src="https://img.shields.io/badge/made_with-pebbles-635BFF"></a>
     <img alt="Status" src="https://img.shields.io/github/actions/workflow/status/{{githubUsername}}/{{projectName}}/build.yml">
     {{#publishToNpm}}
     <img alt="Downloads" src="https://img.shields.io/npm/dt/{{projectName}}">

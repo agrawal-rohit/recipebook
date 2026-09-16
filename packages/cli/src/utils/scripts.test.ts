@@ -3,7 +3,7 @@ import {
 	RegistryConditionKind,
 	RegistryTrust,
 	setScriptExecutor,
-} from "@tuckshop/core";
+} from "@pebbles/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockConfirmInput = vi.fn();

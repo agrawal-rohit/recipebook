@@ -1,4 +1,4 @@
-import type { ConditionHandler, HandlerRuntime } from "@tuckshop/core";
+import type { ConditionHandler, HandlerRuntime } from "@pebbles/core";
 
 /**
  * Extract email from package.json author or bugs field.

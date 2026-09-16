@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@tuckshop/core";
+import type { ConditionHandler } from "@pebbles/core";
 
 /** Marker entries that reveal which IDE or coding agent a project is configured for. */
 interface IdeMarker {

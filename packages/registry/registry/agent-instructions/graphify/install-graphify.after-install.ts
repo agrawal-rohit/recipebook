@@ -1,4 +1,4 @@
-import type { AfterInstallHook } from "@tuckshop/core";
+import type { AfterInstallHook } from "@pebbles/core";
 
 /** Indicate which installer was used so error messages stay actionable. */
 type Installer = "uv" | "pipx" | "pip";

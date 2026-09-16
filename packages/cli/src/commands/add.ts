@@ -26,7 +26,7 @@ import {
 	selectPackageManager,
 	setScriptExecutor,
 	uniqueKnownRegistryItems,
-} from "@tuckshop/core";
+} from "@pebbles/core";
 import chalk from "chalk";
 import { defaultText, primaryText } from "../cli/labels";
 import { groupedMultiselectInput, selectInput } from "../cli/prompts";

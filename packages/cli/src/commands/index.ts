@@ -10,7 +10,7 @@ import {
 } from "./config";
 import { listCommand } from "./list";
 
-/** Subcommands of `tuckshop config`, dispatched from one CAC command. */
+/** Subcommands of `pebbles config`, dispatched from one CAC command. */
 enum ConfigAction {
 	GET = "get",
 	SET = "set",
@@ -71,13 +71,13 @@ function optionalStringArg(value: unknown, label: string): string | undefined {
 }
 
 /**
- * Parse a `tuckshop config` action token.
+ * Parse a `pebbles config` action token.
  * @param action - Raw CAC action argument.
  * @returns A known {@link ConfigAction}.
  * @throws Error when `action` is not get, set, or unset.
  */
 function parseConfigAction(action: unknown): ConfigAction {
-	const usage = "Usage: tuckshop config <get|set|unset> [source]";
+	const usage = "Usage: pebbles config <get|set|unset> [source]";
 	if (typeof action !== "string")
 		throw new Error(`Unknown config action "${String(action)}". ${usage}`);
 
@@ -106,7 +106,7 @@ function assertNoConfigSource(
 }
 
 /**
- * Dispatch a parsed `tuckshop config` action.
+ * Dispatch a parsed `pebbles config` action.
  * @param action - Raw CAC action argument.
  * @param source - Optional registry source from CAC.
  * @throws Error when the action is unknown, or get/unset is given a source.

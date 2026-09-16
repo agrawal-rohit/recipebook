@@ -1,6 +1,6 @@
-# tuckshop
+# pebbles
 
-The published `tuckshop` CLI package.
+The published `pebbles` CLI package.
 
 ## Commands
 
@@ -9,9 +9,9 @@ The published `tuckshop` CLI package.
 Install registry items into the current working directory:
 
 ```bash
-npx tuckshop add pr-template-configuration
-npx tuckshop add testing-configuration --overwrite
-npx tuckshop add
+npx pebbles add pr-template-configuration
+npx pebbles add testing-configuration --overwrite
+npx pebbles add
 ```
 
 When item ids are omitted, `add` prompts with a multiselect. Shared registry conditions use local condition handlers for prompt defaults when available, then prompt for the rest. Compiled item files are fetched from the index location, item handlers may generate or transform files, and packages are installed using the project’s selected package manager (lockfile detection, otherwise a prompt) after confirming whether to install now.
@@ -19,32 +19,32 @@ When item ids are omitted, `add` prompts with a multiselect. Shared registry con
 ### `list`
 
 ```bash
-npx tuckshop list
-npx tuckshop list --type workflow,configuration
+npx pebbles list
+npx pebbles list --type workflow,configuration
 ```
 
 ## Registry source
 
-By default, `tuckshop` uses the bundled registry from the monorepo. You can point it at a custom registry in following ways:
+By default, `pebbles` uses the bundled registry from the monorepo. You can point it at a custom registry in following ways:
 
 1. CLI flag at each command:
 
 ```bash
-npx tuckshop --registry <url-or-path> list
+npx pebbles --registry <url-or-path> list
 ```
 
 2. Environment variable:
 
 ```bash
-export TUCKSHOP_REGISTRY="<url-or-path>"
-npx tuckshop list
+export PEBBLES_REGISTRY="<url-or-path>"
+npx pebbles list
 ```
 
 3. Global preference set through the `config` command:
 
 ```bash
-npx tuckshop config set <url-or-path>
-npx tuckshop config get
-npx tuckshop config unset
-npx tuckshop list
+npx pebbles config set <url-or-path>
+npx pebbles config get
+npx pebbles config unset
+npx pebbles list
 ```

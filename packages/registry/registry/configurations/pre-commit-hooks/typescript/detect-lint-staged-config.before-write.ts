@@ -1,4 +1,4 @@
-import type { BeforeWriteHook } from "@tuckshop/core";
+import type { BeforeWriteHook } from "@pebbles/core";
 
 /**
  * Detect the lint-staged config based on the project's formatter/linter tooling.

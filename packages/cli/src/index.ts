@@ -18,9 +18,9 @@ function registryFlagValue(flag: unknown): string | undefined {
 	return flag.trim();
 }
 
-/** Run the tuckshop CLI. */
+/** Run the pebbles CLI. */
 export default async function run(): Promise<void> {
-	const app = cac("tuckshop");
+	const app = cac("pebbles");
 	app.option("--registry <source>", "Use a custom registry URL");
 
 	/**

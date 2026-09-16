@@ -120,7 +120,7 @@ importers:
       '@clack/prompts':
         specifier: ^1.7.0
         version: 1.7.0
-      '@tuckshop/core':
+      '@pebbles/core':
         specifier: workspace:*
         version: link:../core
       cac:
@@ -151,7 +151,7 @@ importers:
 
   packages/registry:
     dependencies:
-      '@tuckshop/core':
+      '@pebbles/core':
         specifier: workspace:*
         version: link:../core
       spdx-license-list:

@@ -16,7 +16,7 @@ import {
 	type RegistryContextValue,
 	type RegistryPackageManager,
 	type RequiredCondition,
-} from "@tuckshop/core";
+} from "@pebbles/core";
 import { primaryText } from "../cli/labels";
 import {
 	confirmInput,

@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@tuckshop/core";
+import type { ConditionHandler } from "@pebbles/core";
 
 /**
  * Suggest the current calendar year as the copyright year default.

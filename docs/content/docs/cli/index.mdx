@@ -1,14 +1,14 @@
 ---
 title: CLI
-description: Running tuckshop with the bundled or custom registry.
+description: Running pebbles with the bundled or custom registry.
 ---
 
 ## Default behavior
 
-`npx tuckshop` uses the default registry bundled into the CLI package.
+`npx pebbles` uses the default registry bundled into the CLI package.
 
 ```bash
-npx tuckshop list
+npx pebbles list
 ```
 
 ## Adding registry items
@@ -16,9 +16,9 @@ npx tuckshop list
 Install items from the bundled or custom registry into the current project:
 
 ```bash
-npx tuckshop add pr-template-configuration
-npx tuckshop add testing-configuration --overwrite
-npx tuckshop add
+npx pebbles add pr-template-configuration
+npx pebbles add testing-configuration --overwrite
+npx pebbles add
 ```
 
 `add` captures shared and item-local conditions (local `infer` handlers can suggest prompt defaults), selects every matching pack plus any base files, fetches compiled items from the index location, runs any local item hooks, writes files into the project, and optionally installs Node packages using the selected Node package manager.
@@ -27,7 +27,7 @@ That keeps the default experience fast and offline-capable after install.
 
 ## Socket Firewall (sfw)
 
-Socket Firewall Free ([docs](https://docs.socket.dev/docs/socket-firewall-free)) blocks known malicious packages at install time. It is an **ecosystem tool, not a tuckshop feature** — the CLI itself only ever runs plain package-manager commands.
+Socket Firewall Free ([docs](https://docs.socket.dev/docs/socket-firewall-free)) blocks known malicious packages at install time. It is an **ecosystem tool, not a pebbles feature** — the CLI itself only ever runs plain package-manager commands.
 
 To install `sfw` globally, run:
 
@@ -54,23 +54,23 @@ The bundled `setup-workspace` action sets up `sfw` via `SocketDev/action` and ru
 
 ## Using a custom registry
 
-Pass `--registry` to point `tuckshop` at another registry document:
+Pass `--registry` to point `pebbles` at another registry document:
 
 ```bash
-npx tuckshop --registry https://example.com/registry.json list
+npx pebbles --registry https://example.com/registry.json list
 ```
 
 You can also set an environment variable:
 
 ```bash
-export TUCKSHOP_REGISTRY="https://example.com/registry.json"
-npx tuckshop list
+export PEBBLES_REGISTRY="https://example.com/registry.json"
+npx pebbles list
 ```
 
 Resolution order is:
 
 1. `--registry <url-or-path>`
-2. `TUCKSHOP_REGISTRY`
+2. `PEBBLES_REGISTRY`
 3. `./registry.json` in the current working directory
 4. the registry document bundled into the CLI package (after install / `prepack`)
 5. workspace fallback `packages/registry/registry.json` during local development

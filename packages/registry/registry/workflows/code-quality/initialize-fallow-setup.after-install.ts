@@ -1,4 +1,4 @@
-import type { AfterInstallHook } from "@tuckshop/core";
+import type { AfterInstallHook } from "@pebbles/core";
 
 /**
  * Initialize Fallow setup by invoking the canonical Fallow CLI against the

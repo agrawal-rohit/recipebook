@@ -5,8 +5,8 @@ import { Inter } from "next/font/google";
 
 export const metadata: Metadata = {
 	title: {
-		template: "%s | Tuckshop",
-		default: "Tuckshop",
+		template: "%s | Pebbles",
+		default: "Pebbles",
 	},
 	description: "An opinionated scaffolding CLI for modern developers.",
 };

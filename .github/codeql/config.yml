@@ -1,4 +1,4 @@
-name: tuckshop-codeql
+name: pebbles-codeql
 paths-ignore:
   - packages/*/dist
   - docs/.next

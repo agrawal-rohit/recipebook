@@ -1,10 +1,10 @@
 {
-	"name": "tuckshop",
+	"name": "pebbles",
 	"version": "0.2.1",
-	"description": "A CLI for consuming tuckshop code registries.",
+	"description": "A CLI for consuming pebbles code registries.",
 	"license": "MIT",
 	"bin": {
-		"tuckshop": "./bin/cli.mjs"
+		"pebbles": "./bin/cli.mjs"
 	},
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -15,14 +15,14 @@
 		"r"
 	],
 	"scripts": {
-		"build": "pnpm --filter @tuckshop/core run build && tsc -p tsconfig.json",
-		"typecheck": "pnpm --filter @tuckshop/core run build && tsc -p tsconfig.json --noEmit",
+		"build": "pnpm --filter @pebbles/core run build && tsc -p tsconfig.json",
+		"typecheck": "pnpm --filter @pebbles/core run build && tsc -p tsconfig.json --noEmit",
 		"test": "vitest run",
-		"prepack": "pnpm run build && pnpm --filter @tuckshop/registry run build && cp ../registry/registry.json ./registry.json && rm -rf ./r && if [ -d ../registry/r ]; then cp -R ../registry/r ./r; fi"
+		"prepack": "pnpm run build && pnpm --filter @pebbles/registry run build && cp ../registry/registry.json ./registry.json && rm -rf ./r && if [ -d ../registry/r ]; then cp -R ../registry/r ./r; fi"
 	},
 	"dependencies": {
 		"@clack/prompts": "^1.7.0",
-		"@tuckshop/core": "workspace:*",
+		"@pebbles/core": "workspace:*",
 		"cac": "^6.7.14",
 		"chalk": "^5.6.2",
 		"listr2": "^10.1.0"

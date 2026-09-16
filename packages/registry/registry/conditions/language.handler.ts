@@ -1,4 +1,4 @@
-import type { ConditionHandler } from "@tuckshop/core";
+import type { ConditionHandler } from "@pebbles/core";
 
 /** Marker files that imply a language when any listed path exists under the project root. */
 const LANGUAGE_MARKERS = [

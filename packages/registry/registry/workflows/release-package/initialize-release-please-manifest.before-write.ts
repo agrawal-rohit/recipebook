@@ -1,4 +1,4 @@
-import type { BeforeWriteHook } from "@tuckshop/core";
+import type { BeforeWriteHook } from "@pebbles/core";
 
 /**
  * Initialize `.release-please-manifest.json` from the version currently in

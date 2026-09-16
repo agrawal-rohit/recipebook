@@ -1,4 +1,4 @@
-import type { Registry } from "@tuckshop/core";
+import type { Registry } from "@pebbles/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("chalk", () => ({
