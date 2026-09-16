@@ -17,18 +17,20 @@ enum ConfigAction {
 }
 
 /**
- * Narrow CAC's variadic add args to a single optional item id.
- * @param items - Positional item ids from CAC.
- * @returns One item id, or an empty list when none were provided.
- * @throws Error when the value is not a string array, or more than one id is provided.
+ * Narrow CAC's optional `add [item]` positional to a zero-or-one item list.
+ * @param item - Positional item id from CAC, or `undefined` when omitted.
+ * @param leftoverArgs - Remaining positional argv after the first item (CAC
+ *   ignores extras for `[item]`; we reject them so `add` stays one-at-a-time).
+ * @returns One item id, or an empty list when none was provided.
+ * @throws Error when the value is present but not a string, or extras remain.
  */
-function addItemArg(items: unknown): string[] {
-	if (items === undefined) return [];
-	if (!Array.isArray(items) || items.some((item) => typeof item !== "string"))
-		throw new Error("add expected a list of item ids.");
-	if (items.length > 1)
+function addItemArg(item: unknown, leftoverArgs: string[] = []): string[] {
+	if (leftoverArgs.length > 0)
 		throw new Error("add installs one registry item at a time.");
-	return items;
+	if (item === undefined) return [];
+	if (typeof item !== "string")
+		throw new Error("add expected a registry item id.");
+	return [item];
 }
 
 /**
@@ -146,14 +148,15 @@ export function registerCommandsCli(
 	);
 	addCmd.option("--overwrite", "Overwrite existing files");
 	addCmd.action(
-		async (items: unknown, options: { overwrite?: unknown } = {}) => {
+		async (item: unknown, options: { overwrite?: unknown } = {}) => {
 			await runCliCommand(async () => {
+				// CAC binds only `[item]`; extras stay in `app.args` after the first.
+				const leftoverArgs = (app.args ?? []).slice(item === undefined ? 0 : 1);
+				const items = addItemArg(item, leftoverArgs);
+				const overwrite = optionalBooleanFlag(options.overwrite, "--overwrite");
 				const { registry, indexLocation } = await loadRegistry();
 				await animatedIntro("adding registry item");
-				await addCommand(registry, indexLocation, {
-					items: addItemArg(items),
-					overwrite: optionalBooleanFlag(options.overwrite, "--overwrite"),
-				});
+				await addCommand(registry, indexLocation, { items, overwrite });
 			});
 		},
 	);

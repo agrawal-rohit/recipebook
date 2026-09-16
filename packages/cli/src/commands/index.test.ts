@@ -124,7 +124,7 @@ describe("commands/index", () => {
 		registerCommandsCli(app, mockLoadRegistry);
 
 		expect(command).toHaveBeenCalledWith(
-			"add [...items]",
+			"add [item]",
 			"Add a registry item to the current working directory",
 		);
 		expect(command).toHaveBeenCalledWith(
@@ -138,11 +138,11 @@ describe("commands/index", () => {
 		expect(usage).toHaveBeenCalledWith("config <get|set|unset> [source]");
 	});
 
-	it("runs the add command action with no positional items", async () => {
+	it("runs the add command action with no positional item", async () => {
 		const { app, actions } = createMockApp();
 		registerCommandsCli(app, mockLoadRegistry);
 
-		await actions.get("add [...items]")?.([], {});
+		await actions.get("add [item]")?.(undefined, {});
 
 		expect(mockAddCommand).toHaveBeenCalledWith(
 			registry,
@@ -154,27 +154,11 @@ describe("commands/index", () => {
 		);
 	});
 
-	it("treats omitted add items as an empty list", async () => {
+	it("runs the add command action with a positional item and --overwrite", async () => {
 		const { app, actions } = createMockApp();
 		registerCommandsCli(app, mockLoadRegistry);
 
-		await actions.get("add [...items]")?.(undefined, {});
-
-		expect(mockAddCommand).toHaveBeenCalledWith(
-			registry,
-			"/workspace/registry.json",
-			{
-				items: [],
-				overwrite: undefined,
-			},
-		);
-	});
-
-	it("runs the add command action with positional items and --overwrite", async () => {
-		const { app, actions } = createMockApp();
-		registerCommandsCli(app, mockLoadRegistry);
-
-		await actions.get("add [...items]")?.(["pr-template-configuration"], {
+		await actions.get("add [item]")?.("pr-template-configuration", {
 			overwrite: true,
 		});
 
@@ -191,14 +175,15 @@ describe("commands/index", () => {
 	});
 
 	it("rejects more than one positional add item", async () => {
-		const { app, actions } = createMockApp();
+		const app = cac("cheetos");
 		registerCommandsCli(app, mockLoadRegistry);
 
+		app.parse(
+			["node", "cheetos", "add", "pr-template-configuration", "license"],
+			{ run: false },
+		);
 		await expectCommandError(
-			actions.get("add [...items]")?.(
-				["pr-template-configuration", "license"],
-				{},
-			),
+			app.runMatchedCommand(),
 			"add installs one registry item at a time.",
 		);
 		expect(mockAddCommand).not.toHaveBeenCalled();
@@ -331,13 +316,13 @@ describe("commands/index", () => {
 		expect(mockConfigUnsetCommand).not.toHaveBeenCalled();
 	});
 
-	it("rejects a non-string add item list", async () => {
+	it("rejects a non-string add item", async () => {
 		const { app, actions } = createMockApp();
 		registerCommandsCli(app, mockLoadRegistry);
 
 		await expectCommandError(
-			actions.get("add [...items]")?.("license", {}),
-			"add expected a list of item ids.",
+			actions.get("add [item]")?.(42, {}),
+			"add expected a registry item id.",
 		);
 		expect(mockAddCommand).not.toHaveBeenCalled();
 	});
@@ -347,7 +332,7 @@ describe("commands/index", () => {
 		registerCommandsCli(app, mockLoadRegistry);
 
 		await expectCommandError(
-			actions.get("add [...items]")?.([], { overwrite: "yes" }),
+			actions.get("add [item]")?.(undefined, { overwrite: "yes" }),
 			"Option --overwrite must be a boolean flag.",
 		);
 		expect(mockAddCommand).not.toHaveBeenCalled();
