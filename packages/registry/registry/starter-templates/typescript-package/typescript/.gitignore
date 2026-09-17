@@ -26,6 +26,8 @@ reports/
 .windsurf/
 .cline/
 .claude/
+.codex/
+.opencode/
 AGENTS.md
 AGENT.md
 graphify-out/

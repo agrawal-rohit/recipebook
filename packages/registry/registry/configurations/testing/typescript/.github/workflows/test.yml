@@ -31,3 +31,59 @@ jobs:
 
       - name: Run tests with coverage
         run: {{pmRun}} cov
+
+  mutation:
+    name: Mutation (Incremental)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+
+      - name: Restore Stryker incremental cache
+        uses: actions/cache@d11319a65f1e5f1c1b3c4a3f4a1e1f9a8b7c6d5e # v4
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            stryker-incremental-${{ github.ref }}
+            stryker-incremental-refs/heads/{{defaultBranch}}
+
+      - name: Run mutation gate on changed lines
+        run: {{pmRun}} mutate:changed
+
+  mutation-full:
+    name: Mutation (Comprehensive)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/{{defaultBranch}}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+
+      - name: Restore Stryker incremental cache
+        uses: actions/cache@d11319a65f1e5f1c1b3c4a3f4a1e1f9a8b7c6d5e # v4
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ github.ref }}-${{ github.sha }}
+
+      - name: Run full mutation baseline
+        run: {{pmRun}} mutate
+
+      - name: Save Stryker incremental cache
+        uses: actions/cache/save@a382001678b5f8b5b2b9c9d8e7f6a5b4c3d2e1f0 # v4
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ github.ref }}-${{ github.sha }}

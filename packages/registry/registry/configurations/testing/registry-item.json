@@ -7,18 +7,10 @@
 		"language",
 		"defaultBranch"
 	],
-	"conditions": {
-		"coverageThreshold": {
-			"kind": "text",
-			"required": true,
-			"label": "Coverage line threshold",
-			"description": "Minimum line coverage percentage required.",
-			"default": "80"
-		}
-	},
 	"dependsOn": [
 		"setup-workspace-workflow",
-		"package-management-configuration"
+		"package-management-configuration",
+		"test-quality-agent-instruction"
 	],
 	"packs": [
 		{
@@ -32,9 +24,9 @@
 					"dev": [
 						"vitest@^3",
 						"@vitest/coverage-v8@^3",
-						"@stryker-mutator/core@^9",
-						"@stryker-mutator/vitest-runner@^9",
-						"@stryker-mutator/typescript-checker@^9"
+						"@stryker-mutator/core@^9.6.1",
+						"@stryker-mutator/vitest-runner@^9.6.1",
+						"@stryker-mutator/typescript-checker@^9.6.1"
 					]
 				}
 			},
@@ -42,7 +34,8 @@
 				"npm": {
 					"test": "vitest run",
 					"cov": "vitest run --coverage --passWithNoTests",
-					"mutate": "stryker run"
+					"mutate": "stryker run",
+					"mutate:changed": "stryker run --incremental --mutate \\\"src/**/*.{ts,tsx},!src/**/*.{test,spec}.{ts,tsx}\\\""
 				}
 			},
 			"files": [

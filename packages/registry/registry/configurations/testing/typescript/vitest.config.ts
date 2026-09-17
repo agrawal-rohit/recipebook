@@ -12,10 +12,10 @@ export default defineConfig({
 		coverage: {
 			reporter: ["text", "lcov", "html"],
 			thresholds: {
-				lines: {{coverageThreshold}},
-				statements: {{coverageThreshold}},
-				functions: {{coverageThreshold}},
-				branches: {{coverageThreshold}},
+				lines: 80,
+				statements: 80,
+				functions: 80,
+				branches: 80,
 			},
 			exclude: [
 				...(configDefaults.coverage.exclude || []),

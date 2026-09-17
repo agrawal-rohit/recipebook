@@ -16,12 +16,22 @@ const config = {
 	typescriptChecker: {
 		prioritizePerformanceOverAccuracy: true,
 	},
-	ignorePatterns: ["coverage"],
+	mutate: [
+		"src/**/*.{ts,tsx}",
+		"!src/**/*.{test,spec}.{ts,tsx}",
+	],
+	ignorePatterns: [
+		"coverage",
+		"dist",
+		"build",
+		"out",
+		"**/*.md",
+	],
 	incremental: true,
 	thresholds: {
 		high: 80,
 		low: 60,
-		break: null,
+		break: 70,
 	},
 	vitest: {
 		configFile: "vitest.config.ts",

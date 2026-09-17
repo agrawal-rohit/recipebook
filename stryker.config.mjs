@@ -12,16 +12,26 @@ const config = {
 		"@stryker-mutator/typescript-checker",
 	],
 	checkers: ["typescript"],
-	tsconfigFile: "tsconfig.json",
+	tsconfigFile: "tsconfig.stryker.json",
 	typescriptChecker: {
 		prioritizePerformanceOverAccuracy: true,
 	},
-	ignorePatterns: ["coverage"],
+	mutate: [
+		"packages/*/src/**/*.ts",
+		"!packages/*/src/**/*.test.ts",
+		"!packages/*/src/**/*.spec.ts",
+	],
+	ignorePatterns: [
+		"coverage",
+		"packages/registry/registry/**",
+		"docs/**",
+		"**/*.md",
+	],
 	incremental: true,
 	thresholds: {
 		high: 80,
 		low: 60,
-		break: null,
+		break: 70,
 	},
 	vitest: {
 		configFile: "vitest.config.ts",
