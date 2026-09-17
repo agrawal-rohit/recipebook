@@ -1,7 +1,7 @@
 {
 	"id": "testing-configuration",
 	"title": "Testing",
-	"description": "Testing configuration and GitHub Actions workflow for running tests with coverage.",
+	"description": "Testing configuration with coverage and mutation testing.",
 	"type": "configuration",
 	"requires": [
 		"language",
@@ -31,20 +31,28 @@
 				"npm": {
 					"dev": [
 						"vitest@^3",
-						"@vitest/coverage-v8@^3"
+						"@vitest/coverage-v8@^3",
+						"@stryker-mutator/core@^9",
+						"@stryker-mutator/vitest-runner@^9",
+						"@stryker-mutator/typescript-checker@^9"
 					]
 				}
 			},
 			"commands": {
 				"npm": {
 					"test": "vitest run",
-					"cov": "vitest run --coverage --passWithNoTests"
+					"cov": "vitest run --coverage --passWithNoTests",
+					"mutate": "stryker run"
 				}
 			},
 			"files": [
 				{
 					"source": "typescript/vitest.config.ts",
 					"target": "vitest.config.ts"
+				},
+				{
+					"source": "typescript/stryker.config.mjs",
+					"target": "stryker.config.mjs"
 				},
 				{
 					"source": "typescript/.github/workflows/test.yml",

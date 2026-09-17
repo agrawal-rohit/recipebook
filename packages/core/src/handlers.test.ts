@@ -1304,10 +1304,18 @@ module.exports = async function beforeWrite() {
 
 	it("runBeforeWriteHook loads scripts through the installed executor", async () => {
 		const executor: ScriptExecutor = {
-			loadModule: vi.fn(async () => async () => ({
-				bindings: { fromExecutor: "1" },
-			})),
+			async loadModule<T>(
+				_indexLocation: string,
+				_scriptUri: string,
+				isValid: (value: unknown) => value is T,
+				_errorMessage: string,
+			): Promise<T> {
+				const hook = async () => ({ bindings: { fromExecutor: "1" } });
+				if (!isValid(hook)) throw new Error(_errorMessage);
+				return hook;
+			},
 		};
+		vi.spyOn(executor, "loadModule");
 		setScriptExecutor(executor);
 		const result = await runBeforeWriteHook(
 			path.join(tempDir, "registry.json"),

@@ -56,7 +56,6 @@
 		"license-configuration",
 		"pre-commit-hooks-configuration",
 		"testing-configuration",
-		"mutation-testing-configuration",
 		"dependency-updates-configuration",
 		"setup-workspace-workflow",
 		"build-package-workflow",
