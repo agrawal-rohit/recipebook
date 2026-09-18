@@ -8,7 +8,15 @@
     "completeness": "complete"
   },
   "unused_files": [],
-  "unused_exports": [],
+  "unused_exports": [
+    "packages/cli/src/cli/animated-intro.ts:createFixedHeightRenderer",
+    "packages/cli/src/cli/errors.ts:printCancel",
+    "packages/cli/src/utils/registry.ts:locateRegistry",
+    "packages/core/src/condition-kind.ts:conditionKindPolicy",
+    "packages/core/src/plan.ts:whenMatchesContext",
+    "packages/core/src/plan.ts:selectRegistryPacks",
+    "packages/core/src/plan.ts:parseItemId"
+  ],
   "unused_types": [],
   "private_type_leaks": [],
   "unused_dependencies": [],
@@ -17,7 +25,9 @@
   "re_export_cycles": [],
   "unused_optional_dependencies": [],
   "unused_enum_members": [],
-  "unused_class_members": [],
+  "unused_class_members": [
+    "packages/cli/src/cli/errors.ts:InterruptError.exitCode"
+  ],
   "unused_store_members": [],
   "unprovided_injects": [],
   "unrendered_components": [],

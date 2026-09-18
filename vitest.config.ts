@@ -34,7 +34,6 @@ export default defineConfig({
 				"**/lint-staged.config.js",
 				"packages/cli/bin/**",
 				"packages/registry/scripts/**",
-				"**/docs/**",
 				"**/stryker.config.mjs",
 			],
 		},

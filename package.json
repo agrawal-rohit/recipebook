@@ -18,7 +18,7 @@
 		"test": "pnpm -r --filter \"./packages/*\" run test",
 		"mutate": "stryker run",
 		"mutate:changed": "stryker run --incremental --mutate \"packages/*/src/**/*.ts,!packages/*/src/**/*.test.ts,!packages/*/src/**/*.spec.ts\"",
-		"typecheck": "pnpm -r --filter \"./packages/*\" run typecheck && pnpm -C docs typecheck",
+		"typecheck": "pnpm -r --filter \"./packages/*\" run typecheck",
 		"lint": "pnpm exec biome lint --write",
 		"format": "pnpm exec biome format --write",
 		"check": "pnpm run typecheck && pnpm exec biome check --write --no-errors-on-unmatched",
@@ -26,12 +26,7 @@
 		"quality": "fallow",
 		"quality:changes": "fallow audit --format compact",
 		"prepack": "pnpm --filter cheetos run prepack",
-		"prepare": "husky",
-		"docs:dev": "pnpm -C docs dev",
-		"docs:build": "pnpm -C docs build",
-		"docs:start": "pnpm -C docs start",
-		"docs:mdx": "pnpm -C docs mdx",
-		"docs:typecheck": "pnpm -C docs typecheck"
+		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.10",

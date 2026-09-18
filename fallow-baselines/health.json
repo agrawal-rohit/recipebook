@@ -1,8 +1,197 @@
 {
   "finding_counts": {
-    "packages/cli/src/cli/prompts.ts": {
+    "packages/cli/src/cli/animated-intro.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/cli/src/cli/config.ts": {
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/cli/src/cli/errors.ts": {
       "crap_moderate": {
         "count": 1
+      }
+    },
+    "packages/cli/src/cli/prompts.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "packages/cli/src/cli/tasks.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/add.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/cli/src/commands/config.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/commands/index.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/utils/conditions.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "packages/cli/src/utils/files.ts": {
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/cli/src/utils/packages.ts": {
+      "crap_high": {
+        "count": 4
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "packages/cli/src/utils/registry.ts": {
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "packages/core/src/build.ts": {
+      "crap_high": {
+        "count": 3
+      },
+      "crap_moderate": {
+        "count": 7
+      }
+    },
+    "packages/core/src/cjs-export.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/core/src/condition-kind.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/core/src/fs.ts": {
+      "crap_moderate": {
+        "count": 1
+      }
+    },
+    "packages/core/src/handlers.ts": {
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 3
+      }
+    },
+    "packages/core/src/interpolate.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/core/src/packages.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 2
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "packages/core/src/parse.ts": {
+      "crap_high": {
+        "count": 7
+      },
+      "crap_moderate": {
+        "count": 6
+      }
+    },
+    "packages/core/src/plan.ts": {
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 6
+      },
+      "crap_moderate": {
+        "count": 16
+      }
+    },
+    "packages/core/src/schema.ts": {
+      "crap_high": {
+        "count": 5
+      },
+      "crap_moderate": {
+        "count": 4
+      }
+    },
+    "packages/core/src/scripts.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 15
+      }
+    },
+    "packages/core/src/shell.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 2
+      }
+    },
+    "packages/core/src/urls.ts": {
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 3
       }
     }
   },

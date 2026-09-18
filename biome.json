@@ -3,34 +3,20 @@
 	"files": {
 		"includes": [
 			"packages/**/*.{js,ts,jsx,tsx,json,cjs,mjs,yaml,css}",
-			"docs/**/*.{js,ts,jsx,tsx,mjs,json,css}",
 			"!packages/*/dist",
 			"!packages/*/coverage",
 			"!packages/registry/registry",
 			"!packages/registry/registry.json",
 			"!packages/registry/r",
 			"!packages/cli/registry.json",
-			"!packages/cli/r",
-			"!docs/.next",
-			"!docs/.source",
-			"!docs/out",
-			"!docs/build"
+			"!packages/cli/r"
 		]
 	},
-	"formatter": {
-		"enabled": true
-	},
-	"linter": {
-		"enabled": true,
-		"rules": { "recommended": true }
-	},
-	"css": {
-		"parser": {
-			"tailwindDirectives": true
-		}
-	},
 	"assist": {
-		"enabled": true,
-		"actions": { "source": { "organizeImports": "on" } }
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
 	}
 }

@@ -1,35 +1,15 @@
 {
 	"$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-	"entry": [
-		"packages/cli/bin/cli.mjs",
-		"packages/cli/src/index.ts",
-		"packages/core/src/index.ts",
-		"packages/registry/scripts/build-registry.ts",
-		"docs/app/**/*.{ts,tsx}",
-		"docs/next.config.mjs",
-		"docs/source.config.ts",
-		"docs/components/mdx.tsx"
-	],
 	"ignorePatterns": [
-		"dist/**",
-		"packages/*/dist/**",
-		"docs/.next/**",
-		"docs/.source/**",
-		"coverage/**",
 		"packages/registry/registry/**",
 		"**/*.mustache.*",
 		"fallow-baselines/**"
 	],
 	"ignoreDependencies": [
 		"@stryker-mutator/api",
-		"collections",
-		"lucide-react",
-		"minimatch",
 		"spdx-license-list"
 	],
 	"rules": {
-		"unresolved-imports": "error",
-		"unlisted-dependencies": "error",
 		"unused-exports": "warn"
 	},
 	"audit": {

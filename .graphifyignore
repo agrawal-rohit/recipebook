@@ -1,5 +1,4 @@
 fallow-baselines/**
-docs/**
 **/*.test.ts
 **/*.test.tsx
 **/*.spec.ts

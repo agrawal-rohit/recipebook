@@ -1,9 +1,9 @@
 {
   "clone_groups": [
-    "packages/cli/src/cli/animated-intro.ts:138-147|packages/cli/src/cli/animated-intro.ts:73-82"
+    "packages/core/src/scripts.ts:335-347|packages/core/src/scripts.ts:375-387"
   ],
   "clone_fingerprints": [
-    "dup:472eef1e:2"
+    "dup:825078ac:2"
   ],
   "normalized_clone_fingerprints": [
     "dup:6f87acd9:2"

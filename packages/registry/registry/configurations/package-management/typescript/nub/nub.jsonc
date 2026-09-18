@@ -1,7 +1,0 @@
-{
-	"$schema": "https://nubjs.com/schema/latest.json",
-	"install": {
-		// Require package versions to be at least three days old.
-		"minimumReleaseAge": "3d"
-	}
-}

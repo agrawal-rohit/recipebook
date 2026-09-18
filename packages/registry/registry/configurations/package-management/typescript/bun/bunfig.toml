@@ -1,5 +1,0 @@
-[install]
-# Require package versions to be at least three days old (259200 seconds).
-minimumReleaseAge = 259200
-# Refuse lifecycle scripts.
-ignoreScripts = true

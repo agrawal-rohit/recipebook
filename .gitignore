@@ -26,16 +26,6 @@ reports/
 # Fallow (machine-local parse cache)
 .fallow/
 
-# Docs (Next / Fumadocs)
-docs/.next/
-docs/node_modules/
-docs/out/
-docs/.source/
-docs/next-env.d.ts
-docs/*.tsbuildinfo
-docs/.vercel
-docs/.env*.local
-
 # Agent instructions
 .cursor/
 .windsurf/
@@ -46,4 +36,3 @@ docs/.env*.local
 AGENTS.md
 AGENT.md
 graphify-out/
-specs/
