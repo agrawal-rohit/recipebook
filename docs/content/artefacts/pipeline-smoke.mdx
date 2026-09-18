@@ -1,0 +1,127 @@
+---
+title: Trim registry URL
+description: >-
+  Tiny helper that strips accidental whitespace and a trailing slash from
+  registry base URLs before they are stored or compared.
+---
+
+<Eyebrow>artefact · pipeline-smoke</Eyebrow>
+
+## Thought
+
+<Files>
+  <Folder name="touched" defaultOpen>
+    <File name="packages/cheetos/src/registry/trim-url.ts" />
+    <File name="packages/cheetos/src/registry/client.ts" />
+    <File name="packages/cheetos/src/registry/trim-url.test.ts" />
+  </Folder>
+</Files>
+
+- `client.ts` → `trim-url.ts` (calls `trimRegistryUrl`)
+- `trim-url.test.ts` → `trim-url.ts` (SPEC coverage)
+
+<ChipRow>
+  <Chip>registry</Chip>
+  <Chip tone="amber">config boundary</Chip>
+  <Chip tone="muted">one-liner helper</Chip>
+</ChipRow>
+
+<Callout title="Open questions" type="idea">
+  - Should internal paths (with query strings) use the same helper?
+  - Is empty-after-trim a throw or a soft empty string?
+</Callout>
+
+<Callout title="Citations" type="info">
+  `packages/cheetos/src/registry/client.ts:42` — builds base from config
+</Callout>
+
+## Plan
+
+<Cards>
+  <Card title="Dedicated trimRegistryUrl helper (recommended)" description="Risk: low">
+    **Pros:** One call site change in client; easy to unit-test edges; reusable for compare/normalize later.
+
+    **Cons:** New tiny module for a one-liner.
+  </Card>
+  <Card title="Inline .trim().replace(/\/$/, '') at call site" description="Risk: medium">
+    **Pros:** No new file.
+
+    **Cons:** Easy to miss a second call site; harder for oracle to cite a public surface.
+  </Card>
+  <Card title="Full URL canonicalize via WHATWG URL" description="Risk: high">
+    **Pros:** Handles host case, default ports, more.
+
+    **Cons:** Overkill for registry base strings; changes semantics beyond whitespace/slash.
+  </Card>
+</Cards>
+
+Out of scope: query/hash rewriting, HTTPS upgrades, host allowlists.
+
+## Contract
+
+<Accordions>
+  <Accordion title="trim-url#leading-whitespace" id="trim-url-leading-whitespace">
+    **WHEN** input has leading ASCII whitespace
+
+    **THEN** returned string has no leading whitespace
+  </Accordion>
+  <Accordion title="trim-url#trailing-slash" id="trim-url-trailing-slash">
+    **WHEN** input ends with a single `/` after trim
+
+    **THEN** returned string has that trailing slash removed
+  </Accordion>
+  <Accordion title="trim-url#empty-after-trim" id="trim-url-empty-after-trim">
+    **WHEN** input is only whitespace
+
+    **THEN** throws TypeError with message containing `empty`
+  </Accordion>
+</Accordions>
+
+<TypeTable
+  type={{
+    'trim-url#leading-whitespace': {
+      type: 'return input unchanged',
+      description:
+        'expect(trimRegistryUrl("  https://r.example")).toBe("https://r.example")',
+    },
+    'trim-url#trailing-slash': {
+      type: 'only trim spaces, keep slash',
+      description:
+        'expect(trimRegistryUrl("https://r.example/")).toBe("https://r.example")',
+    },
+    'trim-url#empty-after-trim': {
+      type: 'return ""',
+      description: 'expect(() => trimRegistryUrl("   ")).toThrow(/empty/i)',
+    },
+  }}
+/>
+
+## Docs
+
+<Panel title="What it does">
+  Registry base URLs often arrive with copy-paste whitespace or a trailing slash.
+  `trimRegistryUrl` makes them comparable and safe to join with paths.
+</Panel>
+
+```ts
+import { trimRegistryUrl } from './trim-url'
+
+trimRegistryUrl('  https://registry.example/ ')
+// → 'https://registry.example'
+```
+
+<Note>
+  Call once at the config boundary before storing or comparing bases.
+</Note>
+
+<Accordions>
+  <Accordion title="Acceptance criteria (stable ids)" id="acceptance-criteria">
+    - `trim-url#leading-whitespace` — strip leading ASCII whitespace
+    - `trim-url#trailing-slash` — remove one trailing `/` after trim
+    - `trim-url#empty-after-trim` — throw `TypeError` containing `empty`
+  </Accordion>
+  <Accordion title="Plan alternatives (archived)" id="plan-archived">
+    Recommended: dedicated helper. Rejected: inline one-liner (missed call sites) and
+    full WHATWG canonicalize (semantic overreach).
+  </Accordion>
+</Accordions>

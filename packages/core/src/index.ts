@@ -95,6 +95,7 @@ export {
 	type InstallNode,
 	packageManagerDropsCandidateDependsOn,
 	packWhenUsesCapturedKeys,
+	parseItemId,
 	type RequiredCondition,
 	uniqueKnownRegistryItems,
 } from "./plan";

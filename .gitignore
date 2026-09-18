@@ -28,6 +28,7 @@ reports/
 
 # Agent instructions
 .cursor/
+.pi/
 .windsurf/
 .cline/
 .claude/

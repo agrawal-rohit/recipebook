@@ -9,8 +9,19 @@
 			"!packages/registry/registry.json",
 			"!packages/registry/r",
 			"!packages/cli/registry.json",
-			"!packages/cli/r"
+			"!packages/cli/r",
+			"docs/**/*.{js,ts,tsx,mjs,json,css}",
+			"!docs/node_modules",
+			"!docs/.next",
+			"!docs/.source",
+			"!docs/dist",
+			"!docs/build"
 		]
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
 	},
 	"assist": {
 		"actions": {
@@ -18,5 +29,25 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["docs/**"],
+			"formatter": {
+				"indentStyle": "space",
+				"indentWidth": 2
+			},
+			"linter": {
+				"rules": {
+					"style": {
+						"noNonNullAssertion": "off"
+					},
+					"complexity": {
+						"noImportantStyles": "off",
+						"useLiteralKeys": "off"
+					}
+				}
+			}
+		}
+	]
 }
