@@ -10,14 +10,6 @@
 		{
 			"source": "test-quality.mdc",
 			"target": ".cursor/rules/test-quality.mdc"
-		},
-		{
-			"source": "test-planner.md",
-			"target": ".cursor/agents/test-planner.md"
-		},
-		{
-			"source": "test-executor.md",
-			"target": ".cursor/agents/test-executor.md"
 		}
 	],
 	"beforeWrite": "../transform-agent-rule.before-write.ts"

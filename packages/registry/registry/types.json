@@ -11,6 +11,10 @@
 		"label": "Agent Instructions",
 		"description": "Coding agent and IDE instructions that guide AI behaviour."
 	},
+	"subagent": {
+		"label": "Subagents",
+		"description": "Specialized subagent definitions for dedicated tasks delegated by the main agent."
+	},
 	"starter-template": {
 		"label": "Starter Templates",
 		"description": "Composable project scaffolds."

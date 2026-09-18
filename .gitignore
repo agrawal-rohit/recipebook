@@ -46,3 +46,4 @@ docs/.env*.local
 AGENTS.md
 AGENT.md
 graphify-out/
+specs/

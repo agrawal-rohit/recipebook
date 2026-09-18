@@ -7,7 +7,7 @@ alwaysApply: true
 
 Every change — feature, bugfix, refactor — follows the same five phases:
 
-1. **SPEC** — Write or update acceptance criteria in `specs/<feature>.md` before writing code. Cover inputs, outputs, edge cases, error behavior, and invariants.
+1. **SPEC** — Write or update acceptance criteria in `<root-dir>/specs/<feature>.md` before writing code. Cover inputs, outputs, edge cases, error behavior, and invariants.
 2. **TEST** — Generate tests from the spec alone via the `test-planner` subagent. Tests are written from the spec, never from the implementation.
 3. **RED** — Prove the new tests fail against the pre-change code or a stub. A test that passes before the code exists is vacuous — strengthen or delete it.
 4. **CODE** — Implement until every spec-derived test passes. Never edit tests or specs to make code pass.

@@ -10,7 +10,8 @@
 	"dependsOn": [
 		"setup-workspace-workflow",
 		"package-management-configuration",
-		"test-quality-agent-instruction"
+		"test-quality-agent-instruction",
+		"test-quality-subagent"
 	],
 	"packs": [
 		{

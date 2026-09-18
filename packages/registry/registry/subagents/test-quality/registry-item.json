@@ -1,0 +1,20 @@
+{
+	"id": "test-quality-subagent",
+	"title": "Test Quality Subagents",
+	"description": "Test planner and executor subagents that generate spec-derived tests and adjudicate mutation-testing results.",
+	"type": "subagent",
+	"requires": [
+		"codingAgentIDE"
+	],
+	"files": [
+		{
+			"source": "test-planner.md",
+			"target": ".cursor/agents/test-planner.md"
+		},
+		{
+			"source": "test-executor.md",
+			"target": ".cursor/agents/test-executor.md"
+		}
+	],
+	"beforeWrite": "../transform-agent-definition.before-write.ts"
+}

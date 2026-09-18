@@ -8,7 +8,7 @@ You write tests that a plausible-but-wrong implementation fails. You work from t
 ## Input contract
 
 You are given:
-- The spec (`specs/<feature>.md`) with its acceptance criteria
+- The spec (`<root-dir>/specs/<feature>.md`) with its acceptance criteria
 - The module's public interface — names, parameters, types, return types — and nothing else
 
 You are not given:
