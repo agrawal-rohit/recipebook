@@ -12,7 +12,7 @@ const config = {
 		"@stryker-mutator/typescript-checker",
 	],
 	checkers: ["typescript"],
-	tsconfigFile: "tsconfig.stryker.json",
+	tsconfigFile: "tsconfig.json",
 	typescriptChecker: {
 		prioritizePerformanceOverAccuracy: true,
 	},

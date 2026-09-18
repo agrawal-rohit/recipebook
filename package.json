@@ -26,9 +26,7 @@
 		"quality": "fallow",
 		"quality:changes": "fallow audit --format compact",
 		"prepack": "pnpm --filter cheetos run prepack",
-		"prepare": "husky",
-		"docs:dev": "pnpm --filter docs run dev",
-		"docs:build": "pnpm --filter docs run build"
+		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.10",
