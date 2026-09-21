@@ -37,6 +37,7 @@ The repository is a pnpm workspace with the following structure:
 
 - `packages/cli`: published as `cheetos`
 - `packages/core`: published as `@cheetos/core`
+- `docs`: documentation site
 
 ## Making Changes
 

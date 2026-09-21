@@ -11,11 +11,13 @@ export default defineConfig({
 			...configDefaults.exclude,
 			"packages/*/dist/**",
 			"**/.stryker-tmp/**",
+			"docs/**",
 		],
 		coverage: {
 			reporter: ["text", "lcov", "html"],
 			exclude: [
 				...(configDefaults.coverage.exclude || []),
+				"docs/**",
 				"**/coverage/**",
 				"packages/*/dist/**",
 				"**/commitlint.config.*",

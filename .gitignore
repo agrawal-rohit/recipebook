@@ -1,6 +1,9 @@
 *.tgz
 .vscode
 
+# Docs
+docs_old/
+
 # Build & Dependencies
 dist/
 packages/*/dist/
