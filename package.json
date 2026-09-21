@@ -34,16 +34,16 @@
 		"docs:typecheck": "pnpm -C docs typecheck"
 	},
 	"dependencies": {
-		"cac": "^6.7.14",
-		"chalk": "^5.6.2",
+		"cac": "^7.0.0",
+		"chalk": "^6.0.0",
 		"consola": "^3.2.3",
-		"giget": "^3.1.2",
+		"giget": "^3.3.1",
 		"gray-matter": "^4.0.3",
-		"listr2": "^10.1.0",
+		"listr2": "^11.1.0",
 		"mustache": "^4.2.0",
-		"spdx-license-list": "^6.11.0",
-		"validate-npm-package-name": "7.0.2",
-		"yaml": "^2.8.2"
+		"spdx-license-list": "^6.12.0",
+		"validate-npm-package-name": "8.0.0",
+		"yaml": "^2.9.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.10",
