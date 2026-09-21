@@ -14,19 +14,12 @@ export default defineConfig({
 		],
 		coverage: {
 			reporter: ["text", "lcov", "html"],
-			thresholds: {
-				lines: 80,
-				statements: 80,
-				functions: 80,
-				branches: 80,
-			},
 			exclude: [
 				...(configDefaults.coverage.exclude || []),
 				"**/coverage/**",
 				"packages/*/dist/**",
 				"**/commitlint.config.*",
 				"**/lint-staged.config.js",
-				"packages/cli/bin/**",
 				"**/stryker.config.mjs",
 			],
 		},

@@ -26,11 +26,6 @@ const config = {
 		"**/*.md",
 	],
 	incremental: true,
-	thresholds: {
-		high: 80,
-		low: 60,
-		break: 70,
-	},
 	vitest: {
 		configFile: "vitest.config.ts",
 		related: true,

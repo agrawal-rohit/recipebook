@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import indexModule from "../dist/index.js";
 
-// Maintain compatibility with both CommonJS and ESM outputs
-const run = indexModule?.default ?? indexModule;
+const run = indexModule.default;
 const printError = indexModule.printError;
 
 try {
