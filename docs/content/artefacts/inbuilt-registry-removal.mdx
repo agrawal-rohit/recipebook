@@ -1,0 +1,340 @@
+---
+title: Inbuilt registry removal
+description: Inbuilt registry removal — shipped behavior and migration. Sources are always explicit (`--registry` > `CHEETOS_REGISTRY` > `cheetos configure set`), `add` prompts or fails fast when none exists, `config` is renamed to `configure`, and `@cheetos/core` drops the registry-build API.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/cards';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+## Thought
+
+### Goal
+
+Remove the inbuilt registry (`packages/registry`) and all surrounding logic. Replacement behaviour:
+1. No inbuilt registry — a source must always be added explicitly by the user.
+2. Every CLI command that needs a source validates **before** running that a valid source exists (or prompts the user to add one).
+3. The `config` CLI command is renamed to `configure`.
+
+This is a discovery map only — **no production code is changed** (voyager exploration).
+
+---
+
+### `packages/registry` structure & exports
+
+`Files`
+
+- `packages/registry/` — a **content** package, not a library. `private: true`, name `@cheetos/registry` (`packages/registry/package.json:2`).
+- `packages/registry/scripts/build-registry.ts` — the only source file. Imports `buildRegistry` from `@cheetos/core` and compiles `registry/` source tree → `registry.json` + `r/` (build output, gitignored).
+- `packages/registry/tsconfig.json` — trivial, includes `scripts/**/*.ts`, emits to `dist/`.
+- `packages/registry/registry.json` — the **only committed** artifact (~41KB lean index: `conditions`, `types`, `items`, `scriptIntegrity`, `itemIntegrity`). **Five test/exploration files exist elsewhere.**
+- `packages/registry/dist/scripts/build-registry.{js,.d.ts}` — compiled `scripts/build-registry.ts`.
+- Dependencies: `@cheetos/core` (workspace), `spdx-license-list`. No consumers — **nothing in the monorepo imports `@cheetos/registry` as a module.** It is a build-content package consumed only via its compiled `registry.json` + `r/` being copied into the CLI tarball at `prepack`.
+
+### Every reference to `@cheetos/registry` / the registry content
+
+`Files`
+
+- `package.json:17` — script `"build:registry": "pnpm --filter @cheetos/registry run build"`.
+- `package.json:22` — `"test": "pnpm -r --filter \"./packages/*\" run test"` (runs registry's `test: "vitest run --passWithNoTests"`).
+- `packages/cli/package.json:21` — `prepack`: `pnpm --filter @cheetos/registry run build && cp ../registry/registry.json ./registry.json && rm -rf ./r && cp -R ../registry/r ./r`.
+- `packages/cli/package.json` `files` array: `"registry.json","r"` shipped in the published npm package.
+- `tsconfig.json` root — `references` includes `./packages/registry` (line 4).
+- `pnpm-workspace.yaml` — `packages/*` (no per-package path aliases; tsconfig has no `paths`, mapping is purely the workspace/pnpm `@cheetos/*`).
+- `vitest.config.ts` — exclusions/reporting paths `packages/registry/registry/**`, `packages/registry/r/**` (exclude + coverage). `*` The in-progress branch already trimmed some of these (see diff note). `*`
+- `stryker.config.mjs:26` — `"packages/registry/registry/**"` (in-progress branch trimmed it).
+- `.fallowrc.json:5` — `"packages/registry/registry/**"`.
+- `.github/codeql/config.yml:4` — `packages/registry/registry/**` path filter.
+- `.gitignore` — `packages/cli/registry.json`, `packages/cli/r/`, `packages/registry/r/`.
+- Docs: `README.md:25,42,48,62,88,97,118,124`; `CONTRIBUTING.md:34,41,143,175,179,182,196–203,227,244,250–253`; `packages/core/README.md:5`; `packages/registry/README.md:1`.
+- `apps`/`docs` — **none**; there is no `docs/content/docs/` dir (only `artefacts/`). No `meta.json`.
+
+### CLI structure & command routing
+
+`Files`
+
+- `packages/cli/bin/cli.mjs` — entry. Imports `dist/index.js`, catches errors, `process.exitCode = 1`.
+- `packages/cli/src/index.ts:run()` — builds `cac("cheetos")`, declares `--registry <source>` option, defines `loadRegistry()` closure, calls `registerCommandsCli(app, loadRegistry)`, then `app.parse(...)` + `app.runMatchedCommand()`.
+- `packages/cli/src/commands/index.ts:registerCommandsCli(app, loadRegistry)` — the single command registry. Registers exactly two CAC commands: `add [item]` and `config <action> [source]`. **There is no `list` command in `src`** (a stale `dist/commands/list.js` exists — dead compiled artifact).
+- Commands: `commands/add.ts` (`addCommand`), `commands/config.ts` (`configGetCommand`/`configSetCommand`/`configUnsetCommand`), `cli/config.ts` (config read/write primitives: `configPath`, `readConfig`, `writeConfig`, `unsetRegistryConfig`, `CheetosConfig`).
+- Dispatch flow: CAC action → `runCliCommand(action)` (`cli/errors.ts`) which awaits the body and maps `OperationCanceledError`/`InterruptError`/generic errors to `process.exit` — wraps each command body.
+
+### Which commands use the registry & where pre-run validation could live
+
+`Files`
+
+- `add` — the only command that actually **loads registry data**. `commands/index.ts:38` calls `loadRegistry()` → `addCommand(registry, indexLocation, {items, overwrite})` (`commands/add.ts` @import `../utils/registry`). It needs a source to run.
+- `config set/get/unset` — **do not** load a registry; they manage the saved source itself (`commands/index.ts:94` — `config` path never invokes the loader; verified by `commands/index.test.ts` which passes a loader that throws and asserts `config` never triggers it).
+- `utils/registry.ts` — loaders: `locateRegistry`, `loadRuntimeRegistry`, `loadCompiledItems`, `bundledRegistryPath`. **The `bundled` fallback is exactly the inbuilt-registry behaviour to remove.** `locateRegistry` order: CLI `--registry` flag > `env.CHEETOS_REGISTRY` > saved config > cwd/fallback/bundled `registry.json`. Removing the inbuilt registry collapses this to: flag > saved config (or explicit file), and the "fallback/bundled" tail and error message must change.
+- **Validation hook location:** `runCliCommand` (`cli/errors.ts:57`) is the natural single choke point that wraps every command body — a pre-run "assert a source exists, else prompt to add one" could be inserted there, or in `loadRegistry()` inside `index.ts` before dispatch, or per-command in `commands/index.ts` action bodies. `loadRegistry()` in `index.ts` is the current shared pre-load step for `add`.
+
+### How sources are added/configured; where `config` is defined
+
+- Explicit vs inbuilt: users configure via **explicit** `cheetos config set <URL|path>` (validates HTTPS policy / existing regular file → writes `~/.config/cheetos/config.json`), an env var `CHEETOS_REGISTRY`, or the `--registry` flag. The **inbuilt** default is the bundled `registry.json` copied at `prepack` (`bundledRegistryPath` → `path.resolve(__dirname,"../../","registry.json")`).
+- `config` command defined: `commands/index.ts` (registration + `runConfigAction` + `parseConfigAction` + `ConfigAction` enum) → dispatch to `commands/config.ts` (the three `*Command` exports). `cli/config.ts` holds the persistence primitives.
+
+### Behaviour contract & tests
+
+- Artifact: `docs/content/artefacts/config-command-test-suite.mdx` — oracle contract for the **config command** (81 tests described across `cli/config.test.ts` 40, `commands/config.test.ts` 21, `commands/index.test.ts` 9, `utils/registry.test.ts` 11).
+- Test files on disk (all are the in-progress untracked work): `packages/cli/src/cli/config.test.ts`, `packages/cli/src/commands/config.test.ts`, `packages/cli/src/commands/index.test.ts`, `packages/cli/src/utils/registry.test.ts`. `docs/content/artefacts/config-command-test-suite.mdx` is untracked (added/renamed). The MDX says "Existing tests: none" — stale wording; tests now exist.
+- **No tests cover the registry package or `add` command.** Only `config` + `locateRegistry` (utils) are covered.
+
+### Dead code that will remain after removal
+
+`Files`
+
+- `packages/cli/dist/` stale compiled modules with **no `src` counterpart**: `registry` vs `utils/registry.ts` — `dist/registry/{load.js,source.js}` (old layout), `dist/registry-remote.{js,.d.ts}`, `dist/commands/list.js`, `dist/commands/add-conditions.js`, `dist/commands/add-files.js`, `dist/commands/add-packages.js`. These are leftover build output from prior refactors (current `src` has `add`/`config`/`index` and no `list`).
+- After removing inbuilt registry: `bundledRegistryPath()`, the cwd-`registry.json`/fallback/bundled candidate loop in `locateRegistry`, `publishedRegistryUrl` fallbacks in `configGetCommand`/`configUnsetCommand`, the `prepack` copy step, the `build:registry` script, and root `tsconfig` reference all become dead.
+
+### Branch state (in-progress, uncommitted)
+
+- `git status`: `packages/cli/src/utils/registry.ts` modified (`PEBBLES_REGISTRY` → `CHEETOS_REGISTRY` env name), `vitest.config.ts` + `stryker.config.mjs` trimmed of registry excludes, `.gitignore` +1 line. Untracked: `packages/cli/src/cli/config.test.ts`, `commands/config.test.ts`, `commands/index.test.ts`, `utils/registry.test.ts`.
+- 101 commits ahead of `origin/main`.
+
+## Plan
+
+### Goal and constraints
+
+Remove the inbuilt registry (`packages/registry`) and **all** surrounding logic. Going forward a source is **always explicit**: `--registry` flag, `CHEETOS_REGISTRY` env, or `cheetos configure set`. Before any command that needs a source runs, a valid source must exist — or the user is prompted to add one interactively. The `config` command is renamed to `configure` (clean break, no alias). Dead code is removed, including `buildRegistry` in core (orchestrator decision: delete — zero in-repo consumers after this change, zero tests, only consumer of the `esbuild` runtime dep; git history preserves it). Constraints: no production code is changed by this plan (sisyphus implements); the existing contract artefact `config-command-test-suite.mdx` must be updated by oracle, not contradicted.
+
+### Alternatives considered
+
+<Card title="Pre-run validation choke point">
+  - **A. `runCliCommand` in `cli/errors.ts` (single choke point)** — rejected: it wraps *every* command, including `configure`, which must run without a source (chicken-and-egg: `configure set` is how you add one). Would need a per-command flag, adding indirection for no gain.
+  - **B. Global pre-dispatch in `run()` after `app.parse()`** — rejected: inspecting `app.matchedCommand.name` before `runMatchedCommand()` is brittle CAC coupling and duplicates command knowledge in `index.ts`.
+  - **C. (Recommended) In the `add` action in `commands/index.ts`** — `loadRegistry()` already runs first, before `animatedIntro`/`addCommand` do any work, so "validation before the command runs" holds with zero new plumbing points. `configure` never loads a source and is naturally exempt.
+</Card>
+
+<Card title="Prompt vs fail-fast">
+  - **Fail-fast only** (simplest, AGENTS.md-aligned) — rejected: the user explicitly requested "or the user is prompted to add one".
+  - **Always prompt** — rejected: hangs CI/scripts.
+  - **(Recommended) TTY-gated prompt, fail-fast otherwise** — precedent exists (`animated-intro.ts:163` checks `stdout.isTTY`). Interactive: reuse `configSetCommand()` with no argument — it already prompts via `textInput`, validates HTTPS/file policy, persists, and prints. Non-interactive (`!process.stdin.isTTY`): throw the actionable error and exit 1.
+</Card>
+
+<Card title="Implicit cwd `registry.json` discovery">
+  - **Keep probing the working directory for `registry.json`** — rejected: it is implicit discovery, contradicting "a source must ALWAYS be added explicitly".
+  - **(Recommended) Explicit sources only** — flag > env > saved config; nothing else. Delete the cwd/fallback/bundled candidate loop entirely.
+</Card>
+
+<Card title="Fate of `buildRegistry` in core">
+  - **Keep as public authoring API** — rejected by orchestrator: 890 untested lines plus the `esbuild` runtime dependency in a published package, with no in-repo consumer once `packages/registry` is gone.
+  - **(Recommended) Delete** `core/src/build.ts`, its `index.ts` export, the `esbuild` dependency, and build-only helpers. Ceiling note: registry authoring is out of scope going forward; sources are authored and hosted externally.
+</Card>
+
+<Card title="`configure` rename mechanics">
+  - **Keep a `config` alias** — rejected: clean break per request; no compat surface.
+  - **(Recommended) Full rename of user-facing surface**: command name, usage string, action errors. Internal command-body exports (`configGetCommand`/`configSetCommand`/`configUnsetCommand`) keep their names — they describe the config-file domain, not the command name, and minimal diff wins.
+</Card>
+
+### Ordered implementation steps
+
+<Cards>
+  <Card title="Step 1 — Delete `packages/registry` + every config reference">
+    - `rm -rf packages/registry` (package.json, registry.json, scripts/, tsconfig.json, README.md).
+    - Root `package.json`: remove `"build:registry"`; update workspace `description` ("CLI and core library", no "default registry").
+    - Root `tsconfig.json`: drop the `./packages/registry` reference.
+    - `vitest.config.ts`: remove `packages/registry/registry/**`, `packages/registry/r/**`, `packages/cli/r/**` from `exclude`; `packages/registry/**`, `packages/registry/r/**`, `packages/cli/r/**`, `packages/registry/scripts/**` from `coverage.exclude`.
+    - `stryker.config.mjs`: remove `"packages/registry/registry/**"` from `ignorePatterns`.
+    - `.fallowrc.json`: remove the `packages/registry/registry/**` pattern and the `spdx-license-list` `ignoreDependencies` entry.
+    - `.github/codeql/config.yml`: remove the registry path line.
+    - `.gitignore`: remove `packages/cli/registry.json`, `packages/cli/r/`, `packages/registry/r/`.
+    - `lint-staged.config.js`: delete `rebuildRegistryCommands` and the entire `{packages/registry/…,build.ts,schema.ts,parse.ts}` entry (it existed only to rebuild the committed registry.json).
+    - `packages/cli/package.json`: `prepack` → `"pnpm run build"`; `files` → drop `"registry.json"`, `"r"`.
+    - `rm -rf packages/cli/dist` then rebuild — clears stale compiled modules with no `src` counterpart (`dist/commands/list.js`, `dist/registry/*`, `dist/registry-remote.js`, …). Gitignored; not part of the diff.
+  </Card>
+  <Card title="Step 2 — Core dead code sweep">
+    - Delete `packages/core/src/build.ts`; remove `export { type BuildRegistryOptions, buildRegistry } from "./build"` from `packages/core/src/index.ts`.
+    - Delete `collectRegistryArtifactUris` from `packages/core/src/scripts.ts` (sole consumer was build.ts; not re-exported from index.ts). Keep `sha256Integrity`/`verifyItemIntegrity` (CLI uses them).
+    - Delete `publishedRegistryUrl` from `packages/core/src/urls.ts` and from the `./urls` export block in index.ts (sole consumers were the CLI default-URL fallback, removed in Step 4).
+    - Remove `"esbuild": "0.25.0"` from `packages/core/package.json`; run `pnpm install` to refresh the lockfile.
+    - `packages/core/src/browser.ts`: header comment updated during implementation, then deleted entirely — zero usages and its re-exports pulled in `node:fs` via `packages.ts`, so the "browser-safe" surface claim was already false; the `./browser` subpath export was removed from `packages/core/package.json`.
+    - Shared schema/parse/scripts/fs/urls helpers stay — they serve the CLI's consume path.
+  </Card>
+  <Card title="Step 3 — `locateRegistry` becomes explicit-only">
+    - `packages/cli/src/cli/errors.ts`: add `NoRegistrySourceError extends Error` (sets `name`; default message is the actionable remediation string) next to `OperationCanceledError`/`InterruptError`.
+    - `packages/cli/src/utils/registry.ts`:
+      - `LocateRegistryOptions` shrinks to `{ registry?: string; savedRegistry?: string }`.
+      - Delete `bundledRegistryPath()` and the cwd/fallback/bundled candidate loop; drop the now-unused `isFileAsync` import.
+      - New resolution: `source = registry ?? CHEETOS_REGISTRY ?? savedRegistry`. HTTPS → `assertSafeRemoteUrl`; local → `path.resolve(cwd, source)` (existence checked at load time, as today).
+      - None resolves → `throw new NoRegistrySourceError("No registry source configured. Add one with `cheetos configure set <https URL or file path>`, set CHEETOS_REGISTRY, or pass --registry <source>.")`.
+      - Keep the `??` (empty-string env shadows saved config → no-source error), preserving observed semantics from the contract.
+      - Function and `loadRuntimeRegistry` names/signatures otherwise unchanged.
+  </Card>
+  <Card title="Step 4 — Rename `config` → `configure`; unset-state output">
+    - `packages/cli/src/commands/index.ts`: command `"configure <action> [source]"`, `usage("configure <get|set|unset> [source]")`; `ConfigAction` → `ConfigureAction`; `parseConfigAction` → `parseConfigureAction` (usage + `Unknown configure action "…"` errors); `runConfigAction` → `runConfigureAction`; `assertNoConfigSource` message → `configure ${action} does not take a registry source.`. Command-body exports (`configGetCommand` etc.) keep their names.
+    - `packages/cli/src/commands/config.ts`: delete `cliPackageVersion`, `defaultRegistryUrl`, and the `publishedRegistryUrl`/`readJsonFileAsync` imports. `configGetCommand`/`configUnsetCommand` print `registry:    (not set)` plus a dim hint (`Run \`cheetos configure set <source>\` to add one.`) instead of the published default URL. `configUnsetCommand` return value semantics unchanged.
+    - Update JSDoc references to `cheetos config set` → `cheetos configure set` across `cli/config.ts`, `utils/registry.ts`, `commands/*`.
+  </Card>
+  <Card title="Step 5 — `add` pre-run validation with prompt-or-fail-fast">
+    - `packages/cli/src/commands/index.ts`, `add` action (before `animatedIntro`/`addCommand`): keep `loadRegistry()` first, but wrap it in a small local helper, e.g. `loadRegistryOrPromptSource(loadRegistry)`:
+      1. Try `loadRegistry()`.
+      2. On `NoRegistrySourceError`: if `!process.stdin.isTTY` → rethrow (fail fast, exit 1 via `runCliCommand`).
+      3. Interactive → `await configSetCommand()` (no arg → `textInput` prompt → validate → persist → print), then retry `loadRegistry()` **exactly once** — it re-reads config, so the new source resolves. A second `NoRegistrySourceError` or prompt-cancel (`OperationCanceledError`) propagates; `runCliCommand` already maps cancel → exit 0 and errors → exit 1.
+    - `packages/cli/src/index.ts`: update `loadRegistry()` doc comment (flag > env > saved config; no bundled default).
+    - No changes to `runCliCommand` error mapping — `NoRegistrySourceError` rides the generic printError + exit 1 path.
+  </Card>
+  <Card title="Step 6 — Docs and tooling">
+    - `README.md`: remove the default-registry/build:registry sections (lines ~25, 42, 48, 62, 79–97, 118, 124); document explicit sources only (`cheetos configure set`, `--registry`, `CHEETOS_REGISTRY`) and that no registry ships in the box.
+    - `CONTRIBUTING.md`: remove registry content/authoring/build sections (lines ~34, 41, 143, 175–203, 227, 232–244, 250–253).
+    - `packages/core/README.md`: remove the `buildRegistry` usage example and inbuilt-registry mention; core = parse/plan/install primitives for consuming registries.
+    - Refresh fallow baselines: `pnpm quality` regenerates `fallow-baselines/*.json` (they reference registry paths).
+  </Card>
+  <Card title="Step 7 — Tests and contract (oracle)">
+    **Breaking tests to update** (all in `packages/cli/src`):
+    - `commands/index.test.ts`: argv `config` → `configure`; error strings → `Unknown configure action`, `Usage: cheetos configure <get|set|unset> [source]`, `configure get does not take a registry source.`.
+    - `utils/registry.test.ts`: delete the `locateRegistry fallback candidates` describe block (cwd/fallback/bundled ordering + old error); drop `bundledRegistryPath`/`fallbackRegistryPaths` kwargs from the saved-config test.
+    - `commands/config.test.ts`: remove `publishedRegistryUrl` import + `expectedDefaultRegistryUrl`; `configGet#default` → assert `(not set)` + hint output; `configUnset` default-URL assertions → unset-state output.
+    - `cli/config.test.ts`: unaffected.
+    **New RED tests** (feature#case ids for the oracle):
+    - `locateRegistry#no-source-throws`: no flag/env/saved → `NoRegistrySourceError` whose message names `cheetos configure set`.
+    - `locateRegistry#explicit-only`: a `registry.json` in cwd is *not* discovered — still throws.
+    - `locateRegistry#env-empty-shadows-saved`: empty `CHEETOS_REGISTRY` → no-source error (kept from old contract, new message).
+    - `add#prompt-when-no-source-tty`: TTY + no source → the `configure set` prompt path runs, source persisted, registry loads on retry, `addCommand` proceeds.
+    - `add#fail-fast-non-tty`: non-TTY + no source → printed error + exit 1, no prompt (stub `process.stdin.isTTY` via a getter spy).
+    - `add#prompt-cancel`: cancel at the prompt → `OperationCanceledError` → exit 0, nothing written.
+    - `configure#wiring-*`: dispatch via `configure`, source rejection, unknown action — renamed variants of the 9 existing wiring tests.
+    - `configGet#not-set` / `configUnset#not-set`: unset-state output.
+    **Contract**: update `docs/content/artefacts/config-command-test-suite.mdx` — rename `config`→`configure` throughout, replace the `configGet#default`/published-URL and locateRegistry-fallback accordions with the new no-source/prompt contract, and record the `add#*` cases.
+  </Card>
+</Cards>
+
+### Risks and verification
+
+<Callout type="warn" title="Risks">
+  - **Docs churn**: README/CONTRIBUTING lean on the default registry; the rewrite is the largest textual diff — keep it factual and minimal.
+  - **Lockfile/workspace**: removing `@cheetos/registry` and `esbuild` requires `pnpm install`; typecheck catches stale project references.
+  - **Prompt retry**: retry is capped at one; a persisted-but-broken source surfaces as a normal load error on the retry, not a prompt loop.
+  - **Published `configure get` output change** (no default URL): user-visible behavior change — intended, and covered by the contract update.
+  - **Stale `dist/` in published tarballs**: `prepack` still runs `build`; shrinking `files` plus a clean rebuild covers it.
+</Callout>
+
+<Callout type="info" title="Verification sketch">
+  `pnpm install` → `pnpm build` → `pnpm typecheck` → `pnpm test` → `pnpm check` (biome) → `pnpm quality` (refresh fallow baselines). Manual smoke: fresh shell with no config/env → `cheetos add` prompts for a source; `CHEETOS_REGISTRY= CI=true cheetos add` fails fast with the remediation error; `cheetos configure get` prints `(not set)` + hint; `cheetos configure set https://…` then `cheetos add` loads from it. Scoped mutation (`pnpm mutate` on the four touched CLI files) once oracle's tests land.
+</Callout>
+
+### Out of scope
+
+- Registry authoring/build tooling (external to this repo; git history preserves `buildRegistry`).
+- A `config` compat alias; new commands (e.g. `list`); registry-listing UX.
+- Public docs publish (Hemingway stage, later, optional).
+## Contract
+
+Oracle stage — behaviour contract derived from the **public interface only** (CLI command names, `locateRegistry`, `loadRuntimeRegistry`, `configGetCommand`/`configSetCommand`/`configUnsetCommand`, `registerCommandsCli`, and `@cheetos/core`'s index exports). Every criterion id maps 1:1 to a vitest test. Tests are RED-first where the production change does not exist yet; they must turn green when sisyphus implements. The pre-existing `config` suite contract lives in `config-command-test-suite.mdx` — criteria that survive the refactor unchanged (`configure set` source policy, config-file primitives, locateRegistry precedence) are re-affirmed there, not duplicated here.
+
+### Test coverage map
+
+<TypeTable
+	type={{
+		'packages/cli/src/utils/registry.test.ts': {
+			description: '3 RED tests under `locateRegistry explicit-only resolution` + 1 export guard — no-source throws `NoRegistrySourceError` naming `cheetos configure set`, no cwd `registry.json` discovery, empty-env shadowing, no `bundledRegistryPath` export.',
+		},
+		'packages/cli/src/commands/index.test.ts': {
+			description: '13 tests — 9 renamed `configure` wiring tests (RED: no such command registered yet) + 4 `add` pre-run source-validation tests (`prompt-when-no-source-tty`, `fail-fast-non-tty`, `prompt-cancel`, `prompt-retry-once`; all RED except the non-TTY guard).',
+		},
+		'packages/cli/src/commands/config.test.ts': {
+			description: '3 RED tests — `configGet#not-set` and both `configUnset` cases print `(not set)` + a `cheetos configure set` hint instead of the removed published default URL.',
+		},
+		'packages/core/src/index.test.ts': {
+			description: '3 tests on core\'s public surface — `buildRegistry` export presence (RED: not exported yet), no `publishedRegistryUrl` (RED: still exported), plus a `collectRegistryArtifactUris` absence guard (green: never re-exported from the index). **[Final]** `buildRegistry` retained per owner decision; its test asserts export presence.',
+		},
+	}}
+/>
+
+### Behaviour contract
+
+<Accordions>
+	<Accordion title="locateRegistry — explicit sources only">
+		- `locateRegistry#no-source-throws`: with no `--registry` flag, no `CHEETOS_REGISTRY`, and no saved config → throws `NoRegistrySourceError` (identified by `name`, not instanceof, until the class exists) whose message names `cheetos configure set`, `CHEETOS_REGISTRY`, and `--registry` — actionable remediation replaces the old `Registry not found (registry.json). Run \`pnpm run build:registry\`` hint.
+		- `locateRegistry#explicit-only`: a `registry.json` in the working directory is **not** discovered; resolution is exactly flag > env > saved config, with no cwd/fallback/bundled candidate probing.
+		- `locateRegistry#env-empty-shadows-saved`: an empty `CHEETOS_REGISTRY` shadows the saved config (kept `??` semantics) → `NoRegistrySourceError`.
+		- `bundledRegistryPath` is no longer exported from `utils/registry.ts`.
+	</Accordion>
+	<Accordion title="add — pre-run source validation (prompt or fail fast)">
+		- `add#prompt-when-no-source-tty`: on a TTY, a `NoRegistrySourceError` from the loader triggers the existing `configure set` prompt path (`configSetCommand()` with no argument → `textInput` → validate → persist), then retries `loadRegistry()` exactly once; the retried registry feeds `addCommand(registry, indexLocation, …)`.
+		- `add#fail-fast-non-tty`: on a non-TTY stream, the same error exits 1 with the printed remediation and **no prompt** — an interactive prompt would hang CI. (Guard: already true pre-refactor, since the current code never prompts.)
+		- `add#prompt-cancel`: canceling the prompt (`OperationCanceledError`) → exit 0, no load retry, no `addCommand` call.
+		- `add#prompt-retry-once`: when the source added at the prompt still fails to load → the error surfaces, exit 1, and the prompt is shown only once (retry capped at one).
+		- TTY is observed via `process.stdin.isTTY` (stubbed with a configurable property; restored after each test).
+	</Accordion>
+	<Accordion title="configure — rename and unset-state output">
+		- `configure#wiring-get|set|set-prompts|unset`: dispatch under the command name `configure` with no `config` alias; `set` without a source still passes `undefined` so the command prompts itself.
+		- `configure#wiring-source-rejection`: `configure get <source>` / `configure unset <source>` → `configure <action> does not take a registry source.`, exit 1, no dispatch.
+		- `configure#wiring-action-validation`: unknown/wrong-case/empty actions → `Unknown configure action "<x>"` + `Usage: cheetos configure <get|set|unset> [source]`, exit 1.
+		- `configGet#not-set`: with nothing saved, prints `registry:    (not set)` plus a hint naming `cheetos configure set` — the `publishedRegistryUrl` default is gone.
+		- `configUnset#not-set` (cleared + nothing-saved): return-value semantics unchanged (`true`/`false`); output is `(not set)` + hint, never a default URL.
+		- `configure set` keeps its full validation semantics (HTTPS-only policy, existing regular file) — re-affirmed under the new name in `config-command-test-suite.mdx`.
+	</Accordion>
+	<Accordion title="core — dead-code sweep">
+		- The `@cheetos/core` public surface no longer exports `buildRegistry` (nor `BuildRegistryOptions`) or `publishedRegistryUrl`; the `esbuild` dependency is dropped (verified by install/typecheck, not unit tests).
+		- `collectRegistryArtifactUris` is deleted from `core/src/scripts.ts`; because it was never re-exported from the index, only a reintroduction guard is testable via the public interface.
+		- `sha256Integrity`/`verifyItemIntegrity` and the parse/schema/urls helpers stay (the CLI consume path uses them) — guarded implicitly by the existing CLI suite.
+	</Accordion>
+</Accordions>
+
+<Callout type="warn" title="RED/GREEN baseline (pre-refactor)">
+	`pnpm vitest run` in `packages/cli`: 88 tests — 69 pass, 19 fail (9 configure wiring, 3 unset-state, 3 explicit-only, 1 `bundledRegistryPath` guard, 3 of 4 `add` validation). `packages/core`: 3 tests — 1 passes, 2 fail. All 21 failures are the intended RED set; every one fails because the production change is absent (no `configure` command, published default URL still printed, bundled/fallback candidates still discovered, `buildRegistry`/`publishedRegistryUrl` still exported), never because of a test bug. The two green-by-construction guards (`add#fail-fast-non-tty`, `collectRegistryArtifactUris`) are labelled as such in the coverage map.
+</Callout>
+
+<Callout type="warn" title="Vader red-team adjudication (second pass, post-implementation)">
+	Technique classes exercised against the implemented change (test-side only; no production patched):
+
+	- **Quality-gate deletion**: `stryker.config.mjs` dropped `thresholds { high: 80, low: 60, break: 70 }` and `vitest.config.ts` dropped coverage `thresholds { lines/statements/functions/branches: 80 }`. The plan only called for removing registry path entries. Scoped mutation over the eight changed production files scored **11.38% total / 85.90% covered** (134 killed, 22 survived, 638 no-coverage, 384 compile-error) — below the former `break: 70`; with thresholds gone Stryker exits 0. **BLOCKER**: restore both threshold blocks (or re-baseline in the contract, never delete the gate).
+	- **Published-doc drift**: `packages/cli/README.md` (shipped in the npm tarball, verified with `npm pack --dry-run`) still says "By default, cheetos uses the bundled registry from the monorepo" and documents `cheetos config set/get/unset`. **MAJOR**: plan Step 6 omitted this README; rewrite to explicit-only sources + `configure`.
+	- **Artefact/version-control hole**: `.gitignore` gained a `docs/` entry, hiding every pipeline artefact (`docs/content/artefacts/*.mdx`) from `git status`/`git add`. **MAJOR**: remove the line or scope it to `docs/.next`/`docs/node_modules` if intentional.
+	- **Test-side survivors/gaps** (route to oracle, not implementation): `optionalStringArg(source, "configure source")` non-string guard and the `parseConfigureAction` non-string guard untested; `animatedIntro` copy strings unasserted; `printConfiguration` "Configuration" header unasserted; `printCancel` body unasserted; `assertLocalRegistryStatIsFile` special-node branch declared gap. `add#prompt-cancel` relies on a `process.exit` mock that returns instead of terminating, so it never asserts exit(1) was *not* called; `stubIsTTY`/`restoreIsTTY` cannot restore a real TTY's original `isTTY` value.
+	- **Uncalled-out public API break**: `classifyRegistryTrust` lost its required `bundledRegistryPath` param, so `RegistryTrust.BUNDLED` is now unreachable from it. Policy is preserved (`assertScriptsAllowed` treats BUNDLED ≡ LOCAL); route the signature change to a human.
+</Callout>
+
+## Docs
+
+No bundled registry ships with cheetos anymore. A registry source is **always explicit**, resolved in this order:
+
+<TypeTable
+	type={{
+		'--registry <source>': { description: 'CLI flag — wins over everything else.' },
+		'CHEETOS_REGISTRY': { description: 'Environment variable; an empty value shadows the saved config (fails with no-source).' },
+		'cheetos configure set': { description: 'Persisted to `~/.config/cheetos/config.json`.' },
+	}}
+/>
+
+Adding a source:
+
+```bash
+# Persist a source (HTTPS URL or an existing local file path)
+cheetos configure set https://registry.example.com/registry.json
+cheetos configure set ~/registries/registry.json
+
+# Or pass it per-invocation / via env
+cheetos add --registry https://registry.example.com/registry.json
+CHEETOS_REGISTRY=~/registries/registry.json cheetos add
+
+# Inspect / remove
+cheetos configure get    # -> registry:    (not set) + hint when nothing saved
+cheetos configure unset
+```
+
+**First run of `add` with no source:** on a TTY, cheetos prompts you to add a source right there (same validation as `configure set`), then retries loading the registry once — cancel exits; if the added source still fails to load, the error surfaces and the prompt is not shown again. In a non-TTY (CI/scripts), it fails fast with exit 1:
+
+```text
+No registry source configured. Add one with `cheetos configure set <https URL or file path>`, set CHEETOS_REGISTRY, or pass --registry <source>.
+```
+
+A `registry.json` in the working directory is **not** discovered — implicit lookup is gone.
+
+<Callout type="warn" title="Migrating from the bundled registry">
+	Setups that relied on the bundled registry must add a source once:
+	`cheetos configure set <https URL or file path>` (or set `CHEETOS_REGISTRY`, or pass `--registry`). The `config` command was renamed to `configure` with no alias — update scripts.
+</Callout>
+
+<Accordions>
+	<Accordion title="Breaking API changes in `@cheetos/core`">
+		- `buildRegistry` (and `BuildRegistryOptions`) are retained — core keeps build utilities so third-party authors can compile compliant registry output; the `esbuild` runtime dependency stays for the same reason.
+		- `publishedRegistryUrl` is gone — there is no published default URL to construct.
+		- `collectRegistryArtifactUris` is kept internal to `core/src/scripts.ts` (buildRegistry's sole consumer; not re-exported from the index).
+		- `classifyRegistryTrust(indexLocation)` lost its required `bundledRegistryPath` parameter. The `RegistryTrust.BUNDLED` enum member is retained and grouped with `LOCAL` in script policy (`assertScriptsAllowed` treats BUNDLED ≡ LOCAL), but it is no longer reachable from `classifyRegistryTrust`.
+	</Accordion>
+	<Accordion title="Adjudication footnote — quality gates">
+		Stryker's `thresholds { high: 80, low: 60, break: 70 }` and vitest's coverage `thresholds: { lines/statements/functions/branches: 80 }` were restored after vader caught their deletion in the implemented change — the gates were never contractually removed. The current coverage-gate failure is **pre-existing**: there are no tracked test files at HEAD, so coverage percentages cannot be computed. This is documented as observed behavior, not gamed (thresholds were not lowered or deleted to force a pass).
+	</Accordion>
+</Accordions>

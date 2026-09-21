@@ -10,9 +10,6 @@ export default defineConfig({
 		exclude: [
 			...configDefaults.exclude,
 			"packages/*/dist/**",
-			"packages/registry/registry/**",
-			"packages/registry/r/**",
-			"packages/cli/r/**",
 			"**/.stryker-tmp/**",
 		],
 		coverage: {
@@ -27,13 +24,9 @@ export default defineConfig({
 				...(configDefaults.coverage.exclude || []),
 				"**/coverage/**",
 				"packages/*/dist/**",
-				"packages/registry/registry/**",
-				"packages/registry/r/**",
-				"packages/cli/r/**",
 				"**/commitlint.config.*",
 				"**/lint-staged.config.js",
 				"packages/cli/bin/**",
-				"packages/registry/scripts/**",
 				"**/stryker.config.mjs",
 			],
 		},

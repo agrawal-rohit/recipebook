@@ -90,24 +90,14 @@ export function assertIntegrityMatch(
 /**
  * Classify how much the CLI should trust a registry index location.
  * @param indexLocation - Absolute path or HTTPS URL of registry.json.
- * @param bundledRegistryPath - Absolute path to the CLI-packaged registry.json.
  * @returns Trust classification for script policy decisions.
  */
-export function classifyRegistryTrust(
-	indexLocation: string,
-	bundledRegistryPath: string,
-): RegistryTrust {
+export function classifyRegistryTrust(indexLocation: string): RegistryTrust {
 	if (isAbsoluteHttpUrl(indexLocation)) return RegistryTrust.REMOTE;
 	if (!path.isAbsolute(indexLocation))
 		throw new Error(
 			"Registry index location must be an absolute path or HTTPS URL.",
 		);
-	if (!path.isAbsolute(bundledRegistryPath))
-		throw new Error("Bundled registry path must be an absolute path.");
-
-	const resolvedIndex = path.resolve(indexLocation);
-	const resolvedBundled = path.resolve(bundledRegistryPath);
-	if (resolvedIndex === resolvedBundled) return RegistryTrust.BUNDLED;
 	return RegistryTrust.LOCAL;
 }
 

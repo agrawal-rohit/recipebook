@@ -1,6 +1,6 @@
 import type { CAC } from "cac";
 import { animatedIntro } from "../cli/animated-intro";
-import { runCliCommand } from "../cli/errors";
+import { NoRegistrySourceError, runCliCommand } from "../cli/errors";
 import type { LoadedRegistry } from "../utils/registry";
 import { addCommand } from "./add";
 import {
@@ -9,8 +9,8 @@ import {
 	configUnsetCommand,
 } from "./config";
 
-/** Subcommands of `cheetos config`, dispatched from one CAC command. */
-enum ConfigAction {
+/** Subcommands of `cheetos configure`, dispatched from one CAC command. */
+enum ConfigureAction {
 	GET = "get",
 	SET = "set",
 	UNSET = "unset",
@@ -60,64 +60,64 @@ function optionalStringArg(value: unknown, label: string): string | undefined {
 }
 
 /**
- * Parse a `cheetos config` action token.
+ * Parse a `cheetos configure` action token.
  * @param action - Raw CAC action argument.
- * @returns A known {@link ConfigAction}.
+ * @returns A known {@link ConfigureAction}.
  * @throws Error when `action` is not get, set, or unset.
  */
-function parseConfigAction(action: unknown): ConfigAction {
-	const usage = "Usage: cheetos config <get|set|unset> [source]";
+function parseConfigureAction(action: unknown): ConfigureAction {
+	const usage = "Usage: cheetos configure <get|set|unset> [source]";
 	if (typeof action !== "string")
-		throw new Error(`Unknown config action "${String(action)}". ${usage}`);
+		throw new Error(`Unknown configure action "${String(action)}". ${usage}`);
 
 	switch (action) {
-		case ConfigAction.GET:
-		case ConfigAction.SET:
-		case ConfigAction.UNSET:
+		case ConfigureAction.GET:
+		case ConfigureAction.SET:
+		case ConfigureAction.UNSET:
 			return action;
 		default:
-			throw new Error(`Unknown config action "${action}". ${usage}`);
+			throw new Error(`Unknown configure action "${action}". ${usage}`);
 	}
 }
 
 /**
- * Reject a registry source passed to a config subcommand that does not accept one.
- * @param action - Config subcommand name, for the error message.
+ * Reject a registry source passed to a configure subcommand that does not accept one.
+ * @param action - Configure subcommand name, for the error message.
  * @param registrySource - Optional source parsed from CAC.
  * @throws Error when `registrySource` is present.
  */
 function assertNoConfigSource(
-	action: ConfigAction,
+	action: ConfigureAction,
 	registrySource: string | undefined,
 ): void {
 	if (registrySource !== undefined)
-		throw new Error(`config ${action} does not take a registry source.`);
+		throw new Error(`configure ${action} does not take a registry source.`);
 }
 
 /**
- * Dispatch a parsed `cheetos config` action.
+ * Dispatch a parsed `cheetos configure` action.
  * @param action - Raw CAC action argument.
  * @param source - Optional registry source from CAC.
  * @throws Error when the action is unknown, or get/unset is given a source.
  */
-async function runConfigAction(
+async function runConfigureAction(
 	action: unknown,
 	source?: unknown,
 ): Promise<void> {
-	const parsedAction = parseConfigAction(action);
-	const registrySource = optionalStringArg(source, "config source");
+	const parsedAction = parseConfigureAction(action);
+	const registrySource = optionalStringArg(source, "configure source");
 
 	switch (parsedAction) {
-		case ConfigAction.GET:
+		case ConfigureAction.GET:
 			assertNoConfigSource(parsedAction, registrySource);
 			await animatedIntro("fetching the configuration");
 			await configGetCommand();
 			return;
-		case ConfigAction.SET:
+		case ConfigureAction.SET:
 			await animatedIntro("updating the configuration");
 			await configSetCommand(registrySource);
 			return;
-		case ConfigAction.UNSET:
+		case ConfigureAction.UNSET:
 			assertNoConfigSource(parsedAction, registrySource);
 			await animatedIntro("clearing the configuration");
 			await configUnsetCommand();
@@ -126,10 +126,35 @@ async function runConfigAction(
 		// Stryker disable all: unreachable exhaustive default
 		default: {
 			const _never: never = parsedAction;
-			throw new Error(`Unhandled config action: ${String(_never)}`);
+			throw new Error(`Unhandled configure action: ${String(_never)}`);
 		}
 		// Stryker restore all
 		/* v8 ignore stop */
+	}
+}
+
+/**
+ * Load a registry, prompting the user to add a source when none is configured.
+ * @param loadRegistry - Locator used by commands that need registry data.
+ * @returns The loaded registry and its index location.
+ * @throws {@link NoRegistrySourceError} when no source is configured on a
+ *   non-TTY stream, or the source added at the prompt still cannot be loaded.
+ */
+async function loadRegistryOrPromptSource(
+	loadRegistry: () => Promise<LoadedRegistry>,
+): Promise<LoadedRegistry> {
+	try {
+		return await loadRegistry();
+	} catch (error) {
+		if (!(error instanceof Error) || error.name !== "NoRegistrySourceError")
+			throw error;
+
+		// A prompt would hang CI/scripts; fail fast instead.
+		if (!process.stdin.isTTY) throw error;
+
+		// Prompt and persist a source, then re-read config so the retry resolves it.
+		await configSetCommand(undefined);
+		return loadRegistry();
 	}
 }
 
@@ -154,7 +179,8 @@ export function registerCommandsCli(
 				const leftoverArgs = (app.args ?? []).slice(item === undefined ? 0 : 1);
 				const items = addItemArg(item, leftoverArgs);
 				const overwrite = optionalBooleanFlag(options.overwrite, "--overwrite");
-				const { registry, indexLocation } = await loadRegistry();
+				const { registry, indexLocation } =
+					await loadRegistryOrPromptSource(loadRegistry);
 				await animatedIntro("adding registry item");
 				await addCommand(registry, indexLocation, { items, overwrite });
 			});
@@ -162,13 +188,13 @@ export function registerCommandsCli(
 	);
 
 	const configCmd = app.command(
-		"config <action> [source]",
+		"configure <action> [source]",
 		"Get, set, or unset the default registry source",
 	);
-	configCmd.usage("config <get|set|unset> [source]");
+	configCmd.usage("configure <get|set|unset> [source]");
 	configCmd.action(async (action: unknown, source?: unknown) => {
 		await runCliCommand(async () => {
-			await runConfigAction(action, source);
+			await runConfigureAction(action, source);
 		});
 	});
 }

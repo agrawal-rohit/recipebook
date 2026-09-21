@@ -24,8 +24,7 @@ export default async function run(): Promise<void> {
 	app.option("--registry <source>", "Use a custom registry URL");
 
 	/**
-	 * Load the runtime registry from the parsed `--registry` flag or saved config.
-	 * Config commands never call this; add/list load the registry on demand.
+	 * Load the runtime registry from the parsed `--registry` flag.
 	 * @returns Parsed registry and the index location it was loaded from.
 	 */
 	async function loadRegistry() {

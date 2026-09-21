@@ -2,7 +2,7 @@
 
 Shared primitives and utilities for building and consuming `cheetos` registries.
 
-This package powers the default [`cheetos`](https://www.npmjs.com/package/cheetos) CLI and [`@cheetos/registry`](../registry) content.
+This package powers the [`cheetos`](https://www.npmjs.com/package/cheetos) CLI, which points at a registry source via `--registry`, `CHEETOS_REGISTRY`, or `cheetos configure set`.
 
 ## Compile a registry
 
@@ -31,11 +31,9 @@ That writes compiled output under `outDir` (defaults match the paths below; over
 - `r/{itemId}.beforeWrite.{index}.js` / `r/{itemId}.afterInstall.{index}.js` — bundled install scripts (local registries only at install time)
 - `r/_handlers/{key}.handler.js` — bundled condition handlers
 
-Consumers join index `source` values against the index location with `joinIndexSource`. Install scripts are loaded by `runBeforeWriteHook` / `runAfterInstallHook`. The package manager for the npm ecosystem is selected by core at install time (`package.json#packageManager`, then an unambiguous lockfile, otherwise a prompt) and passed into planning, interpolation (`packageManager`, `pmRun`, `pmExec`, `pmInstall`, `pmInstallCi`, `pmPublish`), hooks, and installs. Supported managers are npm, pnpm, Yarn, Bun, and Nub. Pack `when.packageManager` matches that selection.
+## Consume a compiled index
 
-## Validate compiled output
-
-- `parseRegistryDocument` — validate the compiled index (`registry.json`)
+A registry index is a JSON document exposing `items`, optional `conditions`, and `scriptIntegrity` / `itemIntegrity` digests. Compiled items describe `target`, inlined template `content`, and `dependencies` keyed by ecosystem; consumers join index `source` values against the index location with `joinIndexSource`.
 - `parseWithSchema(compiledItemSchema, …)` — validate a compiled item
 - `import type { BeforeWriteHook }` / `import type { ConditionHandler }` — typed hook contracts (prefer `import type` so bundles stay self-contained)
 

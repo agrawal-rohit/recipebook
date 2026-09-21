@@ -129,15 +129,6 @@ export function assertSafeRemoteUrl(url: URL): void {
 }
 
 /**
- * Index URL for the published default registry at a release tag.
- * @param version - Published CLI / registry package version (used in the `cheetos@` tag).
- * @returns Absolute HTTPS URL to `packages/registry/registry.json`.
- */
-export function publishedRegistryUrl(version: string): string {
-	return `https://raw.githubusercontent.com/agrawal-rohit/cheetos/cheetos@${version}/packages/registry/registry.json`;
-}
-
-/**
  * Fail when a value is empty, `.`, `..`, or contains a path separator.
  * @param label - Noun phrase for the error (option name or `"Kind \"id\""` style label).
  * @param value - Candidate single path segment.

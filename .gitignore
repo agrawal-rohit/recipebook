@@ -4,9 +4,6 @@
 # Build & Dependencies
 dist/
 packages/*/dist/
-packages/cli/registry.json
-packages/cli/r/
-packages/registry/r/
 packages/*/tsconfig.tsbuildinfo
 node_modules/
 npm-debug.*

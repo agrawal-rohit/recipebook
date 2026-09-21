@@ -9,10 +9,6 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"default": "./dist/index.js"
-		},
-		"./browser": {
-			"types": "./dist/browser.d.ts",
-			"default": "./dist/browser.js"
 		}
 	},
 	"files": [
@@ -24,7 +20,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"esbuild": "0.25.0",
+		"esbuild": "^0.25.0",
 		"mustache": "^4.2.0",
 		"zod": "^4.4.3"
 	},

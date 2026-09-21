@@ -31,15 +31,12 @@ Please be specific about your environment and include steps to reproduce issues 
 1. Fork the repository
 2. Install dependencies: `pnpm install`
 3. Build the workspace: `pnpm run build`
-4. Build the default registry: `pnpm run build:registry`
-5. Test the CLI package locally: `pnpm --filter cheetos pack`
+4. Test the CLI package locally: `pnpm --filter cheetos pack`
 
 The repository is a pnpm workspace with the following structure:
 
 - `packages/cli`: published as `cheetos`
 - `packages/core`: published as `@cheetos/core`
-- `packages/registry`: private default registry content
-- `docs`: documentation site
 
 ## Making Changes
 
@@ -81,7 +78,7 @@ Common types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, 
 - Full codebase quality scan: `pnpm run quality` (or `pnpm run quality dead-code`, `pnpm run quality health`, etc.)
 - Format code: `pnpm run format`
 
-Pre-commit hooks run lint-staged (Biome/typecheck/registry rebuild) and then `pnpm run quality:changes`. If they block your commit, fix the reported issues and try again.
+Pre-commit hooks run lint-staged (Biome/typecheck) and then `pnpm run quality:changes`. If they block your commit, fix the reported issues and try again.
 
 ## Documentation
 
@@ -139,10 +136,7 @@ package, edit only [`release-please-config.json`](./release-please-config.json)
 and [`.release-please-manifest.json`](./.release-please-manifest.json). For a
 Python or Rust repo, keep the release-please job and swap the publish step.
 
-**Note:** `cheetos` and `@cheetos/core` version independently.
-`@cheetos/registry` is private, excluded from release-please, and never
-published to npm. Because the CLI depends on core via `workspace:*`, releasing
-core also patch-bumps the CLI so a core fix always ships in a new CLI release.
+**Note:** `cheetos` and `@cheetos/core` version independently. Because the CLI depends on core via `workspace:*`, releasing core also patch-bumps the CLI so a core fix always ships in a new CLI release.
 
 ### Testing Pre-releases
 
@@ -170,89 +164,7 @@ when you are ready to publish the next version.
 
 ## Code Registry
 
-`cheetos` uses a JSON registry inspired by [shadcn](https://ui.shadcn.com/docs/registry) to distribute all registry items _(e.g. starter templates, UI components, configurations, and agent instructions)_. Each unit is a self-contained folder holding its manifest and its source files. A unit can be wired to other items through the `registryDependencies` property to make composable units.
-
-The default registry content lives under `packages/registry/registry/`. Shared registry conditions are centralized in `packages/registry/registry/conditions/conditions.json` (handlers colocated under `conditions/`). Item type display metadata is centralized in `packages/registry/registry/types.json`. Compilation is provided by `@cheetos/core` (`buildRegistry`); `@cheetos/registry` is content plus a short build script.
-
-### Registry Layout
-
-Every item is a folder under `packages/registry/registry/` containing a `registry-item.json` manifest alongside the files it ships. Folder paths are just for convenience, the manifest holds the actual identity.
-
-```text
-packages/registry/registry/
-├── conditions/
-│   ├── conditions.json
-│   └── language.ts
-├── types.json
-├── configuration/dependency-updater/  # id: dependency-updater
-├── configuration/build/               # id: build
-├── configuration/changelog/           # id: changelog
-├── component/button/                  # id: button
-│   ├── registry-item.json
-│   └── react/button.tsx
-└── …
-```
-
-The compiled items are written next to the package root by `pnpm run build:registry` (`buildRegistry` from `@cheetos/core`):
-
-- `packages/registry/registry.json` — lean index metadata (committed; regenerated and staged by the pre-commit hook)
-- `packages/registry/r/{itemId}.json` or `packages/registry/r/{itemId}/{variantId}.json` — compiled items (gitignored; generated locally and copied into the CLI npm tarball at `prepack`)
-
-`registry.json` is regenerated and staged automatically by the pre-commit hook whenever anything under `packages/registry/registry/` or the core compiler changes. Compiled item files under `r/` are build output only — not committed — and ship with the published `cheetos` package.
-
-`registry.json` only holds index metadata for individual items, so the index stays lean as the registry grows. Source manifests keep item-relative file `source` paths, ecosystem-tagged `dependencies`, optional `beforeWrite` / `afterInstall` scripts, and variant descriptions. The build inlines those files into compact payloads under `r/`, bundles install scripts to `r/{itemId}.beforeWrite.{index}.js` and `r/{itemId}.afterInstall.{index}.js` (and pack scripts under `r/{itemId}/{packId}.…`, plus condition handlers to `r/_handlers/{key}.handler.js`), and writes a compact index entry keyed by item id. Payloads keep `target`, inlined `content`, and `dependencies` keyed by ecosystem — no item or variant identity fields. Consumers join index `source` values and script URIs against the index location. Third-party registries that host remotely should keep `registry.json` and `r/` side by side (GitHub raw, S3, or a CDN). The default registry ships payloads inside the CLI package instead.
-
-Payload `content` is the source template text. Condition defaults and install lifecycle scripts run on the client after the payload is loaded — not at compile time. **Install scripts execute only for local registries** (bundled CLI registry, a local `--registry` path, or a third-party package). Remote HTTPS registries cannot execute custom scripts. Local registries run scripts without confirmation. Compiled `scriptIntegrity` / `itemIntegrity` digests are verified before load; hooks run in a sandboxed child process.
-
-### Install scripts and condition handlers
-
-Colocate a TypeScript install script next to the manifest (or under `registry/conditions/` for shared conditions). Use `import type` from `@cheetos/core` — do not runtime-import the package (the build rejects it).
-
-```ts
-import type { BeforeWriteHook } from "@cheetos/core";
-
-const beforeWrite: BeforeWriteHook = async (ctx) => {
-	const licenseId = ctx.conditions.licenseId;
-	return {
-		bindings: { customKey: String(licenseId) },
-		files: [{ target: "LICENSE", content: String(licenseId) }],
-	};
-};
-
-export default beforeWrite;
-```
-
-Point the manifest at it with `"beforeWrite": "render-license-file.before-write.ts"`. Script-only items may omit `files`. Compose other registry items with `"dependsOn"` — they install before this item. Shared conditions can declare `"handler": "conditions/language.handler.ts"` with an `infer` hook that returns a prompt default (for example from marker files or `ctx.run("git config --get user.name")`). Condition `kind` may be `select` (default), `multiselect`, `text`, or `boolean`. Items declare those dependencies with `"requires": ["authorName"]`; the captured value is then `ctx.conditions.authorName` in install scripts.
-
-See `packages/registry/registry/configurations/license/` for an SPDX license picker that generates a `LICENSE` file during `beforeWrite`.
-
-Third-party registries compile the same way — pass the registry source tree and output directory explicitly:
-
-```ts
-import { buildRegistry } from "@cheetos/core";
-
-await buildRegistry({
-	sourceDir: path.join(packageRoot, "registry"),
-	outDir: packageRoot,
-});
-```
-
-### Source guidelines
-
-- Keep items atomic and colocate the manifest and every file it ships in one folder.
-- Extract reusable concerns into their own items and reference them via `dependsOn`.
-- Run `pnpm run build:registry` after changing items _(the pre-commit hook and `prepack` also run it)_.
-
-### Proposing New Items
-
-When proposing a new registry item:
-
-1. Add a new folder under `packages/registry/registry/` with a `registry-item.json` (`id`, `title`, `description`, `type`, plus `files`, `variants`, and/or `handler`) and its files
-2. Declare the item `type` in `packages/registry/registry/types.json` with a `label` and optional `description` _(required for every registry)_
-3. Include everything needed for a complete working setup; depend on existing concern items instead of copying files
-4. Run `pnpm run build:registry`, `pnpm cov`, and `pnpm --filter cheetos pack`
-5. Document what the item provides in your pull request
-6. Include examples of generated output
+`cheetos` consumes code registries — JSON indexes of reusable setup items _(starter templates, UI components, configurations, agent instructions)_. Registries are authored and hosted outside this repository. A registry source is an HTTPS URL or a local file path to a compiled index, and the CLI resolves it via `--registry`, the `CHEETOS_REGISTRY` environment variable, or a saved source persisted with `cheetos configure set`. No registry ships in the box.
 
 ## Security
 

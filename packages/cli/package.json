@@ -10,15 +10,13 @@
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
-		"bin",
-		"registry.json",
-		"r"
+		"bin"
 	],
 	"scripts": {
 		"build": "pnpm --filter @cheetos/core run build && tsc -p tsconfig.json",
 		"typecheck": "pnpm --filter @cheetos/core run build && tsc -p tsconfig.json --noEmit",
 		"test": "vitest run",
-		"prepack": "pnpm run build && pnpm --filter @cheetos/registry run build && cp ../registry/registry.json ./registry.json && rm -rf ./r && if [ -d ../registry/r ]; then cp -R ../registry/r ./r; fi"
+		"prepack": "pnpm run build"
 	},
 	"dependencies": {
 		"@clack/core": "1.4.3",

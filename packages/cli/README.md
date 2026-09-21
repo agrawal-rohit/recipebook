@@ -18,26 +18,28 @@ npx cheetos add
 
 ## Registry source
 
-By default, `cheetos` uses the bundled registry from the monorepo. You can point it at a custom registry in following ways:
+No registry ships with `cheetos`. A command that needs a registry source resolves one explicitly, in this precedence order:
 
-1. CLI flag at each command:
+1. `--registry` CLI flag at each command:
 
 ```bash
 npx cheetos --registry <url-or-path> add pr-template-configuration
 ```
 
-2. Environment variable:
+2. `CHEETOS_REGISTRY` environment variable:
 
 ```bash
 export CHEETOS_REGISTRY="<url-or-path>"
 npx cheetos add pr-template-configuration
 ```
 
-3. Global preference set through the `config` command:
+3. A source persisted with the `configure` command:
 
 ```bash
-npx cheetos config set <url-or-path>
-npx cheetos config get
-npx cheetos config unset
+npx cheetos configure set <url-or-path>
+npx cheetos configure get
+npx cheetos configure unset
 npx cheetos add pr-template-configuration
 ```
+
+When no source is configured, an interactive `add` prompts you to set one via `configure set`; in a non-interactive shell it fails fast with remediation guidance instead of hanging.

@@ -1,4 +1,5 @@
 export { type BuildRegistryOptions, buildRegistry } from "./build";
+
 export {
 	type ConditionKindPolicy,
 	policyForConditionKind,
@@ -163,5 +164,4 @@ export {
 	isNonRelativePath,
 	joinIndexSource,
 	joinRelativePathUnderRoot,
-	publishedRegistryUrl,
 } from "./urls";

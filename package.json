@@ -2,7 +2,7 @@
 	"version": "0.2.1",
 	"name": "cheetos-workspace",
 	"type": "module",
-	"description": "Workspace for the cheetos CLI, core library, and default registry.",
+	"description": "Workspace for the cheetos CLI and core library.",
 	"author": "Rohit Agrawal <https://github.com/agrawal-rohit>",
 	"repository": "https://github.com/agrawal-rohit/cheetos",
 	"homepage": "https://github.com/agrawal-rohit/cheetos#readme",
@@ -14,7 +14,6 @@
 	"bugs": "https://github.com/agrawal-rohit/cheetos/issues",
 	"scripts": {
 		"build": "pnpm -r --filter \"./packages/*\" run build",
-		"build:registry": "pnpm --filter @cheetos/registry run build",
 		"test": "pnpm -r --filter \"./packages/*\" run test",
 		"mutate": "stryker run",
 		"mutate:changed": "stryker run --incremental --mutate \"packages/*/src/**/*.ts,!packages/*/src/**/*.test.ts,!packages/*/src/**/*.spec.ts\"",

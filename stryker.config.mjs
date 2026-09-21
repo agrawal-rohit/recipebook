@@ -23,7 +23,6 @@ const config = {
 	],
 	ignorePatterns: [
 		"coverage",
-		"packages/registry/registry/**",
 		"**/*.md",
 	],
 	incremental: true,

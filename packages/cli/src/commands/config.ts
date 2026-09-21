@@ -4,8 +4,6 @@ import {
 	assertSafeRemoteUrl,
 	isAbsoluteHttpUrl,
 	isMissingPathError,
-	publishedRegistryUrl,
-	readJsonFileAsync,
 } from "@cheetos/core";
 import {
 	configPath,
@@ -17,47 +15,20 @@ import { dimText, primaryText } from "../cli/labels";
 import { textInput } from "../cli/prompts";
 
 /**
- * Read a published CLI version from package.json for the default registry URL.
- * @param pkg - Parsed CLI package.json value.
- * @returns Trimmed version string safe to embed in {@link publishedRegistryUrl}.
- * @throws Error when `version` is missing, empty, or contains URL/path metacharacters.
- */
-function cliPackageVersion(pkg: unknown): string {
-	if (pkg === null || typeof pkg !== "object" || Array.isArray(pkg))
-		throw new Error("CLI package.json must be a JSON object.");
-
-	const { version } = pkg as Record<string, unknown>;
-	if (typeof version !== "string" || !version.trim())
-		throw new Error("CLI package.json is missing a version.");
-
-	const trimmed = version.trim();
-	if (/[/\\?#@]/.test(trimmed) || trimmed.includes(".."))
-		throw new Error("CLI package.json version is invalid.");
-	return trimmed;
-}
-
-/**
- * Read the published default registry URL for the current CLI version.
- * @returns Absolute HTTPS URL to `packages/registry/registry.json`.
- */
-async function defaultRegistryUrl(): Promise<string> {
-	const pkg = await readJsonFileAsync(
-		path.resolve(__dirname, "../../package.json"),
-		"CLI package.json",
-	);
-	return publishedRegistryUrl(cliPackageVersion(pkg));
-}
-
-/**
- * Print the active registry source and config file path to stdout.
- * @param registry - Registry URL or local path currently in effect.
+ * Print the registry state and config file path to stdout.
+ * @param registry - Registry URL or local path currently in effect, or undefined when unset.
  * @param filePath - Absolute path of the config file.
  */
-function printConfiguration(registry: string, filePath: string): void {
+function printConfiguration(
+	registry: string | undefined,
+	filePath: string,
+): void {
 	console.log();
 	console.log(primaryText("Configuration"));
-	console.log(dimText(`  registry:    ${registry}`));
+	console.log(dimText(`  registry:    ${registry ?? "(not set)"}`));
 	console.log(dimText(`  config file: ${filePath}`));
+	if (registry === undefined)
+		console.log(dimText("Run `cheetos configure set <source>` to add one."));
 	console.log();
 }
 
@@ -166,18 +137,16 @@ export async function configSetCommand(
 }
 
 /**
- * Print the saved registry, or the bundled default registry URL when unset.
+ * Print the saved registry, or the unset state when none is saved.
  * @param env - Environment used for config path resolution. Defaults to `process.env`.
  */
 export async function configGetCommand(env?: NodeJS.ProcessEnv): Promise<void> {
 	const config = await readConfig(env);
-	const filePath = configPath(env);
-	const registry = config.registry ?? (await defaultRegistryUrl());
-	printConfiguration(registry, filePath);
+	printConfiguration(config.registry, configPath(env));
 }
 
 /**
- * Clear the saved registry source and fall back to the published default.
+ * Clear the saved registry source.
  * @param env - Environment used for config path resolution. Defaults to `process.env`.
  * @returns True when a previously saved registry was cleared.
  */
@@ -185,9 +154,7 @@ export async function configUnsetCommand(
 	env?: NodeJS.ProcessEnv,
 ): Promise<boolean> {
 	const cleared = await unsetRegistryConfig(env);
-	const filePath = configPath(env);
-	const registry = await defaultRegistryUrl();
-	printConfiguration(registry, filePath);
+	printConfiguration(undefined, configPath(env));
 
 	return cleared;
 }

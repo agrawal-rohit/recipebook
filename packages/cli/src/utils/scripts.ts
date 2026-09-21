@@ -18,7 +18,6 @@ import {
 	sandboxRunnerPath,
 	setScriptExecutor,
 } from "@cheetos/core";
-import { bundledRegistryPath } from "./registry";
 
 /**
  * Build project-scoped helpers that catalog scripts may call (`isFile`, `readFile`, `run`).
@@ -54,10 +53,7 @@ export async function prepareScriptExecution(options: {
 	allowInfer: boolean;
 	allowMutation: boolean;
 }> {
-	const trust = classifyRegistryTrust(
-		options.indexLocation,
-		bundledRegistryPath(),
-	);
+	const trust = classifyRegistryTrust(options.indexLocation);
 	const scripts = collectDeclaredScriptUris(options.registry, options.itemIds, {
 		selectedItems: options.selectedItems,
 		context: options.context,

@@ -2,13 +2,11 @@
 	"$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
 	"ignorePatterns": [
 		"docs/**",
-		"packages/registry/registry/**",
 		"**/*.mustache.*",
 		"fallow-baselines/**"
 	],
 	"ignoreDependencies": [
-		"@stryker-mutator/api",
-		"spdx-license-list"
+		"@stryker-mutator/api"
 	],
 	"rules": {
 		"unused-exports": "warn"

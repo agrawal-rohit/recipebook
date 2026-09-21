@@ -15,16 +15,15 @@
 </div>
 
 <div align="center">
-  <p>An opinionated scaffolding CLI with a default registry and a raw registry core.</p>
+  <p>An opinionated scaffolding CLI that consumes cheetos code registries.</p>
 </div>
 
-`cheetos` eliminates repetitive project setup by providing opinionated templates with pre-configured tooling, best practices, and reusable registry items. Now as a monorepo, it ships with three complementary packages:
+`cheetos` eliminates repetitive project setup by providing opinionated templates with pre-configured tooling, best practices, and reusable registry items. It ships with two complementary packages:
 
 - **`cheetos`**: the CLI users run via `npx` to scaffold projects and add components
 - **`@cheetos/core`**: shared internals and registry-document validation
-- **`@cheetos/registry`**: the private default registry content bundled into the CLI
 
-By default, `npx cheetos` uses the bundled registry from this repository. To point the CLI at a custom registry, use `--registry`, set the `CHEETOS_REGISTRY` environment variable, or persist a default with `cheetos config set`.
+No registry ships in the box — you must point the CLI at a registry source explicitly with the `--registry` flag, the `CHEETOS_REGISTRY` environment variable, or a saved source persisted with `cheetos configure set`.
 
 ## Quickstart
 
@@ -42,18 +41,18 @@ Use a custom registry for one invocation:
 npx cheetos --registry https://example.com/registry.json add pr-template-configuration
 ```
 
-Persist a default registry source (stored in `~/.config/cheetos/config.json`):
+Persist a registry source (stored in `~/.config/cheetos/config.json`):
 
 ```bash
-npx cheetos config set https://example.com/registry.json
+npx cheetos configure set https://example.com/registry.json
 npx cheetos add pr-template-configuration
 ```
 
 Inspect or clear the saved source:
 
 ```bash
-npx cheetos config get
-npx cheetos config unset
+npx cheetos configure get
+npx cheetos configure unset
 ```
 
 Or set it as an environment variable for all commands:
@@ -63,38 +62,25 @@ export CHEETOS_REGISTRY="https://example.com/registry.json"
 npx cheetos add pr-template-configuration
 ```
 
-Registry source precedence: `--registry` flag > `CHEETOS_REGISTRY` env > saved config > bundled default.
+Registry source precedence: `--registry` flag > `CHEETOS_REGISTRY` env > saved config. If a command needs a source and none is configured, interactive `npx cheetos add` prompts you to add one; in scripts (non-TTY) it fails fast with remediation guidance.
 ## Workspace layout
 
 ```text
 packages/
 ├── cli/        # published as `cheetos`
-├── core/       # published as `@cheetos/core`
-└── registry/   # private default registry content
+└── core/       # published as `@cheetos/core`
 docs/           # documentation site
 ```
 
-## Building a custom registry
+## Consuming registries
 
-`@cheetos/core` compiles, validates, and parses registry documents. Call `buildRegistry` with a raw registry `sourceDir` (items, `types.json`, optional `conditions/conditions.json`) and an `outDir` for compiled output:
-
-```ts
-import { buildRegistry, parseRegistryDocument } from "@cheetos/core";
-
-await buildRegistry({ sourceDir, outDir });
-const registry = parseRegistryDocument(JSON.parse(registryJson));
-```
-
-That emits `registry.json` (the index) plus compiled items at `r/{itemId}.json` (pack-less items) or `r/{itemId}/{packId}.json` under `outDir`. Item identity is the `items` map key; each item or pack has a `source` URI. Consumers join it against the index location (`joinIndexSource`). File contents and ecosystem-tagged dependencies live in the compiled item, not the index.
+`@cheetos/core` validates, parses, and plans installs from registry documents, and provides `buildRegistry` so third-party authors can compile a registry source tree into a compliant index. Registries are authored and hosted outside this repository; a registry source is an HTTPS URL or a local file path to a compiled index.
 
 `@cheetos/core` exposes:
 
-- `buildRegistry()` for compiling a registry source tree into an index plus compiled items
 - Schema types and validation for the index (`IndexItem`) and compiled items (`CompiledItem`)
 - `parseRegistryDocument()` and `parseWithSchema()` for runtime validation (unknown keys are rejected; use `compiledItemSchema` for compiled items)
 - `joinIndexSource()` for storage-agnostic index `source` joining
-
-The private `@cheetos/registry` package holds the default opinionated content and a short build script around `buildRegistry` (`pnpm build:registry`).
 
 ## Development
 
@@ -115,13 +101,10 @@ Common development commands:
 ```bash
 pnpm run check          # typecheck and lint (writes fixes)
 pnpm run build          # build all packages
-pnpm run build:registry # rebuild compiled registry metadata
 pnpm cov                # run tests with coverage
 pnpm run quality:changes # quality gate on changed files (pre-PR)
 pnpm run quality         # full codebase quality scan
 ```
-
-The default registry content lives under `packages/registry/registry/`. Compilation writes `packages/registry/registry.json` (committed) and `packages/registry/r/` (gitignored build output, bundled into the CLI package at `prepack`).
 
 ## Releases
 

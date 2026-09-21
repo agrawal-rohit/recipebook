@@ -18,6 +18,16 @@ export class InterruptError extends Error {
 	}
 }
 
+/** No registry source is configured, so a source-dependent command cannot run. */
+export class NoRegistrySourceError extends Error {
+	constructor(
+		message = "No registry source configured. Add one with `cheetos configure set <https URL or file path>`, set CHEETOS_REGISTRY, or pass --registry <source>.",
+	) {
+		super(message);
+		this.name = "NoRegistrySourceError";
+	}
+}
+
 /**
  * Print a message with a colored background label prefix.
  * @param label - Styled label (e.g. `" error "` from {@link dangerHighlight}).

@@ -1,4 +1,3 @@
 name: cheetos-codeql
 paths-ignore:
   - packages/*/dist
-  - packages/registry/registry/**

@@ -5,7 +5,6 @@ import {
 	compiledItemSchema,
 	InvalidJsonError,
 	isAbsoluteHttpUrl,
-	isFileAsync,
 	joinIndexSource,
 	parseRegistryDocument,
 	parseWithSchema,
@@ -13,6 +12,7 @@ import {
 	readFileAsync,
 	verifyItemIntegrity,
 } from "@cheetos/core";
+import { NoRegistrySourceError } from "../cli/errors";
 
 /** Maximum JSON document size for registry indexes and compiled items. */
 const JSON_DOCUMENT_BYTE_LIMIT = 5_000_000;
@@ -20,12 +20,8 @@ const JSON_DOCUMENT_BYTE_LIMIT = 5_000_000;
 export interface LocateRegistryOptions {
 	/** Explicit registry flag value from the CLI. */
 	registry?: string;
-	/** Registry source persisted via `cheetos config set`. */
+	/** Registry source persisted via `cheetos configure set`. */
 	savedRegistry?: string;
-	/** Absolute path to the packaged default registry.json. */
-	bundledRegistryPath?: string;
-	/** Additional absolute registry.json paths to probe before failing. */
-	fallbackRegistryPaths?: string[];
 }
 
 /** Parsed registry paired with the location it was loaded from. */
@@ -37,33 +33,18 @@ export interface LoadedRegistry {
 }
 
 /**
- * Absolute path to the registry.json packaged with the CLI.
- * @returns Absolute filesystem path.
- */
-export function bundledRegistryPath(): string {
-	return path.resolve(__dirname, "../../", "registry.json");
-}
-
-/**
  * Locate which registry the CLI should use.
- * @param options - Inputs from CLI flags, env, and package defaults.
+ * @param options - Inputs from CLI flags, env, and saved config.
  * @returns Absolute local path or HTTPS URL to the index.
- * @throws Error when no local or bundled registry can be found, or an explicit HTTPS URL fails {@link assertSafeRemoteUrl}.
+ * @throws {@link NoRegistrySourceError} when no explicit source resolves, or an explicit HTTPS URL fails {@link assertSafeRemoteUrl}.
  */
 export async function locateRegistry(
 	options: LocateRegistryOptions = {},
 ): Promise<string> {
-	const resolvedBundledRegistryPath =
-		options.bundledRegistryPath ?? bundledRegistryPath();
-	const fallbackRegistryPaths = options.fallbackRegistryPaths ?? [
-		path.resolve(__dirname, "../../../registry/registry.json"),
-	];
-
-	// Source reading order: CLI flag > env > saved config > bundled.
+	// Source reading order: CLI flag > env > saved config. Explicit sources only.
 	const source =
-		options.registry ?? process.env.PEBBLES_REGISTRY ?? options.savedRegistry;
+		options.registry ?? process.env.CHEETOS_REGISTRY ?? options.savedRegistry;
 
-	// If a source is explicitly provided, use it.
 	if (source) {
 		if (isAbsoluteHttpUrl(source)) {
 			assertSafeRemoteUrl(new URL(source));
@@ -72,18 +53,7 @@ export async function locateRegistry(
 		return path.resolve(process.cwd(), source);
 	}
 
-	const candidates = [
-		path.resolve(process.cwd(), "registry.json"),
-		...fallbackRegistryPaths,
-		resolvedBundledRegistryPath,
-	];
-
-	for (const candidate of candidates)
-		if (await isFileAsync(candidate)) return candidate;
-
-	throw new Error(
-		"Registry not found (registry.json). Run `pnpm run build:registry` before using cheetos.",
-	);
+	throw new NoRegistrySourceError();
 }
 
 /**
@@ -248,9 +218,9 @@ async function loadDocumentBytes(
 }
 
 /**
- * Load the registry selected by CLI flags, env, saved config, or bundled defaults.
+ * Load the registry selected by CLI flags, env, or saved config.
  * @param registryOverride - Optional `--registry` flag value.
- * @param savedRegistry - Optional registry source persisted via `cheetos config set`.
+ * @param savedRegistry - Optional registry source persisted via `cheetos configure set`.
  * @returns Parsed registry and the index path or URL it was loaded from.
  * @throws Error when the located registry cannot be loaded safely.
  */
