@@ -245,14 +245,14 @@ export async function loadRuntimeRegistry(
  * Load unique compiled items relative to a index location.
  * @param indexLocation - Absolute path or HTTPS URL of the index document.
  * @param sources - Catalog `source` URIs from the install plan.
- * @param itemIntegrity - sha256 digests keyed by catalog source URI.
+ * @param itemIntegrity - Mandatory sha256 digests keyed by catalog source URI. Absence is always fatal.
  * @returns Map of catalog source URI to parsed compiled items.
  * @throws Error when a digest is missing or mismatched, JSON is invalid, or the document is not a compiled item.
  */
 export async function loadCompiledItems(
 	indexLocation: string,
 	sources: readonly string[],
-	itemIntegrity?: Record<string, string>,
+	itemIntegrity: Record<string, string>,
 ): Promise<Map<string, CompiledItem>> {
 	const uniqueSources = [...new Set(sources)];
 	const documents = new Map<string, CompiledItem>();

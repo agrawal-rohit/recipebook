@@ -11,10 +11,13 @@ import {
 	expect,
 	test,
 } from "vitest";
+import { RegistryConditionKind } from "./condition-kind";
+import type { Registry } from "./schema";
 import {
 	assertIntegrityMatch,
 	assertScriptsAllowed,
 	classifyRegistryTrust,
+	collectRegistryArtifactUris,
 	createRejectedScriptExecutor,
 	createScriptExecutor,
 	type DeclaredScriptUris,
@@ -366,5 +369,77 @@ describe("sandboxed module loading (real child process)", () => {
 describe("sandboxRunnerPath", () => {
 	test("it should return an absolute runner path because sandbox spawns require absolute entries", () => {
 		expect(path.isAbsolute(sandboxRunnerPath())).toBe(true);
+	});
+});
+
+describe("collectRegistryArtifactUris", () => {
+	test("it should aggregate, dedupe, and sort every compiled script and item URI because install integrity and fetch plans depend on the complete set", () => {
+		const registry: Registry = {
+			conditions: {
+				os: {
+					label: "OS",
+					kind: RegistryConditionKind.SELECT,
+					handler: "r/_handlers/os.handler.js",
+				},
+			},
+			types: { component: { label: "Components" } },
+			items: {
+				button: {
+					title: "Button",
+					description: "A button",
+					type: "component",
+					source: "r/button.json",
+					beforeWrite: ["r/button.beforeWrite.0.js"],
+					// Deliberate duplicate across phase lists and packs.
+					afterInstall: [
+						"r/button.afterInstall.0.js",
+						"r/button.beforeWrite.0.js",
+					],
+					conditions: {
+						own: {
+							label: "Own",
+							kind: RegistryConditionKind.BOOLEAN,
+							handler: "r/_handlers/items/button/own.handler.js",
+						},
+					},
+					packs: [
+						{
+							id: "ts",
+							title: "TypeScript",
+							source: "r/button/ts.json",
+							beforeWrite: ["r/button/ts.beforeWrite.0.js"],
+							afterInstall: ["r/button.beforeWrite.0.js"],
+						},
+					],
+				},
+			},
+		};
+
+		const { scriptUris, itemUris } = collectRegistryArtifactUris(registry);
+
+		expect(scriptUris).toEqual(
+			[
+				"r/_handlers/os.handler.js",
+				"r/button.beforeWrite.0.js",
+				"r/button.afterInstall.0.js",
+				"r/_handlers/items/button/own.handler.js",
+				"r/button/ts.beforeWrite.0.js",
+			].sort((left, right) => left.localeCompare(right)),
+		);
+		expect(itemUris).toEqual(
+			["r/button.json", "r/button/ts.json"].sort((left, right) =>
+				left.localeCompare(right),
+			),
+		);
+	});
+
+	test("it should return empty URI lists for a registry without handlers, hooks, or payloads because artifact hashing must tolerate empty registries", () => {
+		const { scriptUris, itemUris } = collectRegistryArtifactUris({
+			types: {},
+			items: {},
+		});
+
+		expect(scriptUris).toEqual([]);
+		expect(itemUris).toEqual([]);
 	});
 });
