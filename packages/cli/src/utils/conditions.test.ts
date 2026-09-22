@@ -96,15 +96,12 @@ async function captureShared(
 	);
 }
 
-let confirmCalls: number;
-
 beforeEach(() => {
 	for (const mock of Object.values(promptsMocks)) mock.mockReset();
 	promptsMocks.confirmInput.mockResolvedValue(true);
 	promptsMocks.selectInput.mockResolvedValue("react");
 	promptsMocks.multiselectInput.mockResolvedValue(["react"]);
 	promptsMocks.textInput.mockResolvedValue("my-app");
-	confirmCalls = 0;
 });
 
 afterEach(() => {

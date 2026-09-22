@@ -1,6 +1,40 @@
 import { describe, expect, test, vi } from "vitest";
 import { runWithTasks, task, taskGroup } from "./tasks";
 
+/**
+ * Force `process.stdout.isTTY` and capture stdout writes while `fn` runs.
+ * Restores both in `finally` so later tests see the real stream.
+ */
+async function withCapturedStdout(
+	isTTY: boolean | undefined,
+	fn: () => Promise<void>,
+): Promise<{ out: string; error: unknown }> {
+	const prior = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+	Object.defineProperty(process.stdout, "isTTY", {
+		configurable: true,
+		enumerable: true,
+		value: isTTY,
+		writable: true,
+	});
+	let out = "";
+	const write = process.stdout.write.bind(process.stdout);
+	process.stdout.write = ((chunk: string | Uint8Array) => {
+		out += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
+		return true;
+	}) as typeof process.stdout.write;
+	let error: unknown;
+	try {
+		await fn();
+	} catch (caught) {
+		error = caught;
+	} finally {
+		process.stdout.write = write;
+		if (prior) Object.defineProperty(process.stdout, "isTTY", prior);
+		else Reflect.deleteProperty(process.stdout, "isTTY");
+	}
+	return { out, error };
+}
+
 describe("taskGroup construction", () => {
 	test("it should reject an empty group synchronously because a group without work is a caller bug, not a runtime condition", () => {
 		expect(() => taskGroup("g", [])).toThrowError(
@@ -55,8 +89,14 @@ describe("runWithTasks", () => {
 			runWithTasks("t", [
 				{
 					title: "g",
-					task: async () => calls.push("hook"),
-					subtasks: [task("a", async () => calls.push("child"))],
+					task: async () => {
+						calls.push("hook");
+					},
+					subtasks: [
+						task("a", async () => {
+							calls.push("child");
+						}),
+					],
 				},
 			]),
 		).resolves.toBeUndefined();
@@ -89,5 +129,60 @@ describe("runWithTasks", () => {
 		await expect(
 			runWithTasks("t", [{ title: "x" } as never]),
 		).rejects.toThrowError('Subtask "x" has no work.');
+	});
+});
+
+describe("runWithTasks non-TTY silence (silent#*)", () => {
+	test("it should write no Listr task output when stdout is not a TTY because pnpm cov must stay free of SimpleRenderer noise", async () => {
+		const { out, error } = await withCapturedStdout(false, async () => {
+			await runWithTasks("silent-root-sentinel", async () => {});
+		});
+		expect(error).toBeUndefined();
+		expect(out).toBe("");
+	});
+
+	test("it should keep nested groups silent when stdout is not a TTY because nested newListr must inherit the parent's silence", async () => {
+		const { out, error } = await withCapturedStdout(false, async () => {
+			await runWithTasks("silent-parent-sentinel", [
+				taskGroup("silent-group-sentinel", [
+					task("silent-child-sentinel", async () => {}),
+				]),
+			]);
+		});
+		expect(error).toBeUndefined();
+		expect(out).toBe("");
+	});
+
+	test("it should treat undefined isTTY like non-TTY and stay silent because falsy TTY must not fall back to SimpleRenderer", async () => {
+		const { out, error } = await withCapturedStdout(undefined, async () => {
+			await runWithTasks("silent-undefined-tty-sentinel", async () => {});
+		});
+		expect(error).toBeUndefined();
+		expect(out).toBe("");
+	});
+
+	test("it should still reject on task failure when stdout is not a TTY because silence must not swallow errors", async () => {
+		const { out, error } = await withCapturedStdout(false, async () => {
+			await runWithTasks("silent-fail-sentinel", async () => {
+				throw new Error("sentinel-silent-failure");
+			});
+		});
+		expect(error).toMatchObject({
+			message: expect.stringMatching(/sentinel-silent-failure/u),
+		});
+		expect(out).toBe("");
+	});
+});
+
+describe("runWithTasks TTY progressive (silent#tty-*)", () => {
+	test("it should emit progressive DefaultRenderer output when stdout is a TTY because interactive runs must still show live task progress", async () => {
+		const { out, error } = await withCapturedStdout(true, async () => {
+			await runWithTasks("tty-progress-sentinel", async () => {}, {
+				collapseErrors: false,
+			});
+		});
+		expect(error).toBeUndefined();
+		expect(out).toContain("tty-progress-sentinel");
+		expect(out.includes("\u001b")).toBe(true);
 	});
 });

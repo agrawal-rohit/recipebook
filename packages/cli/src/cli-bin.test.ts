@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import * as sourceEntry from "./index";
 
@@ -6,6 +7,9 @@ const { run, printError } = vi.hoisted(() => ({
 	run: vi.fn(),
 	printError: vi.fn(),
 }));
+
+/** Non-literal so tsc does not require typings for the published .mjs bin glue. */
+const CLI_MJS_ENTRY = "../bin/cli.mjs";
 
 vi.mock("../dist/index.js", () => ({
 	default: {
@@ -41,7 +45,7 @@ describe("cli.mjs published bin glue", () => {
 		);
 
 		vi.resetModules();
-		await import("../bin/cli.mjs");
+		await import(CLI_MJS_ENTRY);
 
 		expect(runSettled).toBe(true);
 		expect(run).toHaveBeenCalledTimes(1);
@@ -54,7 +58,7 @@ describe("cli.mjs published bin glue", () => {
 		run.mockRejectedValue(new Error("boom"));
 
 		vi.resetModules();
-		await import("../bin/cli.mjs");
+		await import(CLI_MJS_ENTRY);
 
 		expect(printError).toHaveBeenCalledTimes(1);
 		expect(printError).toHaveBeenCalledWith("boom");
@@ -65,7 +69,7 @@ describe("cli.mjs published bin glue", () => {
 		run.mockRejectedValue(42);
 
 		vi.resetModules();
-		await import("../bin/cli.mjs");
+		await import(CLI_MJS_ENTRY);
 
 		expect(printError).toHaveBeenCalledTimes(1);
 		expect(printError).toHaveBeenCalledWith("42");
@@ -86,10 +90,7 @@ describe("src entry exports match what bin/cli.mjs consumes", () => {
 
 	test("it should keep the CommonJS module target in tsconfig.base.json because bin/cli.mjs's `import indexModule from '../dist/index.js'` only yields indexModule.default/.printError under CJS interop", () => {
 		const baseConfig = JSON.parse(
-			readFileSync(
-				new URL("../../../tsconfig.base.json", import.meta.url),
-				"utf8",
-			),
+			readFileSync(path.join(__dirname, "../../../tsconfig.base.json"), "utf8"),
 		) as { compilerOptions?: { module?: string } };
 
 		expect(baseConfig.compilerOptions?.module).toBe("CommonJS");

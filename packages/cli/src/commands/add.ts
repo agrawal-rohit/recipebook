@@ -657,10 +657,7 @@ export async function addCommand(
 				compiledItemDocuments = await loadCompiledItems(
 					indexLocation,
 					sources,
-					// Verification fails closed when a digest is missing, so the map must
-					// be present for every resolved source. Null-assertion is runtime-neutral:
-					// a missing map already throws inside loadCompiledItems.
-					registry.itemIntegrity!,
+					registry.itemIntegrity ?? {},
 				);
 			});
 		const preparedItems = prepareInstallItems(

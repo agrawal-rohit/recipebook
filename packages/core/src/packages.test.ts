@@ -21,13 +21,11 @@ import {
 	mergeSecretNames,
 	NpmPackageManager,
 	npmEcosystemAdapter,
-	PACKAGE_MANAGER_KEY,
 	packageManagerBindings,
 	packageManagerSpec,
 	RegistryDependencyKind,
 	type RegistryDependencySet,
 	RegistryEcosystem,
-	reservedInterpolationKeys,
 	selectPackageManager,
 } from "./index";
 
@@ -58,10 +56,10 @@ describe("mergeDependencySet", () => {
 	});
 
 	test("it should reject empty and flag-prefixed package names because names become raw install argv", () => {
-		expect(() => mergeDependencySet(deps(["-x"]))).toThrowError(
+		expect(() => mergeDependencySet(deps(["-x"]), undefined)).toThrowError(
 			'Package name "-x" is not allowed.',
 		);
-		expect(() => mergeDependencySet(deps([""]))).toThrowError(
+		expect(() => mergeDependencySet(deps([""]), undefined)).toThrowError(
 			"Package name must not be empty.",
 		);
 	});
@@ -366,5 +364,239 @@ describe("selectPackageManager", () => {
 				() => false,
 			),
 		).rejects.toThrowError(/Unknown packageManager "cargo"/);
+	});
+});
+
+describe("selectPackageManager prompt fallback", () => {
+	let tempDir: string;
+
+	beforeEach(() => {
+		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-select-pm2-"));
+	});
+	afterEach(() => {
+		fs.rmSync(tempDir, { recursive: true, force: true });
+	});
+
+	test("it should fall back to the prompt when two managers match lockfiles because ambiguous detection cannot pick a winner", async () => {
+		const select = vi.fn(async () => "bun");
+		expect(
+			await selectPackageManager(
+				RegistryEcosystem.NPM,
+				tempDir,
+				{ select },
+				(p) =>
+					path.basename(p) === "package-lock.json" ||
+					path.basename(p) === "pnpm-lock.yaml",
+			),
+		).toBe(NpmPackageManager.BUN);
+
+		expect(select).toHaveBeenCalledWith(
+			"Which package manager should be used for the project?",
+			{
+				options: [
+					{ label: "npm", value: "npm" },
+					{ label: "pnpm", value: "pnpm" },
+					{ label: "Yarn", value: "yarn" },
+					{ label: "Bun", value: "bun" },
+					{ label: "Nub", value: "nub" },
+				],
+			},
+			"npm",
+		);
+	});
+
+	test("it should prefer the manifest over lockfiles because explicit declarations beat inference", async () => {
+		fs.writeFileSync(
+			path.join(tempDir, "package.json"),
+			JSON.stringify({ packageManager: "yarn@4.0.0" }),
+		);
+		const select = vi.fn(async () => "npm");
+		expect(
+			await selectPackageManager(
+				RegistryEcosystem.NPM,
+				tempDir,
+				{ select },
+				(p) =>
+					path.basename(p) === "pnpm-lock.yaml" ||
+					path.basename(p) === "package.json",
+			),
+		).toBe(NpmPackageManager.YARN);
+		expect(select).not.toHaveBeenCalled();
+	});
+});
+
+describe("buildPackageInstallCommands", () => {
+	test("it should build deduped, sorted runtime and dev install commands with exact argv because generated commands must be stable", () => {
+		expect(
+			buildPackageInstallCommands(
+				RegistryEcosystem.NPM,
+				NpmPackageManager.NPM,
+				deps(["b", "a", "a"], ["c"]),
+			),
+		).toEqual([
+			{
+				executable: "npm",
+				args: ["install", "--ignore-scripts", "a", "b"],
+				display: "npm install --ignore-scripts a b",
+			},
+			{
+				executable: "npm",
+				args: ["install", "--ignore-scripts", "-D", "c"],
+				display: "npm install --ignore-scripts -D c",
+			},
+		]);
+	});
+
+	test("it should emit a single dev command for dev-only sets because runtime and dev install shapes differ", () => {
+		expect(
+			buildPackageInstallCommands(
+				RegistryEcosystem.NPM,
+				NpmPackageManager.NPM,
+				deps([], ["c"]),
+			),
+		).toEqual([
+			{
+				executable: "npm",
+				args: ["install", "--ignore-scripts", "-D", "c"],
+				display: "npm install --ignore-scripts -D c",
+			},
+		]);
+	});
+
+	test("it should return no commands for an empty dependency set because there is nothing to install", () => {
+		expect(
+			buildPackageInstallCommands(
+				RegistryEcosystem.NPM,
+				NpmPackageManager.NPM,
+				{},
+			),
+		).toEqual([]);
+	});
+
+	test("it should reject unsafe package names because install argv must not be smuggled into", () => {
+		expect(() =>
+			buildPackageInstallCommands(
+				RegistryEcosystem.NPM,
+				NpmPackageManager.NPM,
+				deps(["-p"]),
+			),
+		).toThrowError('Package name "-p" is not allowed.');
+		expect(() =>
+			buildPackageInstallCommands(
+				RegistryEcosystem.NPM,
+				NpmPackageManager.NPM,
+				deps([""]),
+			),
+		).toThrowError("Package name must not be empty.");
+	});
+
+	test("it should reject a manager that is not valid for the ecosystem because install argv is manager-specific", () => {
+		expect(() =>
+			buildPackageInstallCommands(
+				RegistryEcosystem.NPM,
+				"cargo" as NpmPackageManager,
+				deps(["x"]),
+			),
+		).toThrowError('Package manager "cargo" is not valid for ecosystem "npm".');
+	});
+
+	test("it should build pnpm-specific argv because managers differ in install verbs", () => {
+		expect(
+			buildPackageInstallCommands(
+				RegistryEcosystem.NPM,
+				NpmPackageManager.PNPM,
+				{
+					[RegistryDependencyKind.RUNTIME]: ["x"],
+					[RegistryDependencyKind.DEV]: ["y"],
+				},
+			).map((command) => command.args),
+		).toEqual([
+			["add", "--ignore-scripts", "x"],
+			["add", "--ignore-scripts", "-D", "y"],
+		]);
+	});
+});
+
+describe("compiledItemUsesEcosystem", () => {
+	function item(
+		parts: Partial<Parameters<typeof compiledItem>[0]> = {},
+	): CompiledItem {
+		return compiledItem({ files: [], ...parts });
+	}
+
+	test("it should detect runtime and dev dependencies for the ecosystem because installs need a manager", () => {
+		expect(
+			compiledItemUsesEcosystem(
+				item({ dependencies: { npm: deps(["x"]) } }),
+				RegistryEcosystem.NPM,
+			),
+		).toBe(true);
+		expect(
+			compiledItemUsesEcosystem(
+				item({ dependencies: { npm: deps([], ["x"]) } }),
+				RegistryEcosystem.NPM,
+			),
+		).toBe(true);
+	});
+
+	test("it should not need a manager for empty dependency sets because nothing is installed", () => {
+		expect(
+			compiledItemUsesEcosystem(
+				item({ dependencies: { npm: {} } }),
+				RegistryEcosystem.NPM,
+			),
+		).toBe(false);
+	});
+
+	test("it should detect non-empty ecosystem commands and ignore empty ones because manifest merges need a manager", () => {
+		expect(
+			compiledItemUsesEcosystem(
+				item({ commands: { npm: { build: "x" } } }),
+				RegistryEcosystem.NPM,
+			),
+		).toBe(true);
+		expect(
+			compiledItemUsesEcosystem(
+				item({ commands: { npm: {} } }),
+				RegistryEcosystem.NPM,
+			),
+		).toBe(false);
+	});
+
+	test("it should detect package-manager interpolation tags in file templates because those templates run commands", () => {
+		const tagsTrue = [
+			"{{ pmInstall }}",
+			"{{packageManager}}",
+			"run {{ pmRun }} now",
+		];
+		for (const content of tagsTrue) {
+			expect(
+				compiledItemUsesEcosystem(
+					item({ files: [file("t", content)] }),
+					RegistryEcosystem.NPM,
+				),
+				`file "${content}"`,
+			).toBe(true);
+		}
+	});
+
+	test("it should ignore tags that only look like package-manager bindings because matching must be exact", () => {
+		for (const content of ["{{ pmBogus }}", "{{ packageManagerx }}", "hello"]) {
+			expect(
+				compiledItemUsesEcosystem(
+					item({ files: [file("t", content)] }),
+					RegistryEcosystem.NPM,
+				),
+			).toBe(false);
+		}
+	});
+
+	test("it should not need a manager for plain files without deps or commands because plain file installs are manager-free", () => {
+		expect(
+			compiledItemUsesEcosystem(
+				item({ files: [file("t", "hello")] }),
+				RegistryEcosystem.NPM,
+			),
+		).toBe(false);
 	});
 });

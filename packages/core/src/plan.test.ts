@@ -18,9 +18,9 @@ import {
 	type Registry,
 	type RegistryCondition,
 	RegistryConditionKind,
-	type RegistryContext,
 	uniqueKnownRegistryItems,
 } from "./index";
+import { whenMatchesContext } from "./plan";
 
 function item(overrides: Partial<IndexItem> = {}): IndexItem {
 	return {
@@ -688,5 +688,32 @@ describe("collectDeclaredScriptUris", () => {
 		);
 		expect(infer).toEqual([]);
 		expect(mutation).toEqual([]);
+	});
+});
+
+describe("whenMatchesContext value-type matching", () => {
+	test("it should match a boolean context value against a boolean expectation because boolean matchers are scalar", () => {
+		expect(whenMatchesContext({ k: true }, { k: true })).toBe(true);
+	});
+
+	test("it should not match a boolean context value against a string expectation because types must agree", () => {
+		expect(whenMatchesContext({ k: "true" }, { k: true })).toBe(false);
+	});
+
+	test("it should match array context values by any shared entry because a multiselect satisfies disjunctive matchers", () => {
+		expect(whenMatchesContext({ k: ["b", "z"] }, { k: ["a", "b"] })).toBe(true);
+		expect(whenMatchesContext({ k: "a" }, { k: ["a"] })).toBe(true);
+		expect(whenMatchesContext({ k: ["a", "b"] }, { k: "a" })).toBe(true);
+		expect(whenMatchesContext({ k: "a" }, { k: ["a", "b"] })).toBe(true);
+	});
+
+	test("it should not match an undecided key because a missing value cannot satisfy a matcher", () => {
+		expect(whenMatchesContext({ k: "a" }, {})).toBe(false);
+	});
+
+	test("it should skip undecided keys only when allowUndecided is set because candidate walks tolerate gaps", () => {
+		expect(
+			whenMatchesContext({ k: "a" }, {}, undefined, { allowUndecided: true }),
+		).toBe(true);
 	});
 });

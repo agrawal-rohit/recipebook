@@ -156,9 +156,9 @@ describe("loadRuntimeRegistry remote fetch", () => {
 	});
 
 	test("it should load and parse a remote registry over HTTPS with a GET, redirect-rejecting, timeout-guarded request because remote fetching is the default registry path", async () => {
-		const fetchMock = vi.fn(
-			async () => new Response(MINIMAL_REGISTRY_JSON, { status: 200 }),
-		);
+		const fetchMock = vi.fn<
+			(input: string | URL, init?: RequestInit) => Promise<Response>
+		>(async () => new Response(MINIMAL_REGISTRY_JSON, { status: 200 }));
 		vi.stubGlobal("fetch", fetchMock);
 
 		const result = await loadRuntimeRegistry(INDEX_URL);
@@ -493,9 +493,9 @@ describe("loadCompiledItems", () => {
 
 	test("it should join item sources against a remote index URL because remote registries resolve compiled items relative to the index document", async () => {
 		const indexUrl = "https://registry.example/r/registry.json";
-		const fetchMock = vi.fn(
-			async () => new Response(MINIMAL_ITEM_JSON, { status: 200 }),
-		);
+		const fetchMock = vi.fn<
+			(input: string | URL, init?: RequestInit) => Promise<Response>
+		>(async () => new Response(MINIMAL_ITEM_JSON, { status: 200 }));
 		vi.stubGlobal("fetch", fetchMock);
 
 		const documents = await loadCompiledItems(

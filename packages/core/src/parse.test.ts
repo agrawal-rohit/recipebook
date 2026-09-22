@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
 	compiledItemSchema,
+	RegistryConditionKind,
 	registryConditionSchema,
 	registryItemSchema,
 } from "./index";
@@ -27,6 +28,7 @@ function baseDocument(overrides: {
 	items?: Record<string, unknown>;
 	conditions?: unknown;
 	scriptIntegrity?: unknown;
+	itemIntegrity?: unknown;
 }): Record<string, unknown> {
 	return {
 		types: { component: { label: "Components" } },
@@ -189,7 +191,10 @@ describe("parseRegistryDocument condition rules", () => {
 			parseRegistryDocument(
 				baseDocument({
 					conditions: {
-						framework: { label: "Framework", kind: "select" },
+						framework: {
+							label: "Framework",
+							kind: RegistryConditionKind.SELECT,
+						},
 					},
 					items: {
 						button: baseItem({ requires: ["framework"] }),
@@ -207,7 +212,7 @@ describe("parseRegistryDocument condition rules", () => {
 				registryConditionSchema,
 				{
 					label: "Framework",
-					kind: "select",
+					kind: RegistryConditionKind.SELECT,
 					values: [
 						{ value: "react", label: "React" },
 						{ value: "react", label: "React again" },
@@ -224,7 +229,7 @@ describe("parseRegistryDocument condition rules", () => {
 				registryConditionSchema,
 				{
 					label: "Framework",
-					kind: "select",
+					kind: RegistryConditionKind.SELECT,
 					values: [{ value: "None", label: "Skip" }],
 				},
 				'Registry condition "framework"',
@@ -238,7 +243,7 @@ describe("parseRegistryDocument condition rules", () => {
 				registryConditionSchema,
 				{
 					label: "Framework",
-					kind: "select",
+					kind: RegistryConditionKind.SELECT,
 					values: [{ value: "react", label: "React" }],
 					default: "vue",
 				},
@@ -253,7 +258,7 @@ describe("parseRegistryDocument condition rules", () => {
 				registryConditionSchema,
 				{
 					label: "Framework",
-					kind: "select",
+					kind: RegistryConditionKind.SELECT,
 					min: 2,
 					values: [{ value: "react", label: "React" }],
 				},
@@ -268,7 +273,7 @@ describe("parseRegistryDocument condition rules", () => {
 				registryConditionSchema,
 				{
 					label: "Extras",
-					kind: "multiselect",
+					kind: RegistryConditionKind.MULTISELECT,
 					values: [
 						{
 							value: "lint",
@@ -287,7 +292,7 @@ describe("parseRegistryDocument condition rules", () => {
 			conditions: {
 				framework: {
 					label: "Framework",
-					kind: "select",
+					kind: RegistryConditionKind.SELECT,
 					values: [
 						{
 							value: "react",
@@ -311,7 +316,7 @@ describe("parseRegistryDocument condition rules", () => {
 					conditions: {
 						framework: {
 							label: "Framework",
-							kind: "select",
+							kind: RegistryConditionKind.SELECT,
 							values: [
 								{
 									value: "react",
@@ -335,7 +340,7 @@ describe("parseRegistryDocument condition rules", () => {
 				registryConditionSchema,
 				{
 					label: "Name",
-					kind: "text",
+					kind: RegistryConditionKind.TEXT,
 					values: [{ value: "x", label: "X" }],
 				},
 				'Registry condition "name"',
@@ -346,7 +351,7 @@ describe("parseRegistryDocument condition rules", () => {
 				registryConditionSchema,
 				{
 					label: "Flag",
-					kind: "boolean",
+					kind: RegistryConditionKind.BOOLEAN,
 					values: [{ value: "x", label: "X" }],
 				},
 				'Registry condition "flag"',
@@ -381,7 +386,7 @@ describe("parseRegistryDocument when-map rules", () => {
 			conditions: {
 				framework: {
 					label: "Framework",
-					kind: "select",
+					kind: RegistryConditionKind.SELECT,
 					values: [{ value: "react", label: "React" }],
 				},
 			},
@@ -406,7 +411,7 @@ describe("parseRegistryDocument when-map rules", () => {
 	test("it should reject text conditions used in when because text answers cannot match a fixed set", () => {
 		const document = baseDocument({
 			conditions: {
-				name: { label: "Name", kind: "text" },
+				name: { label: "Name", kind: RegistryConditionKind.TEXT },
 			},
 			items: {
 				button: baseItem({
@@ -429,7 +434,7 @@ describe("parseRegistryDocument when-map rules", () => {
 	test("it should reject non-boolean when values for boolean conditions because boolean matchers are true or false", () => {
 		const document = baseDocument({
 			conditions: {
-				flag: { label: "Flag", kind: "boolean" },
+				flag: { label: "Flag", kind: RegistryConditionKind.BOOLEAN },
 			},
 			items: {
 				button: baseItem({
@@ -473,7 +478,9 @@ describe("parseRegistryDocument when-map rules", () => {
 describe("parseRegistryDocument reserved keys", () => {
 	test("it should reject a shared condition named packageManager because the runtime owns that key", () => {
 		const document = baseDocument({
-			conditions: { packageManager: { label: "Manager", kind: "text" } },
+			conditions: {
+				packageManager: { label: "Manager", kind: RegistryConditionKind.TEXT },
+			},
 			items: { button: baseItem() },
 		});
 		expect(() => parseRegistryDocument(document)).toThrowError(
@@ -507,7 +514,7 @@ describe("parseRegistryDocument condition graph", () => {
 				button: baseItem({
 					requires: ["style"],
 					conditions: {
-						style: { label: "Style", kind: "text" },
+						style: { label: "Style", kind: RegistryConditionKind.TEXT },
 					},
 				}),
 			},
@@ -521,10 +528,14 @@ describe("parseRegistryDocument condition graph", () => {
 		const document = baseDocument({
 			items: {
 				button: baseItem({
-					conditions: { style: { label: "Style", kind: "text" } },
+					conditions: {
+						style: { label: "Style", kind: RegistryConditionKind.TEXT },
+					},
 				}),
 				card: baseItem({
-					conditions: { style: { label: "Style", kind: "text" } },
+					conditions: {
+						style: { label: "Style", kind: RegistryConditionKind.TEXT },
+					},
 				}),
 			},
 		});
@@ -535,10 +546,14 @@ describe("parseRegistryDocument condition graph", () => {
 
 	test("it should reject a local condition colliding with a shared condition because keys must have one definition", () => {
 		const document = baseDocument({
-			conditions: { style: { label: "Style", kind: "text" } },
+			conditions: {
+				style: { label: "Style", kind: RegistryConditionKind.TEXT },
+			},
 			items: {
 				button: baseItem({
-					conditions: { style: { label: "Style", kind: "text" } },
+					conditions: {
+						style: { label: "Style", kind: RegistryConditionKind.TEXT },
+					},
 				}),
 			},
 		});
@@ -651,7 +666,7 @@ describe("parseWithSchema error mapping", () => {
 				registryConditionSchema,
 				{
 					label: "F",
-					kind: "select",
+					kind: RegistryConditionKind.SELECT,
 					min: 0,
 					values: [{ value: "a", label: "A" }],
 				},

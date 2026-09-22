@@ -29,7 +29,7 @@ describe("fs temp workspace", () => {
 		fs.writeFileSync(filePath, "{oops", "utf8");
 
 		const error = await readJsonFileAsync(filePath, "My label").then(
-			(value) => null,
+			() => null,
 			(e) => e,
 		);
 
@@ -45,7 +45,7 @@ describe("fs temp workspace", () => {
 			path.join(tmpDir, "missing.json"),
 			"My label",
 		).then(
-			(value) => null,
+			() => null,
 			(e) => e,
 		);
 

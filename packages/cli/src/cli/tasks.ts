@@ -108,6 +108,7 @@ export async function runWithTasks(
 			},
 		],
 		{
+			silentRendererCondition: !process.stdout.isTTY,
 			rendererOptions: {
 				collapseErrors,
 			},

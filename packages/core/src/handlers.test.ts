@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { RegistryPackageManager } from "./index";
 import {
 	type CompiledItem,
-	type CompiledItemFile,
 	createHandlerRuntime,
 	type HandlerRuntime,
 	inferConditionDefault,
@@ -333,8 +332,20 @@ describe("script executor seam", () => {
 		) => Promise<{ bindings?: Record<string, string> }> = async () => ({
 			bindings: { from: "executor" },
 		});
-		const loadModule = vi.fn(async () => hook);
-		const executor: ScriptExecutor = { loadModule };
+		const loadModule = vi.fn<ScriptExecutor["loadModule"]>(
+			async <T>(
+				_indexLocation: string,
+				_scriptUri: string,
+				isValid: (value: unknown) => value is T,
+				errorMessage: string,
+			) => {
+				if (!isValid(hook)) throw new Error(errorMessage);
+				return hook as T;
+			},
+		);
+		const executor: ScriptExecutor = {
+			loadModule: loadModule as ScriptExecutor["loadModule"],
+		};
 		setScriptExecutor(executor);
 
 		await expect(

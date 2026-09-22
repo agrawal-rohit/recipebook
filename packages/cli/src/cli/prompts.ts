@@ -79,10 +79,15 @@ function windowRows(
 		return lines;
 	};
 
-	const offsetFor = (capacity: number): number =>
-		cursor >= capacity - 3
-			? Math.max(Math.min(cursor - capacity + 3, rows.length - capacity), 0)
+	// Keep the cursor a few rows above the window bottom when there is room, but
+	// never demand more lookahead than the window can hold (capacity 1 or 2), or
+	// the window would scroll the active row out of view.
+	const offsetFor = (capacity: number): number => {
+		const position = Math.max(capacity - 3, 0);
+		return cursor > position
+			? Math.max(Math.min(cursor - position, rows.length - capacity), 0)
 			: 0;
+	};
 
 	let capacity = Math.min(rows.length, Math.max(availableLines, 1));
 	while (capacity > 1) {

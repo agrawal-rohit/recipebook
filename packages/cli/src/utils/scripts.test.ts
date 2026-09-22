@@ -6,6 +6,7 @@ import {
 	getScriptExecutor,
 	type IndexItem,
 	type Registry,
+	RegistryConditionKind,
 	setScriptExecutor,
 } from "@cheetos/core";
 import { afterEach, describe, expect, test } from "vitest";
@@ -116,7 +117,7 @@ describe("prepareScriptExecution", () => {
 		registry.conditions = {
 			framework: {
 				label: "Framework",
-				kind: "select",
+				kind: RegistryConditionKind.SELECT,
 				required: true,
 				handler: "r/_handlers/framework.handler.js",
 				values: [{ value: "react", label: "React" }],

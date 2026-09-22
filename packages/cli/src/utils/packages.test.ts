@@ -43,6 +43,9 @@ beforeEach(() => {
 	promptsMocks.confirmInput.mockReset();
 	promptsMocks.confirmInput.mockResolvedValue(true);
 	tasksMocks.runWithTasks.mockClear();
+	// The install/merge UX prints "Packages to install:" and script-overwrite lists;
+	// silence them so CI/tests stay quiet (restored by afterEach's restoreAllMocks).
+	vi.spyOn(console, "log").mockImplementation(() => {});
 	projectDir = fs.realpathSync(
 		fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-packages-")),
 	);
@@ -165,9 +168,7 @@ describe("mergeProjectCommands", () => {
 		return fs.readFileSync(path.join(projectDir, "package.json"), "utf8");
 	}
 
-	function itemWithCommands(commands: {
-		npm: Record<string, string>;
-	}): CompiledItem {
+	function itemWithCommands(commands: Record<string, string>): CompiledItem {
 		return compiledItem({ files: [], commands: { npm: commands } });
 	}
 

@@ -4,7 +4,6 @@ import {
 	type CompiledItem,
 	interpolateCompiledItem,
 	NpmPackageManager,
-	RegistryConditionKind,
 	type RegistryConditionValue,
 	type RegistryContextValue,
 	RegistryEcosystem,
@@ -118,18 +117,18 @@ describe("interpolation sections and syntax", () => {
 		).toThrowError('Unknown interpolation partial "header" in file "a.txt".');
 	});
 
-	test("it should preserve GitHub Actions `${{ }}` expressions because CI files are not Mustache", () => {
+	test("it should preserve GitHub Actions dollar-brace expressions because CI files are not Mustache", () => {
 		expect(
 			interpolateCompiledItem(
 				item([
 					{
 						target: "a.txt",
-						content: "token: ${{ secrets.GITHUB_TOKEN }} {{name}}",
+						content: `token: \${{ secrets.GITHUB_TOKEN }} {{name}}`,
 					},
 				]),
 				{ name: "x" },
 			).files[0].content,
-		).toBe("token: ${{ secrets.GITHUB_TOKEN }} x");
+		).toBe(`token: \${{ secrets.GITHUB_TOKEN }} x`);
 	});
 });
 
@@ -204,9 +203,7 @@ describe("buildInterpolationContext", () => {
 				verbose: true,
 			} satisfies Record<string, RegistryContextValue | undefined>,
 			optionValues: {
-				extras: [
-					{ value: "lint", label: "Lint", kind: RegistryConditionKind.SELECT },
-				] as RegistryConditionValue[],
+				extras: [{ value: "lint", label: "Lint" }],
 			},
 		});
 		expect(view.pending).toBeUndefined();
