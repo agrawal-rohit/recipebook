@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -18,6 +19,13 @@ function makeIsolatedEnv(): { root: string; env: NodeJS.ProcessEnv } {
 
 function configFilePath(root: string): string {
 	return path.join(root, "cheetos", "config.json");
+}
+
+/** Create a FIFO at the config path so the config guards must reject it as a special node. */
+function makeFifo(filePath: string): void {
+	const { status, stderr } = spawnSync("mkfifo", [filePath]);
+	if (status !== 0)
+		throw new Error(`mkfifo failed: ${stderr?.toString().trim()}`);
 }
 
 describe("configPath", () => {
@@ -193,6 +201,18 @@ describe("readConfig", () => {
 			/Cannot read cheetos config at .*config\.json: path is a directory\./,
 		);
 	});
+
+	test.skipIf(process.platform === "win32")(
+		"it should refuse to read a FIFO at the config path because a special node is neither a file nor a directory",
+		async () => {
+			fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
+			makeFifo(configFilePath(root));
+			// The guard short-circuits before any blocking read of the FIFO.
+			await expect(readConfig(env)).rejects.toThrow(
+				/Cannot read cheetos config at .*config\.json: path is neither a file nor a directory\./,
+			);
+		},
+	);
 });
 
 describe("writeConfig", () => {
@@ -319,6 +339,19 @@ describe("writeConfig", () => {
 			/Cannot write cheetos config at .*config\.json: path is a directory\./,
 		);
 	});
+
+	test.skipIf(process.platform === "win32")(
+		"it should refuse to write when the config path is a FIFO because a special node cannot be replaced by an empty config file",
+		async () => {
+			fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
+			makeFifo(configFilePath(root));
+			await expect(
+				writeConfig({ registry: "https://example.com/registry.json" }, env),
+			).rejects.toThrow(
+				/Cannot write cheetos config at .*\.json: path is neither a file nor a directory\./,
+			);
+		},
+	);
 });
 
 describe("unsetRegistryConfig", () => {

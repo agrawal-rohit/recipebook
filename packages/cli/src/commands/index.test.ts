@@ -1,7 +1,20 @@
 import type { Registry } from "@cheetos/core";
 import cac from "cac";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { OperationCanceledError } from "../cli/errors";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	type MockInstance,
+	test,
+	vi,
+} from "vitest";
+import { animatedIntro } from "../cli/animated-intro";
+import {
+	InterruptError,
+	OperationCanceledError,
+	runCliCommand,
+} from "../cli/errors";
 import type { LoadedRegistry } from "../utils/registry";
 import { addCommand } from "./add";
 import {
@@ -22,14 +35,11 @@ vi.mock("../cli/animated-intro", () => ({
 }));
 
 const addMock = vi.mocked(addCommand);
+const animatedIntroMock = vi.mocked(animatedIntro);
 const configGetMock = vi.mocked(configGetCommand);
 const configSetMock = vi.mocked(configSetCommand);
 const configUnsetMock = vi.mocked(configUnsetCommand);
 
-/**
- * Build the public shape of the post-refactor `NoRegistrySourceError` without
- * importing the not-yet-existing class: the contract fixes only its `name`.
- */
 function noRegistrySourceError(): Error {
 	return Object.assign(
 		new Error(
@@ -39,9 +49,6 @@ function noRegistrySourceError(): Error {
 	);
 }
 
-/**
- * Stub `process.stdin.isTTY`. Callers restore via `restoreIsTTY`.
- */
 function stubIsTTY(value: boolean): void {
 	Object.defineProperty(process.stdin, "isTTY", {
 		value,
@@ -49,18 +56,10 @@ function stubIsTTY(value: boolean): void {
 	});
 }
 
-/**
- * Restore `process.stdin.isTTY` to its original state after a test.
- */
 function restoreIsTTY(): void {
 	delete (process.stdin as { isTTY?: boolean }).isTTY;
 }
 
-/**
- * Build a CAC app wired exactly like `run()` and parse a configure invocation.
- * CAC never awaits the registered action, so callers must wait for the
- * observable effect (dispatch or `process.exit`) afterwards.
- */
 async function runConfigureCli(args: string[]): Promise<void> {
 	const app = cac("cheetos");
 	registerCommandsCli(app, async () => {
@@ -69,27 +68,25 @@ async function runConfigureCli(args: string[]): Promise<void> {
 	await app.parse(["node", "cheetos", ...args]);
 }
 
-/**
- * Build a CAC app wired exactly like `run()` and parse an `add` invocation
- * with the given registry loader.
- */
 async function runAddCli(
 	loadRegistry: () => Promise<LoadedRegistry>,
+	args: string[] = [],
 ): Promise<void> {
 	const app = cac("cheetos");
 	registerCommandsCli(app, loadRegistry);
-	await app.parse(["node", "cheetos", "add"]);
+	await app.parse(["node", "cheetos", "add", ...args]);
 }
 
 describe("configure command wiring", () => {
 	let errorOutput: string[];
-	let exitSpy: ReturnType<typeof vi.spyOn>;
+	let exitSpy: MockInstance<typeof process.exit>;
 
 	beforeEach(() => {
 		addMock.mockClear();
 		configGetMock.mockClear();
 		configSetMock.mockClear();
 		configUnsetMock.mockClear();
+		animatedIntroMock.mockClear();
 		errorOutput = [];
 		vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
 			errorOutput.push(args.map((arg) => String(arg)).join(" "));
@@ -161,11 +158,35 @@ describe("configure command wiring", () => {
 			"Usage: cheetos configure <get|set|unset> [source]",
 		);
 	});
+
+	test("it should introduce `configure get` with the fetching intro title because each configure action announces its own user-facing copy", async () => {
+		await runConfigureCli(["configure", "get"]);
+		await vi.waitFor(() => expect(configGetMock).toHaveBeenCalledTimes(1));
+		expect(animatedIntroMock).toHaveBeenCalledWith(
+			"fetching the configuration",
+		);
+	});
+
+	test("it should introduce `configure set` with the updating intro title because each configure action announces its own user-facing copy", async () => {
+		await runConfigureCli(["configure", "set"]);
+		await vi.waitFor(() => expect(configSetMock).toHaveBeenCalledTimes(1));
+		expect(animatedIntroMock).toHaveBeenCalledWith(
+			"updating the configuration",
+		);
+	});
+
+	test("it should introduce `configure unset` with the clearing intro title because each configure action announces its own user-facing copy", async () => {
+		await runConfigureCli(["configure", "unset"]);
+		await vi.waitFor(() => expect(configUnsetMock).toHaveBeenCalledTimes(1));
+		expect(animatedIntroMock).toHaveBeenCalledWith(
+			"clearing the configuration",
+		);
+	});
 });
 
 describe("add command pre-run source validation", () => {
 	let errorOutput: string[];
-	let exitSpy: ReturnType<typeof vi.spyOn>;
+	let exitSpy: MockInstance<typeof process.exit>;
 
 	beforeEach(() => {
 		addMock.mockClear();
@@ -237,7 +258,25 @@ describe("add command pre-run source validation", () => {
 		await runAddCli(loadRegistry);
 
 		await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(0));
+		// vader item 6: cancel must terminate — the error path must never run.
+		expect(exitSpy).toHaveBeenCalledTimes(1);
+		expect(errorOutput.join("\n")).not.toContain(" error  Operation canceled");
 		expect(loadRegistry).toHaveBeenCalledTimes(1);
+		expect(addMock).not.toHaveBeenCalled();
+	});
+
+	test("it should exit 130 without printing an error when command execution is interrupted because an interrupt terminates the CLI rather than falling through to the error handler", async () => {
+		stubIsTTY(true);
+		const loadRegistry = vi.fn(async () => {
+			throw new InterruptError();
+		});
+
+		await runAddCli(loadRegistry);
+
+		await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(130));
+		// vader item 6 symmetric: an interrupt must terminate — the error path must never run.
+		expect(exitSpy).toHaveBeenCalledTimes(1);
+		expect(errorOutput.join("\n")).not.toContain(" error ");
 		expect(addMock).not.toHaveBeenCalled();
 	});
 
@@ -254,5 +293,156 @@ describe("add command pre-run source validation", () => {
 		expect(configSetMock).toHaveBeenCalledTimes(1);
 		expect(loadRegistry).toHaveBeenCalledTimes(2);
 		expect(addMock).not.toHaveBeenCalled();
+	});
+});
+
+describe("add command wiring", () => {
+	let errorOutput: string[];
+	let exitSpy: MockInstance<typeof process.exit>;
+
+	beforeEach(() => {
+		addMock.mockClear();
+		animatedIntroMock.mockClear();
+		errorOutput = [];
+		vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+			errorOutput.push(args.map((arg) => String(arg)).join(" "));
+		});
+		vi.spyOn(console, "log").mockImplementation(() => {});
+		// Record the requested exit without terminating the test process.
+		exitSpy = vi
+			.spyOn(process, "exit")
+			.mockImplementation((() => undefined as never) as never);
+	});
+
+	afterEach(() => {
+		restoreIsTTY();
+		vi.restoreAllMocks();
+	});
+
+	test("it should dispatch addCommand with the parsed positional item and --overwrite option because silently dropping either would change what the user asked to install", async () => {
+		stubIsTTY(true);
+		const fakeRegistry: LoadedRegistry = {
+			registry: {} as Registry,
+			indexLocation: "/fake/registry.json",
+		};
+
+		await runAddCli(
+			vi.fn(async () => fakeRegistry),
+			["button", "--overwrite"],
+		);
+
+		await vi.waitFor(() => expect(addMock).toHaveBeenCalledTimes(1));
+		expect(addMock).toHaveBeenCalledWith(
+			fakeRegistry.registry,
+			fakeRegistry.indexLocation,
+			{ items: ["button"], overwrite: true },
+		);
+	});
+
+	test("it should dispatch addCommand with the parsed positional item and no overwrite option when --overwrite is absent because the flag must stay opt-in", async () => {
+		stubIsTTY(true);
+		const fakeRegistry: LoadedRegistry = {
+			registry: {} as Registry,
+			indexLocation: "/fake/registry.json",
+		};
+
+		await runAddCli(
+			vi.fn(async () => fakeRegistry),
+			["button"],
+		);
+
+		await vi.waitFor(() => expect(addMock).toHaveBeenCalledTimes(1));
+		expect(addMock).toHaveBeenCalledWith(
+			fakeRegistry.registry,
+			fakeRegistry.indexLocation,
+			{ items: ["button"], overwrite: undefined },
+		);
+	});
+
+	test("it should dispatch addCommand with overwrite normalized to undefined when --no-overwrite is passed because CAC negates the boolean flag to false", async () => {
+		stubIsTTY(true);
+		const fakeRegistry: LoadedRegistry = {
+			registry: {} as Registry,
+			indexLocation: "/fake/registry.json",
+		};
+
+		await runAddCli(
+			vi.fn(async () => fakeRegistry),
+			["button", "--no-overwrite"],
+		);
+
+		await vi.waitFor(() => expect(addMock).toHaveBeenCalledTimes(1));
+		expect(addMock).toHaveBeenCalledWith(
+			fakeRegistry.registry,
+			fakeRegistry.indexLocation,
+			{ items: ["button"], overwrite: undefined },
+		);
+	});
+
+	test("it should introduce the add flow with the add intro title because the intro copy is part of the command's user-facing surface", async () => {
+		stubIsTTY(true);
+		const fakeRegistry: LoadedRegistry = {
+			registry: {} as Registry,
+			indexLocation: "/fake/registry.json",
+		};
+
+		await runAddCli(
+			vi.fn(async () => fakeRegistry),
+			["button"],
+		);
+
+		await vi.waitFor(() => expect(addMock).toHaveBeenCalledTimes(1));
+		expect(animatedIntroMock).toHaveBeenCalledWith("adding registry item");
+	});
+
+	test("it should print an error and exit 1 without dispatching when a second positional argument is passed because add installs one registry item at a time", async () => {
+		stubIsTTY(true);
+		const fakeRegistry: LoadedRegistry = {
+			registry: {} as Registry,
+			indexLocation: "/fake/registry.json",
+		};
+
+		await runAddCli(
+			vi.fn(async () => fakeRegistry),
+			["button", "other"],
+		);
+
+		await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1));
+		expect(errorOutput.join("\n")).toContain(
+			"add installs one registry item at a time",
+		);
+		expect(addMock).not.toHaveBeenCalled();
+	});
+});
+
+describe("runCliCommand non-Error fallback", () => {
+	let errorOutput: string[];
+	let exitSpy: MockInstance<typeof process.exit>;
+
+	beforeEach(() => {
+		errorOutput = [];
+		vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+			errorOutput.push(args.map((arg) => String(arg)).join(" "));
+		});
+		vi.spyOn(console, "log").mockImplementation(() => {});
+		// Record the requested exit without terminating the test process.
+		exitSpy = vi
+			.spyOn(process, "exit")
+			.mockImplementation((() => undefined as never) as never);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	test("it should surface a non-Error throw value as its string form and exit 1 because only Error instances carry a message yet the CLI must still fail loudly", async () => {
+		await runCliCommand(async () => {
+			throw "boom";
+		});
+
+		// printError receives the string form of the thrown value.
+		expect(errorOutput.join("\n")).toContain("boom");
+		expect(exitSpy).toHaveBeenCalledWith(1);
+		expect(exitSpy).toHaveBeenCalledTimes(1);
 	});
 });

@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import * as sourceEntry from "./index";
 
 const { run, printError } = vi.hoisted(() => ({
 	run: vi.fn(),
@@ -68,5 +70,28 @@ describe("cli.mjs published bin glue", () => {
 		expect(printError).toHaveBeenCalledTimes(1);
 		expect(printError).toHaveBeenCalledWith("42");
 		expect(process.exitCode).toBe(1);
+	});
+});
+
+describe("src entry exports match what bin/cli.mjs consumes", () => {
+	test("it should expose a callable default run and a named printError from the real TypeScript entry because bin/cli.mjs destructures exactly those two exports from the compiled artifact", () => {
+		// The file-level `vi.mock("../dist/index.js")` above does not touch this
+		// specifier, so this static import is the real entry — the same module
+		// tsc compiles into the dist file the published bin imports.
+		const entry = sourceEntry as Record<string, unknown>;
+
+		expect(typeof entry.default).toBe("function");
+		expect(typeof entry.printError).toBe("function");
+	});
+
+	test("it should keep the CommonJS module target in tsconfig.base.json because bin/cli.mjs's `import indexModule from '../dist/index.js'` only yields indexModule.default/.printError under CJS interop", () => {
+		const baseConfig = JSON.parse(
+			readFileSync(
+				new URL("../../../tsconfig.base.json", import.meta.url),
+				"utf8",
+			),
+		) as { compilerOptions?: { module?: string } };
+
+		expect(baseConfig.compilerOptions?.module).toBe("CommonJS");
 	});
 });

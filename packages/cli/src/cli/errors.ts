@@ -70,10 +70,12 @@ export async function runCliCommand(
 		if (error instanceof OperationCanceledError) {
 			printCancel(error.message);
 			process.exit(error.exitCode);
+			return;
 		}
 
 		if (error instanceof InterruptError) {
 			process.exit(error.exitCode);
+			return;
 		}
 
 		const message = error instanceof Error ? error.message : String(error);
