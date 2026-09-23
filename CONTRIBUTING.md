@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in contributing to `cheetos`! This guide will help you get started with the development process, from setting up your environment to submitting changes.
+Thanks for your interest in contributing to `yoinker`! This guide will help you get started with the development process, from setting up your environment to submitting changes.
 
 ## Table of Contents
 
@@ -20,9 +20,9 @@ Thanks for your interest in contributing to `cheetos`! This guide will help you 
 
 If you have questions, ideas, or need help:
 
-- Search existing [GitHub Discussions](https://github.com/agrawal-rohit/cheetos/discussions) first
+- Search existing [GitHub Discussions](https://github.com/agrawal-rohit/yoinker/discussions) first
 - Open a new discussion for questions and proposals
-- Create a [GitHub Issue](https://github.com/agrawal-rohit/cheetos/issues) for bug reports
+- Create a [GitHub Issue](https://github.com/agrawal-rohit/yoinker/issues) for bug reports
 
 Please be specific about your environment and include steps to reproduce issues when reporting bugs.
 
@@ -31,12 +31,12 @@ Please be specific about your environment and include steps to reproduce issues 
 1. Fork the repository
 2. Install dependencies: `pnpm install`
 3. Build the workspace: `pnpm run build`
-4. Test the CLI package locally: `pnpm --filter cheetos pack`
+4. Test the CLI package locally: `pnpm --filter yoinker pack`
 
 The repository is a pnpm workspace with the following structure:
 
-- `packages/cli`: published as `cheetos`
-- `packages/core`: published as `@cheetos/core`
+- `packages/cli`: published as `yoinker`
+- `packages/core`: published as `@yoinker/core`
 - `docs`: documentation site
 
 ## Making Changes
@@ -127,7 +127,7 @@ Every push to `main` runs the `Release` workflow:
 2. Review the Release PR (CI must pass; one approval is required)
 3. Squash-merge the Release PR to:
    - bump only the packages that changed
-   - create component tags (for example `cheetos@v0.3.0`, `core@v0.3.0`)
+   - create component tags (for example `yoinker@v0.3.0`, `core@v0.3.0`)
    - publish only the released packages to npm with trusted publishing
 
 The workflow in [`.github/workflows/release.yml`](./.github/workflows/release.yml)
@@ -137,7 +137,7 @@ package, edit only [`release-please-config.json`](./release-please-config.json)
 and [`.release-please-manifest.json`](./.release-please-manifest.json). For a
 Python or Rust repo, keep the release-please job and swap the publish step.
 
-**Note:** `cheetos` and `@cheetos/core` version independently. Because the CLI depends on core via `workspace:*`, releasing core also patch-bumps the CLI so a core fix always ships in a new CLI release.
+**Note:** `yoinker` and `@yoinker/core` version independently. Because the CLI depends on core via `workspace:*`, releasing core also patch-bumps the CLI so a core fix always ships in a new CLI release.
 
 ### Testing Pre-releases
 
@@ -146,11 +146,11 @@ the Release PR flow above. If a pre-release is needed, cut it explicitly and
 test it the same way you would test a stable publish:
 
 ```bash
-# For cheetos itself
-npx cheetos@1.2.3-rc.1 --help
+# For yoinker itself
+npx yoinker@1.2.3-rc.1 --help
 
-# For @cheetos/core
-npm install @cheetos/core@1.2.3-rc.1
+# For @yoinker/core
+npm install @yoinker/core@1.2.3-rc.1
 ```
 
 Found a bug? Fix it on `main`, merge the change, and merge the next Release PR
@@ -165,12 +165,12 @@ when you are ready to publish the next version.
 
 ## Code Registry
 
-`cheetos` consumes code registries — JSON indexes of reusable setup items _(starter templates, UI components, configurations, agent instructions)_. Registries are authored and hosted outside this repository. A registry source is an HTTPS URL or a local file path to a compiled index, and the CLI resolves it via `--registry`, the `CHEETOS_REGISTRY` environment variable, or a saved source persisted with `cheetos configure set`. No registry ships in the box.
+`yoinker` consumes code registries — JSON indexes of reusable setup items _(starter templates, UI components, configurations, agent instructions)_. Registries are authored and hosted outside this repository. A registry source is an HTTPS URL or a local file path to a compiled index, and the CLI resolves it via `--registry`, the `YOINKER_REGISTRY` environment variable, or a saved source persisted with `yoinker configure set`. No registry ships in the box.
 
 ## Security
 
 - **Do not** report security vulnerabilities in public issues
-- Use GitHub's [private vulnerability reporting](https://github.com/agrawal-rohit/cheetos/security/advisories/new)
+- Use GitHub's [private vulnerability reporting](https://github.com/agrawal-rohit/yoinker/security/advisories/new)
 
 ## Maintainer Guidelines
 

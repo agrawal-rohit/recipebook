@@ -18,9 +18,9 @@ function registryFlagValue(flag: unknown): string | undefined {
 	return flag.trim();
 }
 
-/** Run the cheetos CLI. */
+/** Run the yoinker CLI. */
 export default async function run(): Promise<void> {
-	const app = cac("cheetos");
+	const app = cac("yoinker");
 	app.option("--registry <source>", "Use a custom registry URL");
 
 	/**

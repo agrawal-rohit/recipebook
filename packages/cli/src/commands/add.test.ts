@@ -1,4 +1,6 @@
-import * as core from "@cheetos/core";
+import fs from "node:fs";
+import path from "node:path";
+import * as core from "@yoinker/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { addCommand } from "./add";
 
@@ -14,7 +16,7 @@ const coreMocks = vi.hoisted(() => ({
 	setScriptExecutor: vi.fn(),
 }));
 
-vi.mock("@cheetos/core", async (importOriginal) => ({
+vi.mock("@yoinker/core", async (importOriginal) => ({
 	...(await importOriginal()),
 	...coreMocks,
 }));

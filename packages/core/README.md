@@ -1,15 +1,15 @@
-# @cheetos/core
+# @yoinker/core
 
-Shared primitives and utilities for building and consuming `cheetos` registries.
+Shared primitives and utilities for building and consuming `yoinker` registries.
 
-This package powers the [`cheetos`](https://www.npmjs.com/package/cheetos) CLI, which points at a registry source via `--registry`, `CHEETOS_REGISTRY`, or `cheetos configure set`.
+This package powers the [`yoinker`](https://www.npmjs.com/package/yoinker) CLI, which points at a registry source via `--registry`, `YOINKER_REGISTRY`, or `yoinker configure set`.
 
 ## Compile a registry
 
 Third-party authors compile a registry source tree into an index plus compiled items:
 
 ```ts
-import { buildRegistry } from "@cheetos/core";
+import { buildRegistry } from "@yoinker/core";
 
 await buildRegistry({
 	sourceDir: "/path/to/my-registry/registry",
@@ -20,7 +20,7 @@ await buildRegistry({
 	// typesFileName: "types.json",
 	// conditionsFileName: "conditions/conditions.json",
 	// compiledDirName: "r",
-	// bundleExternalPackages: ["acme-helpers"], // always includes @cheetos/core
+	// bundleExternalPackages: ["acme-helpers"], // always includes @yoinker/core
 });
 ```
 
@@ -39,4 +39,4 @@ A registry index is a JSON document exposing `items`, optional `conditions`, and
 
 ## Install lifecycle
 
-Each item has two optional lifecycle hook phases: `beforeWrite` (preparing Cheetos-managed files, commands, dependencies, and bindings before any disk writes occur) and `afterInstall` (running live environment activation and tool initialization commands after files are written and packages installed). Each phase accepts script paths relative to the item folder (`..` is allowed as long as the file stays under the registry source). Other registry items belong in `dependsOn`. The CLI runs `beforeWrite` scripts, prompts for file overwrite confirmation if targets already exist, writes planned files, merges `package.json` scripts, optionally installs dependencies, then runs `afterInstall` scripts in plan order. `afterInstall` still runs if the user declines package installation, and must not return a value.
+Each item has two optional lifecycle hook phases: `beforeWrite` (preparing Yoinker-managed files, commands, dependencies, and bindings before any disk writes occur) and `afterInstall` (running live environment activation and tool initialization commands after files are written and packages installed). Each phase accepts script paths relative to the item folder (`..` is allowed as long as the file stays under the registry source). Other registry items belong in `dependsOn`. The CLI runs `beforeWrite` scripts, prompts for file overwrite confirmation if targets already exist, writes planned files, merges `package.json` scripts, optionally installs dependencies, then runs `afterInstall` scripts in plan order. `afterInstall` still runs if the user declines package installation, and must not return a value.

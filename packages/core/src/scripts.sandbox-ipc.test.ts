@@ -58,16 +58,16 @@ let runnerPath: string;
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-sandbox-ipc-"));
+	tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-sandbox-ipc-"));
 	runnerPath = path.join(tempDir, "runner.cjs");
 	fs.writeFileSync(runnerPath, "/* fake runner, never spawned */");
 });
 
 afterEach(() => {
 	fs.rmSync(tempDir, { recursive: true, force: true });
-	delete process.env.CHEETOS_TEST_SECRET_KEY;
-	delete process.env.CHEETOS_TEST_ACCESS_TOKEN;
-	delete process.env.CHEETOS_TEST_PASSWORD_SECRET;
+	delete process.env.YOINKER_TEST_SECRET_KEY;
+	delete process.env.YOINKER_TEST_ACCESS_TOKEN;
+	delete process.env.YOINKER_TEST_PASSWORD_SECRET;
 });
 
 /** Latest spawned fake child (probe children come first, call children last). */
@@ -283,7 +283,7 @@ describe("loadSandboxedModule call flow", () => {
 	});
 
 	test("it should mediate run host calls with a sanitized environment and log the command because command execution is privileged", async () => {
-		process.env.CHEETOS_TEST_SECRET_KEY = "leak-me";
+		process.env.YOINKER_TEST_SECRET_KEY = "leak-me";
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		try {
 			const { child, pending } = await startCall(
@@ -326,8 +326,8 @@ describe("loadSandboxedModule call flow", () => {
 				throw new Error("expected runAsync env");
 			}
 			expect(env.PATH).toBeDefined();
-			expect(env.CHEETOS_TEST_SECRET_KEY).toBeUndefined();
-			expect(errorSpy).toHaveBeenCalledWith("[cheetos:script] run: echo hi");
+			expect(env.YOINKER_TEST_SECRET_KEY).toBeUndefined();
+			expect(errorSpy).toHaveBeenCalledWith("[yoinker:script] run: echo hi");
 			child.emit("message", { type: "result", ok: true, value: "done" });
 			await pending;
 		} finally {

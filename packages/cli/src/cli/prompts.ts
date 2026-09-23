@@ -22,6 +22,18 @@ type SelectOption = NonNullable<
 >[number];
 
 /**
+ * Fail fast instead of hanging when a prompt would run without a terminal.
+ * @param hint - Remediation specific to this prompt for the error message.
+ * @throws Error when stdin is not an interactive terminal.
+ */
+function assertInteractiveStdin(hint: string): void {
+	if (process.stdin.isTTY) return;
+	throw new Error(
+		`Cannot prompt for input because stdin is not an interactive terminal. ${hint}`,
+	);
+}
+
+/**
  * Throw {@link OperationCanceledError} when Clack reports a cancel symbol.
  * @param value - Prompt result that may be a cancel symbol.
  * @throws {OperationCanceledError} When the user canceled.
@@ -219,6 +231,9 @@ export async function textInput(
 	opts: { placeholder?: string; required?: boolean } = {},
 	defaultValue?: string,
 ): Promise<string> {
+	assertInteractiveStdin(
+		"Provide the value through a condition default, or re-run in a terminal.",
+	);
 	const raw = await text({
 		message,
 		...(opts.placeholder !== undefined && { placeholder: opts.placeholder }),
@@ -251,6 +266,9 @@ export async function selectInput<Value extends string>(
 	opts: { options: SelectOption[] },
 	defaultValue?: Value,
 ): Promise<Value> {
+	assertInteractiveStdin(
+		"Provide the value through a condition default, or re-run in a terminal.",
+	);
 	const allowed = selectOptionValues(opts.options);
 	assertSelectHasOptions(message, allowed);
 	if (defaultValue !== undefined)
@@ -280,6 +298,9 @@ export async function multiselectInput(
 	opts: { options: SelectOption[] },
 	defaultValues?: string[],
 ): Promise<string[]> {
+	assertInteractiveStdin(
+		"Provide the values through a condition default, or re-run in a terminal.",
+	);
 	const allowed = selectOptionValues(opts.options);
 	assertSelectHasOptions(message, allowed);
 	for (const defaultValue of defaultValues ?? [])
@@ -307,6 +328,9 @@ export async function groupedSelectInput(
 	message: string,
 	options: Record<string, SelectOption[]>,
 ): Promise<string> {
+	assertInteractiveStdin(
+		"Also pass the registry item id on the command line, or re-run in a terminal.",
+	);
 	const allowed = groupedOptionValues(options);
 	assertSelectHasOptions(message, allowed);
 
@@ -416,6 +440,9 @@ export async function confirmInput(
 	opts: { active?: string; inactive?: string } = {},
 	defaultValue?: boolean,
 ): Promise<boolean> {
+	assertInteractiveStdin(
+		"Pass --overwrite to replace existing files, or re-run in a terminal.",
+	);
 	const res = await confirm({
 		message,
 		...opts,

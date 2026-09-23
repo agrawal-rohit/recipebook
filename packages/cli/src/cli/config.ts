@@ -6,18 +6,18 @@ import {
 	lstatAsync,
 	readFileAsync,
 	removeAsync,
-} from "@cheetos/core";
+} from "@yoinker/core";
 
 /** Maximum size of the global config file. */
 const CONFIG_FILE_BYTE_LIMIT = 65_536;
 
-/** Persisted cheetos CLI settings (`registry` = default URL or local path). */
-export interface CheetosConfig {
+/** Persisted yoinker CLI settings (`registry` = default URL or local path). */
+export interface YoinkerConfig {
 	registry?: string;
 }
 
 /**
- * Return the absolute path to the global cheetos config file.
+ * Return the absolute path to the global yoinker config file.
  * @param env - Environment used for `XDG_CONFIG_HOME`. Defaults to `process.env`.
  * @returns Absolute config file path.
  */
@@ -26,16 +26,16 @@ export function configPath(env: NodeJS.ProcessEnv = process.env): string {
 
 	// Honour XDG_CONFIG_HOME when set, otherwise use the home directory.
 	const base = xdg ? path.resolve(xdg) : path.join(os.homedir(), ".config");
-	return path.join(base, "cheetos", "config.json");
+	return path.join(base, "yoinker", "config.json");
 }
 
 /**
- * Narrow parsed JSON to the known cheetos config shape.
+ * Narrow parsed JSON to the known yoinker config shape.
  * @param parsed - JSON value from the config file.
  * @returns Config with only known keys.
  * @throws Error when the root is not an object or a key is unknown.
  */
-function cheetosConfigFromJson(parsed: unknown): CheetosConfig {
+function yoinkerConfigFromJson(parsed: unknown): YoinkerConfig {
 	if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))
 		throw new Error("Config root must be a JSON object.");
 
@@ -53,7 +53,7 @@ function cheetosConfigFromJson(parsed: unknown): CheetosConfig {
  * @returns Config containing only the known `registry` key.
  * @throws Error when `registry` is present but not a non-empty string.
  */
-function validatedConfig(config: { registry?: unknown }): CheetosConfig {
+function validatedConfig(config: { registry?: unknown }): YoinkerConfig {
 	if (config.registry === undefined) return {};
 	if (typeof config.registry !== "string" || !config.registry.trim())
 		throw new Error('"registry" must be a non-empty string URL or file path.');
@@ -74,15 +74,15 @@ function assertConfigPathIsRegularFile(
 ): void {
 	if (stat.isSymbolicLink())
 		throw new Error(
-			`Cannot ${action} cheetos config at ${filePath}: file is a symbolic link.`,
+			`Cannot ${action} yoinker config at ${filePath}: file is a symbolic link.`,
 		);
 	if (stat.isDirectory())
 		throw new Error(
-			`Cannot ${action} cheetos config at ${filePath}: path is a directory.`,
+			`Cannot ${action} yoinker config at ${filePath}: path is a directory.`,
 		);
 	if (!stat.isFile())
 		throw new Error(
-			`Cannot ${action} cheetos config at ${filePath}: path is neither a file nor a directory.`,
+			`Cannot ${action} yoinker config at ${filePath}: path is neither a file nor a directory.`,
 		);
 }
 
@@ -98,20 +98,20 @@ async function assertReadableConfigFile(filePath: string): Promise<boolean> {
 	assertConfigPathIsRegularFile(filePath, stat, "read");
 	if (stat.size > CONFIG_FILE_BYTE_LIMIT)
 		throw new Error(
-			`Cannot read cheetos config at ${filePath}: file is too large.`,
+			`Cannot read yoinker config at ${filePath}: file is too large.`,
 		);
 	return true;
 }
 
 /**
- * Read the global cheetos config.
+ * Read the global yoinker config.
  * @param env - Environment used for config path resolution. Defaults to `process.env`.
  * @returns Parsed config object.
  * @throws Error when the config file exists but cannot be parsed as JSON, contains unknown keys, is a symlink or directory, or is too large.
  */
 export async function readConfig(
 	env?: NodeJS.ProcessEnv,
-): Promise<CheetosConfig> {
+): Promise<YoinkerConfig> {
 	const filePath = configPath(env);
 	if (!(await assertReadableConfigFile(filePath))) return {};
 
@@ -125,23 +125,23 @@ export async function readConfig(
 	}
 
 	try {
-		return cheetosConfigFromJson(JSON.parse(raw) as unknown);
+		return yoinkerConfigFromJson(JSON.parse(raw) as unknown);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		throw new Error(
-			`Malformed cheetos config at ${filePath}: ${message}. Fix or delete the file, then retry.`,
+			`Malformed yoinker config at ${filePath}: ${message}. Fix or delete the file, then retry.`,
 		);
 	}
 }
 
 /**
- * Write the global cheetos config, creating parent directories as needed.
+ * Write the global yoinker config, creating parent directories as needed.
  * @param config - Config object to persist.
  * @param env - Environment used for config path resolution. Defaults to `process.env`.
  * @throws Error when `registry` is not a non-empty string, or the path is a symlink, directory, or special node.
  */
 export async function writeConfig(
-	config: CheetosConfig,
+	config: YoinkerConfig,
 	env?: NodeJS.ProcessEnv,
 ): Promise<void> {
 	const toWrite = validatedConfig(config);

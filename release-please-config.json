@@ -8,7 +8,7 @@
 	"plugins": ["node-workspace"],
 	"packages": {
 		"packages/cli": {
-			"component": "cheetos"
+			"component": "yoinker"
 		},
 		"packages/core": {
 			"component": "core"

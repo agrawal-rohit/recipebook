@@ -1,3 +1,4 @@
-name: cheetos-codeql
+name: yoinker-codeql
 paths-ignore:
   - packages/*/dist
+  - docs/.next

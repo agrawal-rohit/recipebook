@@ -63,7 +63,7 @@ describe("cli run()", () => {
 	test("it should call loadRuntimeRegistry with the trimmed URL and skip readConfig when --registry has surrounding whitespace because the flag is the sole registry source and must be normalized", async () => {
 		process.argv = [
 			"node",
-			"cheetos",
+			"yoinker",
 			"add",
 			"--registry",
 			"  https://example.com/r.json  ",
@@ -90,7 +90,7 @@ describe("cli run()", () => {
 	});
 
 	test("it should read saved config and pass its registry to loadRuntimeRegistry when add runs without --registry because the saved source is the fallback", async () => {
-		process.argv = ["node", "cheetos", "add"];
+		process.argv = ["node", "yoinker", "add"];
 		readConfigMock.mockResolvedValue({
 			registry: "https://saved.example.com/r.json",
 		});
@@ -114,7 +114,7 @@ describe("cli run()", () => {
 		"   ",
 		"",
 	])("it should reject with the exact --registry empty-source message when --registry is %j because a blank flag is not a usable source", async (registryFlag) => {
-		process.argv = ["node", "cheetos", "add", "--registry", registryFlag];
+		process.argv = ["node", "yoinker", "add", "--registry", registryFlag];
 
 		await expect(run()).rejects.toEqual(
 			new Error("--registry requires a non-empty URL or file path."),
@@ -124,7 +124,7 @@ describe("cli run()", () => {
 	});
 
 	test("it should print help exactly once when invoked with no command and without --help because bare invocation must show usage without duplicating it", async () => {
-		process.argv = ["node", "cheetos"];
+		process.argv = ["node", "yoinker"];
 		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
 		await expect(run()).resolves.toBeUndefined();
@@ -135,7 +135,7 @@ describe("cli run()", () => {
 	});
 
 	test("it should print help exactly once when --help is passed because CAC already emits help and the unmatched-command branch must not print a second copy", async () => {
-		process.argv = ["node", "cheetos", "--help"];
+		process.argv = ["node", "yoinker", "--help"];
 		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
 		await expect(run()).resolves.toBeUndefined();

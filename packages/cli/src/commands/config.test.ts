@@ -18,7 +18,7 @@ vi.mock("../cli/animated-intro", () => ({
 const textInputMock = vi.mocked(textInput);
 
 function makeIsolatedEnv(): { root: string; env: NodeJS.ProcessEnv } {
-	const root = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-config-cmd-"));
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-config-cmd-"));
 	return { root, env: { XDG_CONFIG_HOME: root } };
 }
 
@@ -39,7 +39,7 @@ describe("configSetCommand", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 		fs.rmSync(root, { recursive: true, force: true });
-		fs.rmSync(path.join(process.cwd(), ".cheetos-cmd-test-cwd"), {
+		fs.rmSync(path.join(process.cwd(), ".yoinker-cmd-test-cwd"), {
 			recursive: true,
 			force: true,
 		});
@@ -71,12 +71,12 @@ describe("configSetCommand", () => {
 	});
 
 	test("it should resolve a relative local path against the working directory when the source is not absolute because relative paths are interpreted from where the command runs", async () => {
-		const cwdDir = path.join(process.cwd(), ".cheetos-cmd-test-cwd");
+		const cwdDir = path.join(process.cwd(), ".yoinker-cmd-test-cwd");
 		fs.mkdirSync(cwdDir, { recursive: true });
 		const registryFile = path.join(cwdDir, "registry.json");
 		fs.writeFileSync(registryFile, "{}");
 
-		await configSetCommand(".cheetos-cmd-test-cwd/registry.json", env);
+		await configSetCommand(".yoinker-cmd-test-cwd/registry.json", env);
 		await expect(readConfig(env)).resolves.toEqual({ registry: registryFile });
 	});
 
@@ -255,12 +255,12 @@ describe("configGetCommand", () => {
 		expect(output).not.toContain("(not set)");
 	});
 
-	test("it should print `(not set)` and a `cheetos configure set` hint when no source is saved because there is no bundled default to fall back to anymore", async () => {
+	test("it should print `(not set)` and a `yoinker configure set` hint when no source is saved", async () => {
 		await configGetCommand(env);
 
 		const output = printed.join("\n");
 		expect(output).toContain("registry:    (not set)");
-		expect(output).toContain("cheetos configure set");
+		expect(output).toContain("yoinker configure set");
 		expect(output).toContain(configPath(env));
 	});
 });
@@ -291,7 +291,7 @@ describe("configUnsetCommand", () => {
 		expect(fs.existsSync(configPath(env))).toBe(false);
 		const output = printed.join("\n");
 		expect(output).toContain("registry:    (not set)");
-		expect(output).toContain("cheetos configure set");
+		expect(output).toContain("yoinker configure set");
 	});
 
 	test("it should return false and print `(not set)` with a hint when nothing was saved because there is no registry to clear", async () => {
@@ -299,6 +299,6 @@ describe("configUnsetCommand", () => {
 		expect(fs.existsSync(configPath(env))).toBe(false);
 		const output = printed.join("\n");
 		expect(output).toContain("registry:    (not set)");
-		expect(output).toContain("cheetos configure set");
+		expect(output).toContain("yoinker configure set");
 	});
 });

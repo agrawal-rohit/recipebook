@@ -17,7 +17,7 @@ import {
 	runAsync,
 	sandboxRunnerPath,
 	setScriptExecutor,
-} from "@cheetos/core";
+} from "@yoinker/core";
 
 /**
  * Build project-scoped helpers that catalog scripts may call (`isFile`, `readFile`, `run`).

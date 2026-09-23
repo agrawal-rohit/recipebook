@@ -32,7 +32,7 @@ import {
 let tempDir: string;
 
 beforeEach(() => {
-	tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-scripts-test-"));
+	tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-scripts-test-"));
 });
 
 afterEach(() => {
@@ -50,7 +50,7 @@ let runnerDir: string;
 let bundledRunnerPath: string;
 
 beforeAll(async () => {
-	runnerDir = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-runner-bundle-"));
+	runnerDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-runner-bundle-"));
 	bundledRunnerPath = path.join(runnerDir, "scripts.cjs");
 	await esbuild.build({
 		entryPoints: [path.resolve(__dirname, "./scripts.ts")],

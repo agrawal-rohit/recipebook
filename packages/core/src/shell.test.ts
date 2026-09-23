@@ -40,7 +40,7 @@ describe("runAsync runner options", () => {
 	let tmpDir: string;
 
 	beforeEach(() => {
-		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-shell-test-"));
+		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-shell-test-"));
 	});
 
 	afterEach(() => {
@@ -56,8 +56,8 @@ describe("runAsync runner options", () => {
 
 	test("it should merge custom env over process.env because PATH must survive custom envs", async () => {
 		await expect(
-			runAsync("node -p process.env.CHEETOS_TEST", {
-				env: { CHEETOS_TEST: "bar" },
+			runAsync("node -p process.env.YOINKER_TEST", {
+				env: { YOINKER_TEST: "bar" },
 			}),
 		).resolves.toBe("bar");
 	});

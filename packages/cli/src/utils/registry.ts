@@ -11,7 +11,7 @@ import {
 	type Registry,
 	readFileAsync,
 	verifyItemIntegrity,
-} from "@cheetos/core";
+} from "@yoinker/core";
 import { NoRegistrySourceError } from "../cli/errors";
 
 /** Maximum JSON document size for registry indexes and compiled items. */
@@ -20,7 +20,7 @@ const JSON_DOCUMENT_BYTE_LIMIT = 5_000_000;
 export interface LocateRegistryOptions {
 	/** Explicit registry flag value from the CLI. */
 	registry?: string;
-	/** Registry source persisted via `cheetos configure set`. */
+	/** Registry source persisted via `yoinker configure set`. */
 	savedRegistry?: string;
 }
 
@@ -43,7 +43,7 @@ export async function locateRegistry(
 ): Promise<string> {
 	// Source reading order: CLI flag > env > saved config. Explicit sources only.
 	const source =
-		options.registry ?? process.env.CHEETOS_REGISTRY ?? options.savedRegistry;
+		options.registry ?? process.env.YOINKER_REGISTRY ?? options.savedRegistry;
 
 	if (source) {
 		if (isAbsoluteHttpUrl(source)) {
@@ -220,7 +220,7 @@ async function loadDocumentBytes(
 /**
  * Load the registry selected by CLI flags, env, or saved config.
  * @param registryOverride - Optional `--registry` flag value.
- * @param savedRegistry - Optional registry source persisted via `cheetos configure set`.
+ * @param savedRegistry - Optional registry source persisted via `yoinker configure set`.
  * @returns Parsed registry and the index path or URL it was loaded from.
  * @throws Error when the located registry cannot be loaded safely.
  */

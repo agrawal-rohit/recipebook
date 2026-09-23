@@ -1,4 +1,4 @@
-import type { Registry } from "@cheetos/core";
+import type { Registry } from "@yoinker/core";
 import cac from "cac";
 import {
 	afterEach,
@@ -43,7 +43,7 @@ const configUnsetMock = vi.mocked(configUnsetCommand);
 function noRegistrySourceError(): Error {
 	return Object.assign(
 		new Error(
-			"No registry source configured. Add one with `cheetos configure set <https URL or file path>`, set CHEETOS_REGISTRY, or pass --registry <source>.",
+			"No registry source configured. Add one with `yoinker configure set <https URL or file path>`, set YOINKER_REGISTRY, or pass --registry <source>.",
 		),
 		{ name: "NoRegistrySourceError" },
 	);
@@ -61,20 +61,20 @@ function restoreIsTTY(): void {
 }
 
 async function runConfigureCli(args: string[]): Promise<void> {
-	const app = cac("cheetos");
+	const app = cac("yoinker");
 	registerCommandsCli(app, async () => {
 		throw new Error("registry loader must not run for configure commands");
 	});
-	await app.parse(["node", "cheetos", ...args]);
+	await app.parse(["node", "yoinker", ...args]);
 }
 
 async function runAddCli(
 	loadRegistry: () => Promise<LoadedRegistry>,
 	args: string[] = [],
 ): Promise<void> {
-	const app = cac("cheetos");
+	const app = cac("yoinker");
 	registerCommandsCli(app, loadRegistry);
-	await app.parse(["node", "cheetos", "add", ...args]);
+	await app.parse(["node", "yoinker", "add", ...args]);
 }
 
 describe("configure command wiring", () => {
@@ -155,7 +155,7 @@ describe("configure command wiring", () => {
 			`Unknown configure action "${action}"`,
 		);
 		expect(errorOutput.join("\n")).toContain(
-			"Usage: cheetos configure <get|set|unset> [source]",
+			"Usage: yoinker configure <get|set|unset> [source]",
 		);
 	});
 

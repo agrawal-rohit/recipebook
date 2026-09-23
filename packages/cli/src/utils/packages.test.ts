@@ -6,19 +6,19 @@ import {
 	compiledItem,
 	NpmPackageManager,
 	type RegistryEcosystemDependencies,
-} from "@cheetos/core";
+} from "@yoinker/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { installDeclaredPackages, mergeProjectCommands } from "./packages";
 
 /**
- * `@cheetos/core` resolves to built CJS in node_modules, so `node:child_process`
+ * `@yoinker/core` resolves to built CJS in node_modules, so `node:child_process`
  * cannot be intercepted; mock the core shell wrapper instead, which is the
  * process boundary `installDeclaredPackages` actually calls.
  */
 const shellMocks = vi.hoisted(() => ({
 	runArgvAsync: vi.fn(),
 }));
-vi.mock("@cheetos/core", async (importOriginal) => ({
+vi.mock("@yoinker/core", async (importOriginal) => ({
 	...(await importOriginal()),
 	runArgvAsync: shellMocks.runArgvAsync,
 }));
@@ -47,7 +47,7 @@ beforeEach(() => {
 	// silence them so CI/tests stay quiet (restored by afterEach's restoreAllMocks).
 	vi.spyOn(console, "log").mockImplementation(() => {});
 	projectDir = fs.realpathSync(
-		fs.mkdtempSync(path.join(os.tmpdir(), "cheetos-packages-")),
+		fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-packages-")),
 	);
 });
 
