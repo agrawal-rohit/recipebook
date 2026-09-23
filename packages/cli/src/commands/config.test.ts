@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -222,6 +223,39 @@ describe("configSetCommand", () => {
 		await expect(configSetCommand(link, env)).rejects.toThrow(
 			/which is a symbolic link\./,
 		);
+		expect(fs.existsSync(configPath(env))).toBe(false);
+	});
+
+	test.skipIf(process.platform === "win32")(
+		"it should reject a special node as a source when the path is neither a file nor a directory because only regular files can be registry indexes",
+		async () => {
+			const fifo = path.join(root, "pipe.json");
+			const { status, stderr } = spawnSync("mkfifo", [fifo]);
+			if (status !== 0)
+				throw new Error(`mkfifo failed: ${stderr?.toString().trim()}`);
+
+			await expect(configSetCommand(fifo, env)).rejects.toThrow(
+				`Registry path "${fifo}" points to ${fifo}, which is neither a file nor a directory.`,
+			);
+			expect(fs.existsSync(configPath(env))).toBe(false);
+		},
+	);
+
+	test("it should rethrow a non-missing lstat failure because only a missing path should be reported as absent", async () => {
+		const source = path.join(root, "locked.json");
+		fs.writeFileSync(source, "{}");
+		const lstatSpy = vi
+			.spyOn(fs.promises, "lstat")
+			.mockRejectedValueOnce(
+				Object.assign(new Error("denied"), { code: "EACCES" }),
+			);
+		try {
+			await expect(configSetCommand(source, env)).rejects.toMatchObject({
+				code: "EACCES",
+			});
+		} finally {
+			lstatSpy.mockRestore();
+		}
 		expect(fs.existsSync(configPath(env))).toBe(false);
 	});
 });

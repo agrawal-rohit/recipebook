@@ -402,3 +402,314 @@ describe("buildRegistry bundle require-scan", () => {
 		).rejects.toThrowError(/must not runtime-import left-pad\./);
 	});
 });
+
+describe("buildRegistry condition handler compilation", () => {
+	function writeSharedHandlerSourceTree(): void {
+		fs.writeFileSync(
+			path.join(sourceDir, "types.json"),
+			JSON.stringify({ component: { label: "Components" } }),
+		);
+		fs.mkdirSync(path.join(sourceDir, "conditions"), { recursive: true });
+		fs.writeFileSync(
+			path.join(sourceDir, "conditions", "conditions.json"),
+			JSON.stringify({
+				framework: {
+					label: "Framework",
+					kind: "select",
+					values: [{ value: "react", label: "React" }],
+					handler: "conditions/framework.handler.ts",
+				},
+			}),
+		);
+		fs.writeFileSync(
+			path.join(sourceDir, "conditions", "framework.handler.ts"),
+			"export default { infer: async () => undefined };",
+		);
+	}
+
+	test("it should bundle a shared condition handler to r/_handlers and rewrite the index handler URI because installs execute handlers from the compiled catalog", async () => {
+		writeSharedHandlerSourceTree();
+		const registry = await buildRegistry({ sourceDir, outDir });
+
+		expect(registry.conditions?.framework).toEqual({
+			label: "Framework",
+			kind: "select",
+			values: [{ value: "react", label: "React" }],
+			handler: "r/_handlers/framework.handler.js",
+		});
+		expect(
+			fs.existsSync(path.join(outDir, "r/_handlers/framework.handler.js")),
+		).toBe(true);
+	});
+
+	test("it should bundle an item-local condition handler under the item's handler directory because per-item handlers are namespaced by item id", async () => {
+		fs.writeFileSync(
+			path.join(sourceDir, "types.json"),
+			JSON.stringify({ component: { label: "Components" } }),
+		);
+		fs.mkdirSync(path.join(sourceDir, "button"), { recursive: true });
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "size.handler.ts"),
+			"export default { infer: async () => undefined };",
+		);
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "registry-item.json"),
+			JSON.stringify({
+				id: "button",
+				title: "Button",
+				description: "A button component",
+				type: "component",
+				conditions: {
+					size: {
+						label: "Size",
+						kind: "select",
+						values: [{ value: "sm", label: "Small" }],
+						handler: "size.handler.ts",
+					},
+				},
+				beforeWrite: ["hook.ts"],
+			}),
+		);
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "hook.ts"),
+			"export default async () => undefined;",
+		);
+
+		const registry = await buildRegistry({ sourceDir, outDir });
+
+		expect(registry.items.button.conditions?.size).toEqual({
+			label: "Size",
+			kind: "select",
+			values: [{ value: "sm", label: "Small" }],
+			handler: "r/_handlers/items/button/size.handler.js",
+		});
+		expect(
+			fs.existsSync(
+				path.join(outDir, "r/_handlers/items/button/size.handler.js"),
+			),
+		).toBe(true);
+	});
+
+	test("it should reject an unloadable script with the bundling label because a syntax error in a registry script must name the failing script", async () => {
+		fs.writeFileSync(
+			path.join(sourceDir, "types.json"),
+			JSON.stringify({ component: { label: "Components" } }),
+		);
+		fs.mkdirSync(path.join(sourceDir, "button"), { recursive: true });
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "registry-item.json"),
+			JSON.stringify({
+				id: "button",
+				title: "Button",
+				description: "A button component",
+				type: "component",
+				beforeWrite: ["broken.ts"],
+			}),
+		);
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "broken.ts"),
+			"export default async () => {",
+		);
+
+		await expect(buildRegistry({ sourceDir, outDir })).rejects.toThrowError(
+			/Failed to bundle Registry item "button" beforeWrite/u,
+		);
+	});
+});
+
+describe("buildRegistry config validation", () => {
+	test("it should reject empty bundleExternalPackages entries because a blank ban-list entry would silently unban nothing", async () => {
+		await expect(
+			buildRegistry({ sourceDir, outDir, bundleExternalPackages: ["  "] }),
+		).rejects.toThrowError("bundleExternalPackages entries must be non-empty.");
+	});
+});
+
+describe("buildRegistry source directory walking", () => {
+	test("it should treat a missing source directory as an empty item tree because the types check reports the real problem", async () => {
+		await expect(
+			buildRegistry({ sourceDir: path.join(sourceDir, "missing"), outDir }),
+		).rejects.toThrowError("Registry types not found at types.json.");
+	});
+
+	test("it should fail fast when the source path is a file because ENOTDIR is not a missing path", async () => {
+		const filePath = path.join(sourceDir, "not-a-dir");
+		fs.writeFileSync(filePath, "x");
+		await expect(
+			buildRegistry({ sourceDir: filePath, outDir }),
+		).rejects.toThrowError(/ENOTDIR/u);
+	});
+});
+
+describe("buildRegistry item identity", () => {
+	/** Types file shared by single-item fixtures. */
+	function writeTypesFile(): void {
+		fs.writeFileSync(
+			path.join(sourceDir, "types.json"),
+			JSON.stringify({ component: { label: "Components" } }),
+		);
+	}
+
+	test("it should reject two item folders declaring the same id because the index must key items uniquely", async () => {
+		writeTypesFile();
+		for (const dir of ["alpha", "beta"]) {
+			fs.mkdirSync(path.join(sourceDir, dir), { recursive: true });
+			fs.writeFileSync(
+				path.join(sourceDir, dir, "registry-item.json"),
+				JSON.stringify({
+					id: "button",
+					title: "Button",
+					description: "A button component",
+					type: "component",
+					files: [{ source: "f.txt", target: "f.txt" }],
+				}),
+			);
+			fs.writeFileSync(path.join(sourceDir, dir, "f.txt"), "x");
+		}
+		await expect(buildRegistry({ sourceDir, outDir })).rejects.toThrowError(
+			'Duplicate registry item id: "button".',
+		);
+	});
+
+	test("it should compile a base payload for a script-only item that also declares secrets because secret env vars ride the payload", async () => {
+		writeTypesFile();
+		fs.mkdirSync(path.join(sourceDir, "button"), { recursive: true });
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "hook.ts"),
+			"export default async () => undefined;",
+		);
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "registry-item.json"),
+			JSON.stringify({
+				id: "button",
+				title: "Button",
+				description: "A button component",
+				type: "component",
+				beforeWrite: ["hook.ts"],
+				secrets: ["API_KEY"],
+			}),
+		);
+		const registry = await buildRegistry({ sourceDir, outDir });
+		expect(registry.items.button.source).toBe("r/button.json");
+	});
+
+	test("it should reject a beforeWrite entry that is not a file because builds must not ship dangling hooks", async () => {
+		writeTypesFile();
+		fs.mkdirSync(path.join(sourceDir, "button"), { recursive: true });
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "registry-item.json"),
+			JSON.stringify({
+				id: "button",
+				title: "Button",
+				description: "A button component",
+				type: "component",
+				beforeWrite: ["missing.ts"],
+			}),
+		);
+		await expect(buildRegistry({ sourceDir, outDir })).rejects.toThrowError(
+			/references missing script:/u,
+		);
+	});
+});
+
+describe("buildRegistry optional index fields", () => {
+	test('it should join directory file targets without a root prefix when the target is the project root because "." means install root', async () => {
+		fs.writeFileSync(
+			path.join(sourceDir, "types.json"),
+			JSON.stringify({ component: { label: "Components" } }),
+		);
+		fs.mkdirSync(path.join(sourceDir, "button", "src", "sub"), {
+			recursive: true,
+		});
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "registry-item.json"),
+			JSON.stringify({
+				id: "button",
+				title: "Button",
+				description: "A button component",
+				type: "component",
+				files: [{ source: "src", target: "." }],
+			}),
+		);
+		fs.writeFileSync(path.join(sourceDir, "button", "src", "a.txt"), "A");
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "src", "sub", "b.txt"),
+			"B",
+		);
+		await buildRegistry({ sourceDir, outDir });
+
+		const payload = JSON.parse(
+			fs.readFileSync(path.join(outDir, "r/button.json"), "utf8"),
+		) as { files: Array<{ target: string; content: string }> };
+		expect(payload.files).toEqual([
+			{ target: "a.txt", content: "A" },
+			{ target: "sub/b.txt", content: "B" },
+		]);
+	});
+
+	test("it should omit when, dependsOn, and script lists from a bare pack index entry because absent declarations must stay absent", async () => {
+		fs.writeFileSync(
+			path.join(sourceDir, "types.json"),
+			JSON.stringify({ component: { label: "Components" } }),
+		);
+		fs.mkdirSync(path.join(sourceDir, "button"), { recursive: true });
+		fs.writeFileSync(path.join(sourceDir, "button", "f.txt"), "x");
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "registry-item.json"),
+			JSON.stringify({
+				id: "button",
+				title: "Button",
+				description: "A button component",
+				type: "component",
+				packs: [{ id: "ts", title: "TypeScript" }],
+			}),
+		);
+		const registry = await buildRegistry({ sourceDir, outDir });
+		expect(registry.items.button.packs).toEqual([
+			{ id: "ts", title: "TypeScript", source: "r/button/ts.json" },
+		]);
+	});
+
+	test("it should copy requires, dependsOn, and afterInstall onto the index because the install planner needs them", async () => {
+		fs.writeFileSync(
+			path.join(sourceDir, "types.json"),
+			JSON.stringify({ component: { label: "Components" } }),
+		);
+		fs.mkdirSync(path.join(sourceDir, "conditions"), { recursive: true });
+		fs.writeFileSync(
+			path.join(sourceDir, "conditions", "conditions.json"),
+			JSON.stringify({
+				framework: {
+					label: "Framework",
+					kind: "select",
+					values: [{ value: "react", label: "React" }],
+				},
+			}),
+		);
+		fs.mkdirSync(path.join(sourceDir, "button"), { recursive: true });
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "hook.ts"),
+			"export default async () => undefined;",
+		);
+		fs.writeFileSync(
+			path.join(sourceDir, "button", "registry-item.json"),
+			JSON.stringify({
+				id: "button",
+				title: "Button",
+				description: "A button component",
+				type: "component",
+				requires: ["framework"],
+				dependsOn: ["other"],
+				beforeWrite: ["hook.ts"],
+				afterInstall: ["hook.ts"],
+			}),
+		);
+		const registry = await buildRegistry({ sourceDir, outDir });
+
+		expect(registry.items.button.requires).toEqual(["framework"]);
+		expect(registry.items.button.dependsOn).toEqual(["other"]);
+		expect(registry.items.button.afterInstall).toEqual([
+			"r/button.afterInstall.0.js",
+		]);
+	});
+});

@@ -285,3 +285,229 @@ describe("mergeProjectCommands", () => {
 		).rejects.toThrow(/package\.json scripts must be an object/);
 	});
 });
+
+import { spawnSync } from "node:child_process";
+
+describe("packages special-node and guard branches", () => {
+	function writePackageJson(value: unknown): void {
+		fs.writeFileSync(
+			path.join(projectDir, "package.json"),
+			`${JSON.stringify(value, null, 2)}\n`,
+		);
+	}
+
+	function readPackageJsonText(): string {
+		return fs.readFileSync(path.join(projectDir, "package.json"), "utf8");
+	}
+
+	function itemWithCommands(commands: Record<string, string>): CompiledItem {
+		return compiledItem({ files: [], commands: { npm: commands } });
+	}
+
+	test("it should reject a declared package manager outside the ecosystem because mismatched managers cannot build install commands", async () => {
+		await expect(
+			installDeclaredPackages(
+				[{ npm: { runtime: ["zod"] } }],
+				projectDir,
+				"bogus" as never,
+			),
+		).rejects.toThrow(
+			'Cannot install npm packages with package manager "bogus".',
+		);
+	});
+
+	test("it should reject when the project directory exists as a file because installing packages there cannot work", async () => {
+		const filePath = path.join(projectDir, "..", "packages-test-file-blocker");
+		fs.writeFileSync(filePath, "not a directory");
+		try {
+			await expect(
+				installDeclaredPackages(
+					[{ npm: { runtime: ["zod"] } }],
+					filePath,
+					NpmPackageManager.PNPM,
+				),
+			).rejects.toThrow(/project directory exists and is a file/);
+		} finally {
+			fs.rmSync(filePath, { force: true });
+		}
+	});
+
+	test("it should reject a symlinked package.json because a symlinked manifest could silently point elsewhere", async () => {
+		fs.symlinkSync(
+			path.join(projectDir, "elsewhere.json"),
+			path.join(projectDir, "package.json"),
+			"file",
+		);
+		await expect(
+			mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+		).rejects.toThrow(/exists and is a symbolic link/);
+	});
+
+	test("it should reject a directory at package.json because a directory cannot be merged as a manifest", async () => {
+		fs.mkdirSync(path.join(projectDir, "package.json"));
+		await expect(
+			mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+		).rejects.toThrow(/exists and is a directory/);
+	});
+
+	test("it should rethrow a non-missing lstat failure on package.json because a read-protected manifest must surface its own error", async () => {
+		writePackageJson({ name: "app", scripts: {} });
+		const realLstat = fs.promises.lstat.bind(fs.promises);
+		const target = path.join(projectDir, "package.json");
+		const lstatSpy = vi
+			.spyOn(fs.promises, "lstat")
+			.mockImplementation(async (entry: fs.PathLike) => {
+				if (entry === target)
+					throw Object.assign(new Error("denied"), { code: "EACCES" });
+				return realLstat(entry);
+			});
+		try {
+			await expect(
+				mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+			).rejects.toMatchObject({ code: "EACCES" });
+		} finally {
+			lstatSpy.mockRestore();
+		}
+	});
+
+	test.skipIf(process.platform === "win32")(
+		"it should reject a special node at package.json because a FIFO manifest can never be read",
+		async () => {
+			const fifo = path.join(projectDir, "package.json");
+			const { status, stderr } = spawnSync("mkfifo", [fifo]);
+			if (status !== 0)
+				throw new Error(`mkfifo failed: ${stderr?.toString().trim()}`);
+
+			await expect(
+				mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+			).rejects.toThrow(/exists but is neither a file nor a directory/);
+		},
+	);
+
+	test("it should list every differing script and ask once for the batch because per-script prompts are noisy", async () => {
+		writePackageJson({
+			name: "app",
+			scripts: { test: "vitest", lint: "eslint ." },
+		});
+		promptsMocks.confirmInput.mockResolvedValue(true);
+
+		await mergeProjectCommands(
+			projectDir,
+			[itemWithCommands({ test: "vitest run", lint: "eslint --fix ." })],
+			false,
+		);
+
+		expect(promptsMocks.confirmInput).toHaveBeenCalledTimes(1);
+		expect(promptsMocks.confirmInput).toHaveBeenCalledWith(
+			"Overwrite these package.json scripts?",
+			{},
+			false,
+		);
+		const packageJson = JSON.parse(readPackageJsonText()) as {
+			scripts: Record<string, string>;
+		};
+		expect(packageJson.scripts.test).toBe("vitest run");
+		expect(packageJson.scripts.lint).toBe("eslint --fix .");
+	});
+});
+
+describe("packages manifest validation branches", () => {
+	function writePackageJsonRaw(text: string): void {
+		fs.writeFileSync(path.join(projectDir, "package.json"), text);
+	}
+
+	function itemWithCommands(commands: Record<string, string>): CompiledItem {
+		return compiledItem({ files: [], commands: { npm: commands } });
+	}
+
+	test("it should run dev-only dependency installs because an empty runtime list must not suppress the dev command", async () => {
+		await installDeclaredPackages(
+			[{ npm: { dev: ["vitest"] } }],
+			projectDir,
+			NpmPackageManager.PNPM,
+		);
+
+		expect(shellMocks.runArgvAsync).toHaveBeenCalledTimes(1);
+		expect(shellMocks.runArgvAsync).toHaveBeenCalledWith(
+			"pnpm",
+			["add", "--ignore-scripts", "-D", "vitest"],
+			{ cwd: projectDir, stdio: "inherit" },
+		);
+	});
+
+	test("it should install nothing when a payload declares empty dependency lists because declared-but-empty must not reach the install prompt", async () => {
+		await expect(
+			installDeclaredPackages(
+				[{ npm: { runtime: [], dev: [] } }],
+				projectDir,
+				NpmPackageManager.PNPM,
+			),
+		).resolves.toEqual([]);
+
+		expect(promptsMocks.confirmInput).not.toHaveBeenCalled();
+		expect(shellMocks.runArgvAsync).not.toHaveBeenCalled();
+	});
+
+	test("it should return without touching the project when no compiled item declares commands because command merging is then a no-op", async () => {
+		await expect(
+			mergeProjectCommands(projectDir, [compiledItem({ files: [] })]),
+		).resolves.toBeUndefined();
+
+		expect(fs.existsSync(path.join(projectDir, "package.json"))).toBe(false);
+		expect(promptsMocks.confirmInput).not.toHaveBeenCalled();
+	});
+
+	test("it should add payload scripts when package.json omits the scripts field because an absent map behaves like an empty one", async () => {
+		writePackageJsonRaw('{"name":"app"}');
+
+		await mergeProjectCommands(projectDir, [
+			itemWithCommands({ format: "prettier --write ." }),
+		]);
+
+		const packageJson = JSON.parse(
+			fs.readFileSync(path.join(projectDir, "package.json"), "utf8"),
+		) as { scripts: Record<string, string> };
+		expect(packageJson.scripts).toEqual({ format: "prettier --write ." });
+		expect(promptsMocks.confirmInput).not.toHaveBeenCalled();
+	});
+
+	test("it should reject a non-object package.json document because a malformed manifest must never be rewritten", async () => {
+		writePackageJsonRaw("null");
+
+		await expect(
+			mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+		).rejects.toThrow("package.json must be a JSON object.");
+	});
+
+	test("it should reject a null scripts field because scripts must be a map before any merge", async () => {
+		writePackageJsonRaw('{"name":"app","scripts":null}');
+
+		await expect(
+			mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+		).rejects.toThrow("package.json scripts must be an object.");
+	});
+
+	test("it should reject a non-string script command in package.json because a numeric command cannot be run", async () => {
+		writePackageJsonRaw('{"name":"app","scripts":{"build":42}}');
+
+		await expect(
+			mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+		).rejects.toThrow('package.json script "build" must be a string.');
+	});
+
+	test("it should reject an empty script name in package.json because an empty name is unrunnable", async () => {
+		writePackageJsonRaw('{"name":"app","scripts":{"":"x"}}');
+
+		await expect(
+			mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+		).rejects.toThrow("package.json script name must not be empty.");
+	});
+
+	test("it should reject a __proto__ script name in package.json because prototype pollution cannot enter through the manifest either", async () => {
+		writePackageJsonRaw('{"name":"app","scripts":{"__proto__":"x"}}');
+
+		await expect(
+			mergeProjectCommands(projectDir, [itemWithCommands({ build: "tsc" })]),
+		).rejects.toThrow('package.json script "__proto__" is not allowed.');
+	});
+});

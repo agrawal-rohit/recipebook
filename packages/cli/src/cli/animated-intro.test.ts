@@ -21,7 +21,7 @@ vi.mock("chalk", () => ({
 
 import readline from "node:readline";
 
-describe("cli/animated-intro", () => {
+describe("animateIntro", () => {
 	type MockStdout = {
 		write: ReturnType<typeof vi.fn>;
 		columns?: number;
@@ -57,7 +57,7 @@ describe("cli/animated-intro", () => {
 		vi.restoreAllMocks();
 	});
 
-	test("animates a string message on a TTY stdout", async () => {
+	test("it should animate a string message on a TTY stdout because live progress requires a raw-mode keypress stream", async () => {
 		await animatedIntro("Hello World", {
 			stdout: mockStdout as unknown as NodeJS.WriteStream,
 			stdin: mockStdin as unknown as NodeJS.ReadStream,
@@ -78,7 +78,7 @@ describe("cli/animated-intro", () => {
 		).toBe(true);
 	});
 
-	test("prints once without escape codes when stdout is not a TTY", async () => {
+	test("it should print once without escape codes when stdout is not a TTY because ANSI on a redirected stream would corrupt logs", async () => {
 		mockStdout.isTTY = false;
 
 		await animatedIntro("hello world", {
@@ -94,7 +94,7 @@ describe("cli/animated-intro", () => {
 		expect(output).not.toContain("hello  world");
 	});
 
-	test("collapses consecutive spaces in non-TTY output", async () => {
+	test("it should collapse consecutive spaces in non-TTY output because a single printed line must keep its message readable", async () => {
 		mockStdout.isTTY = false;
 
 		await animatedIntro("hello  world", {
@@ -106,7 +106,7 @@ describe("cli/animated-intro", () => {
 		expect(output).not.toContain("hello  world");
 	});
 
-	test("keeps messages that fill the column width", async () => {
+	test("it should keep messages that fill the column width because a message exactly at the limit must not be truncated", async () => {
 		mockStdout.isTTY = false;
 		mockStdout.columns = 50;
 		const message = "a".repeat(50);
@@ -121,7 +121,7 @@ describe("cli/animated-intro", () => {
 		expect(msgLine).not.toContain("...");
 	});
 
-	test("truncates long messages in non-TTY output", async () => {
+	test("it should truncate long messages in non-TTY output because lines wider than the terminal column would wrap awkwardly", async () => {
 		mockStdout.isTTY = false;
 		mockStdout.columns = 50;
 		const message = "a".repeat(51);
@@ -135,7 +135,7 @@ describe("cli/animated-intro", () => {
 		expect(msgLine).toBe(`${"a".repeat(47)}...`);
 	});
 
-	test("uses a custom title when provided", async () => {
+	test("it should use a custom title when provided because callers must be able to brand the banner", async () => {
 		mockStdout.isTTY = false;
 
 		await animatedIntro("Test", {
@@ -147,7 +147,7 @@ describe("cli/animated-intro", () => {
 		expect(output).toContain("Custom Title");
 	});
 
-	test("restores raw mode and closes readline after animation", async () => {
+	test("it should restore raw mode and close readline after animation because leaving raw mode on would break the caller's terminal", async () => {
 		await animatedIntro("Test", {
 			stdout: mockStdout as unknown as NodeJS.WriteStream,
 			stdin: mockStdin as unknown as NodeJS.ReadStream,
@@ -165,7 +165,7 @@ describe("cli/animated-intro", () => {
 		expect(rlInterface.close).toHaveBeenCalled();
 	});
 
-	test("does not enable raw mode when stdin is not a TTY", async () => {
+	test("it should not enable raw mode when stdin is not a TTY because raw mode is only valid on an interactive stream", async () => {
 		mockStdin.isTTY = false;
 
 		await animatedIntro("Test", {
@@ -177,7 +177,7 @@ describe("cli/animated-intro", () => {
 		expect(mockStdin.setRawMode).not.toHaveBeenCalled();
 	});
 
-	test("Escape aborts the animation without throwing", async () => {
+	test("it should abort the animation on Escape without throwing because users must be able to cancel mid-flight", async () => {
 		vi.useFakeTimers();
 		let keypressHandler:
 			| ((str: string, key: { ctrl?: boolean; name?: string }) => void)
@@ -213,7 +213,7 @@ describe("cli/animated-intro", () => {
 		}
 	});
 
-	test("Ctrl+C restores stdin then throws InterruptError", async () => {
+	test("it should restore stdin on Ctrl+C then throw InterruptError because a cancel must surface as a catchable error", async () => {
 		vi.useFakeTimers();
 		let keypressHandler:
 			| ((str: string, key: { ctrl?: boolean; name?: string }) => void)
@@ -249,7 +249,7 @@ describe("cli/animated-intro", () => {
 		}
 	});
 
-	test("ignores keypresses that are not Escape or Ctrl+C", async () => {
+	test("it should ignore keypresses that are not Escape or Ctrl+C because unrelated keystrokes must not disturb the animation", async () => {
 		vi.useFakeTimers();
 		let keypressHandler:
 			| ((str: string, key?: { ctrl?: boolean; name?: string }) => void)
@@ -285,7 +285,7 @@ describe("cli/animated-intro", () => {
 		}
 	});
 
-	test("falls back to 80 columns when stdout.columns is unset", async () => {
+	test("it should fall back to 80 columns when stdout.columns is unset because layout needs a reasonable default terminal width", async () => {
 		mockStdout.isTTY = false;
 		mockStdout.columns = undefined;
 		const message = "a".repeat(50);
@@ -299,7 +299,7 @@ describe("cli/animated-intro", () => {
 		expect(output).not.toContain("...");
 	});
 
-	test("treats a zero column width as unset and uses the 80-column fallback", async () => {
+	test("it should treat a zero column width as unset and use the 80-column fallback because a zero width cannot be a real terminal", async () => {
 		mockStdout.isTTY = false;
 		mockStdout.columns = 0;
 		const message = "a".repeat(50);
@@ -313,7 +313,7 @@ describe("cli/animated-intro", () => {
 		expect(output).not.toContain("...");
 	});
 
-	test("uses at least 40 columns when stdout.columns is set", async () => {
+	test("it should use at least 40 columns when stdout.columns is set because a minimum width keeps the layout usable", async () => {
 		mockStdout.isTTY = false;
 		mockStdout.columns = 80;
 		const message = "a".repeat(50);
@@ -327,7 +327,7 @@ describe("cli/animated-intro", () => {
 		expect(output).not.toContain("...");
 	});
 
-	test("falls back to 80 columns on a TTY when stdout.columns is unset", async () => {
+	test("it should fall back to 80 columns on a TTY when stdout.columns is unset because a TTY without a reported width is not a real column count", async () => {
 		mockStdout.columns = undefined;
 		const message = "a".repeat(50);
 
@@ -343,7 +343,7 @@ describe("cli/animated-intro", () => {
 	});
 
 	describe("createFixedHeightRenderer", () => {
-		test("pads missing lines with empty strings on first paint", () => {
+		test("it should pad missing lines with empty strings on first paint because every paint must fill the reserved height", () => {
 			const renderer = createFixedHeightRenderer(
 				mockStdout as unknown as NodeJS.WriteStream,
 				3,
@@ -360,7 +360,7 @@ describe("cli/animated-intro", () => {
 			]);
 		});
 
-		test("repaints in place with clear-line sequences between rows", () => {
+		test("it should repaint in place with clear-line sequences between rows because updating rows must not accumulate stale output", () => {
 			const renderer = createFixedHeightRenderer(
 				mockStdout as unknown as NodeJS.WriteStream,
 				3,
@@ -383,7 +383,7 @@ describe("cli/animated-intro", () => {
 			]);
 		});
 
-		test("finish writes a trailing newline only after a paint", () => {
+		test("it should write a trailing newline only after a paint because finish must not emit stray output when nothing was printed", () => {
 			const renderer = createFixedHeightRenderer(
 				mockStdout as unknown as NodeJS.WriteStream,
 				3,

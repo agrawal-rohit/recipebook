@@ -10,6 +10,7 @@ import {
 	describe,
 	expect,
 	test,
+	vi,
 } from "vitest";
 import { RegistryConditionKind } from "./condition-kind";
 import type { Registry } from "./schema";
@@ -192,6 +193,21 @@ describe("assertScriptsAllowed", () => {
 			assertScriptsAllowed(RegistryTrust.LOCAL, scripts),
 		).resolves.toEqual({ allowInfer: true, allowMutation: true });
 	});
+
+	test("it should treat bundled registries like local ones because bundled content ships inside the CLI", async () => {
+		await expect(
+			assertScriptsAllowed(RegistryTrust.BUNDLED, {
+				infer: ["r/_handlers/x.handler.js"],
+				mutation: ["r/item.beforeWrite.0.js"],
+			}),
+		).resolves.toEqual({ allowInfer: true, allowMutation: true });
+		await expect(
+			assertScriptsAllowed(RegistryTrust.BUNDLED, {
+				infer: [],
+				mutation: [],
+			}),
+		).resolves.toEqual({ allowInfer: false, allowMutation: false });
+	});
 });
 
 describe("createRejectedScriptExecutor", () => {
@@ -324,6 +340,55 @@ describe("createScriptExecutor sandbox mode guards", () => {
 	});
 });
 
+describe("createScriptExecutor sandbox mode loadModule", () => {
+	test("it should load a verified function export through the sandboxed executor because the wrapper must execute real scripts end to end", async () => {
+		const scriptPath = path.join(tempDir, "hook.js");
+		fs.writeFileSync(scriptPath, "module.exports = async () => 'ok';");
+		const executor = createScriptExecutor({
+			locateScriptPath: () => scriptPath,
+			scriptIntegrity: {
+				"r/hook.js": sha256Integrity(fs.readFileSync(scriptPath)),
+			},
+			mode: "sandbox",
+			projectDir: tempDir,
+			runnerPath: bundledRunnerPath,
+		});
+
+		const loaded = await executor.loadModule(
+			path.join(tempDir, "registry.json"),
+			"r/hook.js",
+			(v): v is () => Promise<string> => typeof v === "function",
+			"must be a function",
+		);
+		expect(await loaded()).toBe("ok");
+	});
+
+	test("it should reject an export that is neither a function nor a condition handler through the sandboxed executor because the sandbox cannot proxy unknown shapes", async () => {
+		const scriptPath = path.join(tempDir, "not-a-function.js");
+		fs.writeFileSync(scriptPath, "module.exports = { nope: true };");
+		const executor = createScriptExecutor({
+			locateScriptPath: () => scriptPath,
+			scriptIntegrity: {
+				"r/not-a-function.js": sha256Integrity(fs.readFileSync(scriptPath)),
+			},
+			mode: "sandbox",
+			projectDir: tempDir,
+			runnerPath: bundledRunnerPath,
+		});
+
+		await expect(
+			executor.loadModule(
+				path.join(tempDir, "registry.json"),
+				"r/not-a-function.js",
+				(v): v is () => unknown => typeof v === "function",
+				'Script at "r/not-a-function.js" must export a `beforeWrite` hook function.',
+			),
+		).rejects.toThrowError(
+			`Sandboxed script "${scriptPath}" must export a function or a condition handler with infer.`,
+		);
+	});
+});
+
 describe("sandboxed module loading (real child process)", () => {
 	test("it should load a function export from a script file and invoke it because the sandbox must execute real local scripts", async () => {
 		const scriptPath = path.join(tempDir, "hook.js");
@@ -369,6 +434,15 @@ describe("sandboxed module loading (real child process)", () => {
 describe("sandboxRunnerPath", () => {
 	test("it should return an absolute runner path because sandbox spawns require absolute entries", () => {
 		expect(path.isAbsolute(sandboxRunnerPath())).toBe(true);
+	});
+
+	test("it should prefer the compiled scripts.js next to the module when present because builds ship the runner in dist", () => {
+		const spy = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+		try {
+			expect(path.basename(sandboxRunnerPath())).toBe("scripts.js");
+		} finally {
+			spy.mockRestore();
+		}
 	});
 });
 
@@ -441,5 +515,46 @@ describe("collectRegistryArtifactUris", () => {
 
 		expect(scriptUris).toEqual([]);
 		expect(itemUris).toEqual([]);
+	});
+});
+
+describe("collectRegistryArtifactUris sparse items", () => {
+	test("it should tolerate items without hooks, handlers, or pack sources because artifact collection must scan every registry shape", () => {
+		const registry: Registry = {
+			types: { component: { label: "Components" } },
+			items: {
+				plain: {
+					title: "Plain",
+					description: "No hooks at all",
+					type: "component",
+				},
+				packed: {
+					title: "Packed",
+					description: "Packs without scripts",
+					type: "component",
+					packs: [
+						{ id: "overlay", title: "Overlay", source: "r/p/overlay.json" },
+					],
+				},
+				handlerless: {
+					title: "Handlerless",
+					description: "Local condition without handler",
+					type: "component",
+					conditions: {
+						style: {
+							label: "Style",
+							kind: RegistryConditionKind.SELECT,
+							values: [{ value: "dark", label: "Dark" }],
+						},
+					},
+					packs: [{ id: "bare", title: "Bare" } as never],
+				},
+			},
+		};
+
+		expect(collectRegistryArtifactUris(registry)).toEqual({
+			scriptUris: [],
+			itemUris: ["r/p/overlay.json"],
+		});
 	});
 });

@@ -1,5 +1,5 @@
 import type { Registry } from "@yoinker/core";
-import cac from "cac";
+import cac, { type CAC } from "cac";
 import {
 	afterEach,
 	beforeEach,
@@ -412,6 +412,175 @@ describe("add command wiring", () => {
 			"add installs one registry item at a time",
 		);
 		expect(addMock).not.toHaveBeenCalled();
+	});
+
+	test("it should dispatch addCommand with an empty item list when no positional is passed because the interactive prompt lives inside the command and the wiring must still deliver an empty selection", async () => {
+		stubIsTTY(true);
+		const fakeRegistry: LoadedRegistry = {
+			registry: {} as Registry,
+			indexLocation: "/fake/registry.json",
+		};
+
+		await runAddCli(
+			vi.fn(async () => fakeRegistry),
+			[],
+		);
+
+		await vi.waitFor(() => expect(addMock).toHaveBeenCalledTimes(1));
+		expect(addMock).toHaveBeenCalledWith(
+			fakeRegistry.registry,
+			fakeRegistry.indexLocation,
+			{ items: [], overwrite: undefined },
+		);
+	});
+});
+
+describe("command argument guards against parser contract drift", () => {
+	// cac 6 coerces positionals to strings and `--flag=x` to `true`, so these
+	// guards cannot fire through a real parse. Driving the registered action
+	// directly through a duck-typed CAC double pins the fail-fast contract the
+	// guards promise if the parser's behavior ever changes.
+	interface FakeCommand {
+		option: ReturnType<typeof vi.fn>;
+		usage: ReturnType<typeof vi.fn>;
+		action: ReturnType<typeof vi.fn>;
+	}
+
+	function fakeCacApp(): { app: CAC; command: FakeCommand } {
+		const command: FakeCommand = {
+			option: vi.fn(),
+			usage: vi.fn(),
+			action: vi.fn(),
+		};
+		const app = {
+			command: vi.fn(() => command),
+			args: [] as unknown[],
+			parse: vi.fn(async () => {}),
+		};
+		return { app: app as unknown as CAC, command };
+	}
+
+	let errorOutput: string[];
+	let exitSpy: MockInstance<typeof process.exit>;
+
+	beforeEach(() => {
+		errorOutput = [];
+		vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+			errorOutput.push(args.map((arg) => String(arg)).join(" "));
+		});
+		vi.spyOn(console, "log").mockImplementation(() => {});
+		exitSpy = vi
+			.spyOn(process, "exit")
+			.mockImplementation((() => undefined as never) as never);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	test("it should print an error and exit 1 when the add positional is not a string because a parser that stops coercing positionals must hit a fail-fast guard, not a corrupt install", async () => {
+		const { app, command } = fakeCacApp();
+		registerCommandsCli(
+			app,
+			vi.fn(async () => ({ registry: {} as Registry, indexLocation: "/fake" })),
+		);
+		const addAction = command.action.mock.calls[0]?.[0] as (
+			item: unknown,
+			options: unknown,
+		) => Promise<void>;
+
+		await addAction(123, {});
+
+		await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1));
+		expect(errorOutput.join("\n")).toContain(
+			"add expected a registry item id.",
+		);
+		expect(addMock).not.toHaveBeenCalled();
+	});
+
+	test("it should treat a missing app args list as having no extras because a host that never initializes args must not break the single-item contract", async () => {
+		const { app, command } = fakeCacApp();
+		(app as unknown as { args: unknown }).args = undefined;
+		registerCommandsCli(
+			app,
+			vi.fn(async () => ({ registry: {} as Registry, indexLocation: "/fake" })),
+		);
+		const addAction = command.action.mock.calls[0]?.[0] as (
+			item: unknown,
+			options: unknown,
+		) => Promise<void>;
+
+		await addAction("button", {});
+
+		await vi.waitFor(() => expect(addMock).toHaveBeenCalledTimes(1));
+		expect(addMock).toHaveBeenCalledWith({} as Registry, "/fake", {
+			items: ["button"],
+			overwrite: undefined,
+		});
+	});
+
+	test("it should print an error and exit 1 when the overwrite option is not a boolean because a mis-typed flag must fail loudly instead of installing with a surprise value", async () => {
+		const { app, command } = fakeCacApp();
+		registerCommandsCli(
+			app,
+			vi.fn(async () => ({ registry: {} as Registry, indexLocation: "/fake" })),
+		);
+		const addAction = command.action.mock.calls[0]?.[0] as (
+			item: unknown,
+			options: unknown,
+		) => Promise<void>;
+
+		await addAction("button", { overwrite: "yes" });
+
+		await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1));
+		expect(errorOutput.join("\n")).toContain(
+			"Option --overwrite must be a boolean flag.",
+		);
+		expect(addMock).not.toHaveBeenCalled();
+	});
+
+	test("it should print an error and exit 1 when the configure source is not a string because a parser that stops coercing positionals must hit a fail-fast guard", async () => {
+		const { app, command } = fakeCacApp();
+		registerCommandsCli(
+			app,
+			vi.fn(async () => {
+				throw new Error("registry loader must not run");
+			}),
+		);
+		const configureAction = command.action.mock.calls[1]?.[0] as (
+			action: unknown,
+			source: unknown,
+		) => Promise<void>;
+
+		await configureAction("set", 123);
+
+		await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1));
+		expect(errorOutput.join("\n")).toContain(
+			"configure source must be a string.",
+		);
+		expect(configSetMock).not.toHaveBeenCalled();
+	});
+
+	test("it should print an error and exit 1 with usage guidance when the configure action is not a string because a non-string action token must fail loudly", async () => {
+		const { app, command } = fakeCacApp();
+		registerCommandsCli(
+			app,
+			vi.fn(async () => {
+				throw new Error("registry loader must not run");
+			}),
+		);
+		const configureAction = command.action.mock.calls[1]?.[0] as (
+			action: unknown,
+			source: unknown,
+		) => Promise<void>;
+
+		await configureAction(42, undefined);
+
+		await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1));
+		expect(errorOutput.join("\n")).toContain('Unknown configure action "42"');
+		expect(errorOutput.join("\n")).toContain(
+			"Usage: yoinker configure <get|set|unset> [source]",
+		);
 	});
 });
 

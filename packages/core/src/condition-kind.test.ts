@@ -6,13 +6,19 @@ import {
 	type RegistryContext,
 	type RegistryWhenValue,
 } from "./condition-kind";
+import { reservedInterpolationKeys } from "./index";
 
 /** Negative-path fixtures: runtime-invalid values that must be rejected. */
 function invalidWhenValue(value: unknown): RegistryWhenValue {
 	return value as RegistryWhenValue;
 }
 
-import { registryConditionSchema } from "./schema";
+import {
+	assertConditionMapBindingKeys,
+	registryConditionSchema,
+	registryConditionValueSchema,
+	registryPackSchema,
+} from "./schema";
 
 describe("conditionKindPolicy seedContext", () => {
 	test("it should seed a multiselect context entry from a string when value because a pinned single value is a one-element selection", () => {
@@ -33,6 +39,26 @@ describe("conditionKindPolicy seedContext", () => {
 			invalidWhenValue(["a", 2, "b"]),
 		);
 		expect(context).toEqual({ k: ["a", "b"] });
+	});
+
+	test("it should leave the key untouched when a multiselect seed is neither array nor string because only string selections can seed", () => {
+		const context: RegistryContext = {};
+		conditionKindPolicy[RegistryConditionKind.MULTISELECT].seedContext(
+			context,
+			"k",
+			invalidWhenValue(42),
+		);
+		expect(context).toEqual({});
+	});
+
+	test("it should leave the key untouched when a multiselect array seed filters to nothing because an all-non-string matcher selects nothing", () => {
+		const context: RegistryContext = {};
+		conditionKindPolicy[RegistryConditionKind.MULTISELECT].seedContext(
+			context,
+			"k",
+			invalidWhenValue([1, 2]),
+		);
+		expect(context).toEqual({});
 	});
 
 	test("it should leave the key untouched when a multiselect seed is empty because an empty matcher selects nothing", () => {
@@ -173,6 +199,8 @@ describe("conditionKindPolicy inferredContextValue", () => {
 		expect(policy.inferredContextValue("zz", values)).toBeUndefined();
 		expect(policy.inferredContextValue(["a"] as never, values)).toBeUndefined();
 		expect(policy.inferredContextValue(true as never, values)).toBeUndefined();
+		expect(policy.inferredContextValue(42 as never, values)).toBeUndefined();
+		expect(policy.inferredContextValue(42 as never, [])).toBeUndefined();
 	});
 
 	test("it should accept non-empty text infers and reject empty or non-string ones because empty text is no value", () => {
@@ -378,6 +406,74 @@ describe("registryConditionSchema default-kind matching", () => {
 		);
 		expect(issues({ kind: RegistryConditionKind.TEXT, default: true })).toEqual(
 			["invalid_default:text"],
+		);
+	});
+});
+
+describe("registryConditionValueSchema bindings", () => {
+	test("it should reject an empty bindings record because an empty binding map is an authoring mistake, not a default", () => {
+		const result = registryConditionValueSchema.safeParse({
+			value: "react",
+			label: "React",
+			bindings: {},
+		});
+		expect(
+			result.success ? [] : result.error.issues.map((i) => i.message),
+		).toEqual(["empty_bindings"]);
+		expect(
+			registryConditionValueSchema.safeParse({
+				value: "react",
+				label: "React",
+				bindings: { lintCommand: "pnpm lint" },
+			}).success,
+		).toBe(true);
+	});
+});
+
+describe("registryPackSchema id guard", () => {
+	test("it should reject prototype, dot, and separator-bearing pack ids because ids become payload path segments", () => {
+		const invalidIds: Array<[string, string]> = [
+			["__proto__", "unsafe_key:__proto__"],
+			[".", "invalid_id:."],
+			["..", "invalid_id:.."],
+			["a/b", "invalid_id:a/b"],
+			["a\\b", "invalid_id:a\\b"],
+		];
+		for (const [id, message] of invalidIds) {
+			const result = registryPackSchema.safeParse({ id, title: "Pack" });
+			expect(
+				result.success ? [] : result.error.issues.map((i) => i.message),
+			).toContain(message);
+		}
+		expect(
+			registryPackSchema.safeParse({ id: "lint", title: "Lint" }).success,
+		).toBe(true);
+	});
+});
+
+describe("assertConditionMapBindingKeys reserved keys", () => {
+	test("it should reject option bindings that reuse reserved interpolation keys because bindings must not shadow CLI-captured values", () => {
+		expect(() =>
+			assertConditionMapBindingKeys(
+				[
+					{
+						framework: {
+							label: "Framework",
+							kind: RegistryConditionKind.SELECT,
+							values: [
+								{
+									value: "react",
+									label: "React",
+									bindings: { packageManager: "pnpm" },
+								},
+							],
+						},
+					},
+				],
+				reservedInterpolationKeys(),
+			),
+		).toThrowError(
+			'Registry condition "framework" value "react" cannot declare bindings.packageManager (reserved interpolation key).',
 		);
 	});
 });

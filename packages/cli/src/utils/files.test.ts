@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -83,6 +84,47 @@ describe("planFileWrites", () => {
 				item("Label", [{ target: "shared.txt", content: "b" }]),
 			]),
 		).rejects.toThrow(/Multiple compiled items write to the same target/);
+	});
+
+	test.skipIf(process.platform === "win32")(
+		"it should reject a destination that is a special node because a FIFO target can never hold file content",
+		async () => {
+			fs.mkdirSync(path.join(projectDir, "src"), { recursive: true });
+			const fifo = path.join(projectDir, "src/button.ts");
+			const { status, stderr } = spawnSync("mkfifo", [fifo]);
+			if (status !== 0)
+				throw new Error(`mkfifo failed: ${stderr?.toString().trim()}`);
+
+			await expect(
+				planFileWrites(projectDir, [
+					item("Button", [{ target: "src/button.ts", content: "new" }]),
+				]),
+			).rejects.toThrow(
+				'Compiled item file target "src/button.ts" exists but is neither a file nor a directory.',
+			);
+		},
+	);
+
+	test("it should rethrow a non-missing lstat failure during planning because only a missing destination counts as absent", async () => {
+		const destination = path.join(projectDir, "src/button.ts");
+		const realLstat = fs.promises.lstat.bind(fs.promises);
+		const lstatSpy = vi
+			.spyOn(fs.promises, "lstat")
+			// The destination check runs after the ancestor walk; reject only there.
+			.mockImplementation(async (entry: fs.PathLike) => {
+				if (entry === destination)
+					throw Object.assign(new Error("denied"), { code: "EACCES" });
+				return realLstat(entry);
+			});
+		try {
+			await expect(
+				planFileWrites(projectDir, [
+					item("Button", [{ target: "src/button.ts", content: "new" }]),
+				]),
+			).rejects.toMatchObject({ code: "EACCES" });
+		} finally {
+			lstatSpy.mockRestore();
+		}
 	});
 
 	test("it should reject targets escaping the project root because writes must stay jailed under the project directory", async () => {

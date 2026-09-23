@@ -88,6 +88,13 @@ describe("mergeCommandSet", () => {
 			'Command "build" must be a non-empty string.',
 		);
 	});
+	test("it should accept either argument order and collapse empty command maps because merge order is irrelevant for absent sides", () => {
+		expect(mergeCommandSet(undefined, { build: "tsc -b" })).toEqual({
+			build: "tsc -b",
+		});
+		expect(mergeCommandSet(undefined, undefined)).toBeUndefined();
+		expect(mergeCommandSet({}, undefined)).toBeUndefined();
+	});
 });
 
 describe("mergeEcosystemMaps", () => {
@@ -109,7 +116,7 @@ describe("mergeEcosystemMaps", () => {
 });
 
 describe("mergeSecretNames", () => {
-	test("it should dedupe and sort secret names so reminders are stable", () => {
+	test("it should dedupe and sort secret names because reminders are stable", () => {
 		expect(mergeSecretNames(["TOKEN_B", "TOKEN_A"], ["TOKEN_B"])).toEqual([
 			"TOKEN_A",
 			"TOKEN_B",
@@ -122,17 +129,29 @@ describe("mergeSecretNames", () => {
 });
 
 describe("compiled item folding", () => {
-	test("compiledItem should drop absent optional fields because compiled payloads omit what they do not declare", () => {
+	test("it should drop absent optional fields on compiledItem because compiled payloads omit what they do not declare", () => {
 		expect(compiledItem({ files: [file("src/a.txt", "A")] })).toEqual({
 			files: [file("src/a.txt", "A")],
 		});
 	});
 
-	test("mergeCompiledItemFields should omit empty fields because folded payloads stay minimal", () => {
+	test("it should omit empty fields on mergeCompiledItemFields because folded payloads stay minimal", () => {
 		expect(mergeCompiledItemFields(undefined, undefined)).toEqual({});
 	});
 
-	test("foldCompiledItems should drop identical repeated targets and merge payload fields because item files are inlined into packs", () => {
+	test("it should emit only the optional fields a fold actually produced because compiled payloads omit undeclared fields", () => {
+		expect(
+			mergeCompiledItemFields({ dependencies: { npm: deps(["zod"]) } }),
+		).toEqual({ dependencies: { npm: deps(["zod"]) } });
+		expect(
+			mergeCompiledItemFields({ commands: { npm: { build: "tsc" } } }),
+		).toEqual({ commands: { npm: { build: "tsc" } } });
+		expect(mergeCompiledItemFields({ secrets: ["TOKEN"] })).toEqual({
+			secrets: ["TOKEN"],
+		});
+	});
+
+	test("it should drop identical repeated targets and merge payload fields on foldCompiledItems because item files are inlined into packs", () => {
 		const base: CompiledItem = compiledItem({
 			files: [file("src/shared.txt", "same"), file("src/base.txt", "B")],
 			dependencies: { npm: deps(["zod"]) },
@@ -156,7 +175,7 @@ describe("compiled item folding", () => {
 		});
 	});
 
-	test("foldCompiledItems should throw through the caller's message callback when repeated targets differ because silent overwrites would corrupt installs", () => {
+	test("it should throw through the caller's message callback on foldCompiledItems when repeated targets differ because silent overwrites would corrupt installs", () => {
 		const base: CompiledItem = compiledItem({
 			files: [file("src/a.txt", "one")],
 		});
@@ -168,7 +187,7 @@ describe("compiled item folding", () => {
 		).toThrowError("conflict on src/a.txt");
 	});
 
-	test("assertUniqueCompiledItemTargets should reject duplicates via the caller's message and unsafe targets because install paths must be safe and unique", () => {
+	test("it should reject duplicates via the caller's message and unsafe targets on assertUniqueCompiledItemTargets because install paths must be safe and unique", () => {
 		const duplicateMessage = (target: string) => `dup ${target}`;
 		expect(() =>
 			assertUniqueCompiledItemTargets(
@@ -306,6 +325,18 @@ describe("npmEcosystemAdapter.detectFromManifest", () => {
 		await expect(
 			npmEcosystemAdapter.detectFromManifest(tempDir, managers, () => true),
 		).rejects.toThrowError(InvalidJsonError);
+	});
+
+	test("it should reject a non-object package.json document because a manifest that is not an object cannot declare a manager", async () => {
+		fs.writeFileSync(path.join(tempDir, "package.json"), "null");
+		await expect(
+			npmEcosystemAdapter.detectFromManifest(tempDir, managers, () => true),
+		).rejects.toThrowError("package.json must be a JSON object.");
+
+		fs.writeFileSync(path.join(tempDir, "package.json"), "[]");
+		await expect(
+			npmEcosystemAdapter.detectFromManifest(tempDir, managers, () => true),
+		).rejects.toThrowError("package.json must be a JSON object.");
 	});
 });
 

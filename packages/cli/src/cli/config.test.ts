@@ -1,8 +1,21 @@
+/** Mocked @yoinker/core readFileAsync seam — lets tests simulate a file vanishing (or failing) between lstat and read. */
+const coreMocks = vi.hoisted(() => ({
+	readFileAsync: vi.fn(),
+	actualReadFileAsync: undefined as
+		| ((path: string) => Promise<string>)
+		| undefined,
+}));
+vi.mock("@yoinker/core", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@yoinker/core")>();
+	coreMocks.actualReadFileAsync = actual.readFileAsync;
+	return { ...actual, readFileAsync: coreMocks.readFileAsync };
+});
+
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
 	configPath,
 	readConfig,
@@ -72,6 +85,9 @@ describe("readConfig", () => {
 
 	beforeEach(() => {
 		({ root, env } = makeIsolatedEnv());
+		coreMocks.readFileAsync.mockImplementation(
+			coreMocks.actualReadFileAsync as (path: string) => Promise<string>,
+		);
 	});
 
 	afterEach(() => {
@@ -165,6 +181,25 @@ describe("readConfig", () => {
 		);
 	});
 
+	test("it should treat a config file that vanishes after the lstat as absent because the file can be deleted between the guard and the read", async () => {
+		fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
+		fs.writeFileSync(configFilePath(root), "{}");
+		coreMocks.readFileAsync.mockRejectedValueOnce(
+			Object.assign(new Error("vanished"), { code: "ENOENT" }),
+		);
+
+		await expect(readConfig(env)).resolves.toEqual({});
+	});
+
+	test("it should rethrow a non-missing read error because a vanished file is the only expected failure", async () => {
+		fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
+		fs.writeFileSync(configFilePath(root), "{}");
+		const denial = Object.assign(new Error("denied"), { code: "EACCES" });
+		coreMocks.readFileAsync.mockRejectedValueOnce(denial);
+
+		await expect(readConfig(env)).rejects.toMatchObject({ code: "EACCES" });
+	});
+
 	test("it should check the size cap before JSON parsing because a size test after parsing would misreport a malformed-config error", async () => {
 		fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
 		// Invalid JSON that is over the cap: a size check after parsing would report
@@ -180,6 +215,21 @@ describe("readConfig", () => {
 		fs.writeFileSync(configFilePath(root), `{"registry":"${padding}"}`);
 		const config = await readConfig(env);
 		expect(config.registry).toBe(padding);
+	});
+
+	test("it should stringify a non-Error parse failure into the malformed-config message when reading because whatever JSON.parse throws must still carry the remediation hint", async () => {
+		fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
+		fs.writeFileSync(configFilePath(root), "{ not json");
+		const parseSpy = vi.spyOn(JSON, "parse").mockImplementationOnce(() => {
+			throw "thrown string";
+		});
+		try {
+			await expect(readConfig(env)).rejects.toThrow(
+				/Malformed yoinker config at .*config\.json: thrown string\. Fix or delete the file, then retry\./,
+			);
+		} finally {
+			parseSpy.mockRestore();
+		}
 	});
 
 	test("it should refuse to read a symlinked config file when the path resolves to a link because a symlinked config could be an attack vector", async () => {

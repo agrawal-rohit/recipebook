@@ -1,4 +1,5 @@
-import { describe, expect, test } from "vitest";
+import Mustache from "mustache";
+import { describe, expect, test, vi } from "vitest";
 import {
 	buildInterpolationContext,
 	type CompiledItem,
@@ -132,6 +133,25 @@ describe("interpolation sections and syntax", () => {
 	});
 });
 
+describe("unhandled mustache tag types", () => {
+	test("it should throw when Mustache yields an unknown tag type because the walker must fail loudly on parser tokens it cannot classify", () => {
+		const spy = vi
+			.spyOn(Mustache, "parse")
+			.mockReturnValue([["custom", "boom"]] as unknown as ReturnType<
+				typeof Mustache.parse
+			>);
+		try {
+			expect(() =>
+				interpolateCompiledItem(item([{ target: "a.txt", content: "{{x}}" }]), {
+					x: "y",
+				}),
+			).toThrowError(/Unhandled Mustache tag type "custom"/);
+		} finally {
+			spy.mockRestore();
+		}
+	});
+});
+
 describe("buildInterpolationContext", () => {
 	const reactOption: RegistryConditionValue = {
 		value: "react",
@@ -210,5 +230,27 @@ describe("buildInterpolationContext", () => {
 		expect(view.extras).toEqual(["lint"]);
 		expect(view.verbose).toBe(true);
 		expect("packageManager" in view).toBe(false);
+	});
+});
+
+describe("interpolation syntax edges", () => {
+	test("it should reject partial tags because partials are not part of the registry interpolation grammar", () => {
+		expect(() =>
+			interpolateCompiledItem(
+				item([{ target: "a.txt", content: "{{> box}}" }]),
+				{},
+			),
+		).toThrowError('Unknown interpolation partial "box" in file "a.txt".');
+	});
+
+	test("it should skip undefined command sets because the commands map may leave ecosystems unset", () => {
+		const rendered = interpolateCompiledItem(
+			{
+				files: [{ target: "a.txt", content: "ok" }],
+				commands: { npm: undefined },
+			} as unknown as CompiledItem,
+			{},
+		);
+		expect(rendered.commands?.npm).toBeUndefined();
 	});
 });

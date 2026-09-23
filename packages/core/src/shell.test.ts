@@ -74,6 +74,12 @@ describe("runAsync runner options", () => {
 		);
 	});
 
+	test("it should report the terminating signal when a command dies without an exit code because a SIGKILLed process must be diagnosable", async () => {
+		await expect(
+			runAsync("node -e \"process.kill(process.pid, 'SIGKILL')\""),
+		).rejects.toThrowError(/\(terminated by SIGKILL\)/u);
+	});
+
 	test("it should reject a command that cannot start with the display label and cause because ENOENT must name the missing binary", async () => {
 		const error = await runAsync("definitely-not-a-binary-xyz").then(
 			() => null,
@@ -108,5 +114,13 @@ describe("runArgvAsync", () => {
 		).rejects.toThrowError(
 			/Failed to start command: definitely-not-a-binary-xyz/u,
 		);
+	});
+});
+
+describe("runAsync non-piped failures", () => {
+	test("it should reject a failing non-piped command without captured stderr because ignored streams cannot be read", async () => {
+		await expect(
+			runAsync("node -e 'process.exit(3)'", { stdio: "ignore" }),
+		).rejects.toThrowError(/Command failed: node -e .* \(exit 3\)$/u);
 	});
 });

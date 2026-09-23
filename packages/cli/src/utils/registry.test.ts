@@ -144,8 +144,10 @@ describe("locateRegistry explicit-only resolution", () => {
 	});
 });
 
-test("it should not export `bundledRegistryPath` from the module when the packaged default registry is removed because there is no bundled registry to locate", () => {
-	expect(registryModule).not.toHaveProperty("bundledRegistryPath");
+describe("module exports", () => {
+	test("it should not export `bundledRegistryPath` from the module when the packaged default registry is removed because there is no bundled registry to locate", () => {
+		expect(registryModule).not.toHaveProperty("bundledRegistryPath");
+	});
 });
 
 describe("loadRuntimeRegistry remote fetch", () => {
@@ -347,6 +349,27 @@ describe("loadRuntimeRegistry remote fetch", () => {
 		);
 	});
 
+	test("it should ignore a falsy chunk while streaming a remote body because the stream protocol can deliver a hole that carries no bytes", async () => {
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(
+					new Uint8Array(Buffer.from(MINIMAL_REGISTRY_JSON, "utf8")),
+				);
+				// Deliberate protocol violation: a hole in the stream.
+				// @ts-expect-error exercise the defensive `!value` continue arm
+				controller.enqueue(undefined);
+				controller.close();
+			},
+		});
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () => new Response(stream, { status: 200 })),
+		);
+
+		const result = await loadRuntimeRegistry(INDEX_URL);
+		expect(result.registry.types.component?.label).toBe("Components");
+	});
+
 	test("it should reject a 200 response with no body because an empty document can never be a registry", async () => {
 		vi.stubGlobal(
 			"fetch",
@@ -412,6 +435,30 @@ describe("loadRuntimeRegistry local file", () => {
 		).toBe("ENOENT");
 	});
 
+	test("it should wrap an unexpected local read failure with the labeled error and cause because only registry authors can act on filesystem permissions", async () => {
+		const registryPath = path.join(tmpDir, "registry.json");
+		fs.writeFileSync(registryPath, MINIMAL_REGISTRY_JSON, "utf8");
+		const readFileSpy = vi
+			.spyOn(await import("@yoinker/core"), "readFileAsync")
+			.mockRejectedValueOnce(
+				Object.assign(new Error("denied"), { code: "EACCES" }),
+			);
+		try {
+			const error = await loadRuntimeRegistry(registryPath).then(
+				() => null,
+				(e) => e,
+			);
+			expect((error as Error).message).toBe(
+				`Failed to read registry at ${registryPath}: denied`,
+			);
+			expect(
+				(error as Error & { cause?: NodeJS.ErrnoException }).cause?.code,
+			).toBe("EACCES");
+		} finally {
+			readFileSpy.mockRestore();
+		}
+	});
+
 	test("it should throw InvalidJsonError for a local document with invalid JSON because local parse failures carry the file location", async () => {
 		const registryPath = path.join(tmpDir, "registry.json");
 		fs.writeFileSync(registryPath, "{oops", "utf8");
@@ -424,6 +471,97 @@ describe("loadRuntimeRegistry local file", () => {
 		expect(error).toBeInstanceOf(InvalidJsonError);
 		expect((error as Error).name).toBe("InvalidJsonError");
 		expect((error as Error).message).toContain(registryPath);
+	});
+
+	test("it should wrap a local non-SyntaxError parse failure with the labeled read error because only malformed documents deserve the InvalidJsonError contract", async () => {
+		const registryPath = path.join(tmpDir, "registry.json");
+		fs.writeFileSync(registryPath, "{oops", "utf8");
+		const parseSpy = vi.spyOn(JSON, "parse").mockImplementationOnce(() => {
+			throw new TypeError("unexpected token");
+		});
+		try {
+			const error = await loadRuntimeRegistry(registryPath).then(
+				() => null,
+				(e) => e,
+			);
+
+			expect(error).not.toBeInstanceOf(InvalidJsonError);
+			expect((error as Error).message).toBe(
+				`Failed to read registry at ${registryPath}: unexpected token`,
+			);
+			expect((error as Error & { cause?: unknown }).cause).toBeInstanceOf(
+				TypeError,
+			);
+		} finally {
+			parseSpy.mockRestore();
+		}
+	});
+
+	test("it should wrap a remote non-SyntaxError parse failure with the labeled invalid-JSON error because remote documents never use the local error contract", async () => {
+		const remoteUrl = "https://registry.example/r/registry.json";
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () => new Response("{not json", { status: 200 })),
+		);
+		const parseSpy = vi.spyOn(JSON, "parse").mockImplementationOnce(() => {
+			throw new TypeError("boom");
+		});
+		try {
+			const error = await loadRuntimeRegistry(remoteUrl).then(
+				() => null,
+				(e) => e,
+			);
+
+			expect(error).not.toBeInstanceOf(InvalidJsonError);
+			expect((error as Error).message).toBe(
+				"Remote registry returned invalid JSON: boom",
+			);
+		} finally {
+			parseSpy.mockRestore();
+		}
+	});
+
+	test("it should stringify a non-Error parse rejection because whatever JSON.parse throws must still reach the labeled error", async () => {
+		const registryPath = path.join(tmpDir, "registry.json");
+		fs.writeFileSync(registryPath, "{oops", "utf8");
+		const parseSpy = vi.spyOn(JSON, "parse").mockImplementationOnce(() => {
+			throw "thrown string";
+		});
+		try {
+			const error = await loadRuntimeRegistry(registryPath).then(
+				() => null,
+				(e) => e,
+			);
+
+			expect(error).not.toBeInstanceOf(InvalidJsonError);
+			expect((error as Error).message).toBe(
+				`Failed to read registry at ${registryPath}: thrown string`,
+			);
+		} finally {
+			parseSpy.mockRestore();
+		}
+	});
+
+	test("it should stringify a non-Error local read rejection because whatever the filesystem layer throws must still reach the labeled error", async () => {
+		const registryPath = path.join(tmpDir, "registry.json");
+		const readFileSpy = vi
+			.spyOn(await import("@yoinker/core"), "readFileAsync")
+			.mockRejectedValueOnce("plain string failure");
+		try {
+			const error = await loadRuntimeRegistry(registryPath).then(
+				() => null,
+				(e) => e,
+			);
+
+			expect((error as Error).message).toBe(
+				`Failed to read registry at ${registryPath}: plain string failure`,
+			);
+			expect((error as Error & { cause?: unknown }).cause).toBe(
+				"plain string failure",
+			);
+		} finally {
+			readFileSpy.mockRestore();
+		}
 	});
 
 	test("it should reject a local file larger than the cap because the size limit must not depend on the transport", async () => {

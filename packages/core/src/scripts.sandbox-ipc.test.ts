@@ -104,6 +104,18 @@ describe("loadSandboxedModule probe handshake", () => {
 		expect(typeof loaded.infer).toBe("function");
 	});
 
+	test("it should surface a failed probe result as the child's error because load failures must fail the load", async () => {
+		const scriptPath = path.join(tempDir, "broken.js");
+		fs.writeFileSync(scriptPath, "module.exports = () => 1;");
+		const pending = loadSandboxedModule(scriptPath, tempDir, runnerPath);
+		latestChild().emit("message", {
+			type: "result",
+			ok: false,
+			error: "Cannot find module 'nope'",
+		});
+		await expect(pending).rejects.toThrowError("Cannot find module 'nope'");
+	});
+
 	test("it should reject an unknown probe shape because the sandbox cannot proxy exports it does not understand", async () => {
 		const scriptPath = path.join(tempDir, "bad.js");
 		fs.writeFileSync(scriptPath, "module.exports = {};");

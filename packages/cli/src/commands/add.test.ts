@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import * as core from "@yoinker/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { addCommand } from "./add";
@@ -350,6 +348,31 @@ describe("addCommand orchestration", () => {
 			items: ["button"],
 		});
 		expect(filesMocks.confirmFileOverwrites).toHaveBeenCalledWith([], false);
+	});
+
+	test("it should pass each compiled item's dependency maps to installDeclaredPackages because declared packages must install with the chosen manager", async () => {
+		coreMocks.catalogNeedsPackageManager.mockReturnValue(true);
+		registryMocks.loadCompiledItems.mockResolvedValue(
+			new Map<string, core.CompiledItem>([
+				[
+					"r/compiled/button.json",
+					core.compiledItem({
+						files: [buttonFile],
+						dependencies: { npm: { runtime: ["zod"] } },
+					}),
+				],
+			]),
+		);
+
+		await addCommand(baseRegistry(), "/index/registry.json", {
+			items: ["button"],
+		});
+
+		expect(packagesMocks.installDeclaredPackages).toHaveBeenCalledWith(
+			[{ npm: { runtime: ["zod"] } }],
+			process.cwd(),
+			"pnpm",
+		);
 	});
 
 	test("it should install declared packages and print Next steps with install commands and repo secrets when a package manager is used and secrets exist because the summary must surface both pending actions", async () => {
@@ -770,6 +793,37 @@ describe("addCommand compiled-item and condition aggregation errors", () => {
 		expect(plannedItems?.[0]?.compiledItem.files).toEqual([]);
 	});
 
+	test("it should promote a plan node without declared sources to an empty compiled item and skip compiled-item loading because pack-less nodes carry no fetchable payload", async () => {
+		coreMocks.buildInstallPlan.mockReturnValue([{ itemId: "button" }]);
+
+		await addCommand(baseRegistry(), "/index/registry.json", {
+			items: ["button"],
+		});
+
+		expect(registryMocks.loadCompiledItems).not.toHaveBeenCalled();
+		const plannedItems = filesMocks.planFileWrites.mock.calls[0]?.[1] as
+			| Array<{ compiledItem: core.CompiledItem }>
+			| undefined;
+		expect(plannedItems?.[0]?.compiledItem.files).toEqual([]);
+	});
+
+	test("it should fall back to the item id for the install label when the catalog item has no title because progress output still needs a name", async () => {
+		const registry = baseRegistry();
+		delete (registry.items.button as { title?: string }).title;
+		coreMocks.buildInstallPlan.mockReturnValue([
+			{ itemId: "button", sources: [] },
+		]);
+
+		await addCommand(registry, "/index/registry.json", {
+			items: ["button"],
+		});
+
+		const plannedItems = filesMocks.planFileWrites.mock.calls[0]?.[1] as
+			| Array<{ label: string }>
+			| undefined;
+		expect(plannedItems?.[0]?.label).toBe("button");
+	});
+
 	test("it should reject an install plan that names an item missing from the registry because every plan node must resolve before writes", async () => {
 		coreMocks.buildInstallPlan.mockReturnValue([
 			{ itemId: "ghost", sources: [] },
@@ -1019,6 +1073,62 @@ describe("addCommand condition interpolation option conflicts", () => {
 				{ items: ["button"] },
 			),
 		).rejects.toThrow(conflictMessage);
+	});
+
+	test("it should throw when the option lists have different lengths because a missing option is itself a conflict", async () => {
+		await expect(
+			addCommand(
+				registryWithConditions(
+					[
+						{ value: "react", label: "React" },
+						{ value: "vue", label: "Vue" },
+					],
+					[{ value: "react", label: "React" }],
+				),
+				"/index/registry.json",
+				{ items: ["button"] },
+			),
+		).rejects.toThrow(conflictMessage);
+	});
+
+	test("it should treat the identical option-list object as non-conflicting because the same array instance cannot disagree with itself", async () => {
+		const sharedValues: core.RegistryConditionValue[] = [
+			{ value: "react", label: "React" },
+		];
+		const registry = baseRegistry();
+		registry.conditions = {
+			framework: {
+				label: "Framework",
+				kind: core.RegistryConditionKind.SELECT,
+				values: sharedValues,
+			},
+		};
+		registry.items.button.conditions = {
+			framework: {
+				label: "Framework",
+				kind: core.RegistryConditionKind.SELECT,
+				// Same array instance on both sides exercises the reference-equality short circuit.
+				values: sharedValues,
+			},
+		};
+
+		await addCommand(registry, "/index/registry.json", { items: ["button"] });
+
+		expect(coreMocks.setScriptExecutor).toHaveBeenCalledWith(undefined);
+	});
+
+	test("it should ignore a text condition for interpolation options because text conditions declare no option values", async () => {
+		const registry = baseRegistry();
+		registry.conditions = {
+			appName: {
+				label: "App name",
+				kind: core.RegistryConditionKind.TEXT,
+			},
+		};
+
+		await addCommand(registry, "/index/registry.json", { items: ["button"] });
+
+		expect(coreMocks.setScriptExecutor).toHaveBeenCalledWith(undefined);
 	});
 });
 

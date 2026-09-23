@@ -5,6 +5,7 @@ import {
 	type Registry,
 	type RegistryCondition,
 	RegistryConditionKind,
+	type RegistryConditionValue,
 	type RegistryContext,
 } from "@yoinker/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -421,9 +422,212 @@ describe("captureRequiredConditions", () => {
 			undefined,
 		);
 	});
+
+	test("it should auto-select a required single-value multiselect without prompting because asking is pointless when one legal value exists", async () => {
+		const context = await captureShared(
+			registryWith(
+				{
+					framework: selectCondition({
+						kind: RegistryConditionKind.MULTISELECT,
+						values: [{ value: "react", label: "React" }],
+					}),
+				},
+				{ button: buttonItem },
+			),
+		);
+
+		expect(context).toEqual({ framework: ["react"] });
+		expect(promptsMocks.multiselectInput).not.toHaveBeenCalled();
+	});
+
+	test("it should preselect a multiselect with the handler-inferred defaults when the user declines the inference because the manual prompt must start from the detected answers", async () => {
+		promptsMocks.confirmInput.mockResolvedValue(false);
+		promptsMocks.multiselectInput.mockResolvedValue(["vue"]);
+
+		const context = await captureShared(
+			registryWith(
+				{
+					framework: selectCondition({
+						kind: RegistryConditionKind.MULTISELECT,
+						default: ["react"],
+					}),
+				},
+				{ button: buttonItem },
+			),
+			{ allowInfer: true },
+		);
+
+		expect(context).toEqual({ framework: ["vue"] });
+		expect(promptsMocks.multiselectInput).toHaveBeenCalledWith(
+			"Which framework should the component target?",
+			expect.anything(),
+			["react"],
+		);
+	});
+
+	test("it should fall back to the raw value in the confirm message when an inferred option has no label because a labelless value still names itself", async () => {
+		const context = await captureShared(
+			registryWith(
+				{
+					framework: selectCondition({
+						description: undefined,
+						default: "react",
+						values: [
+							{ value: "react" } as RegistryConditionValue,
+							{ value: "vue", label: "Vue" },
+						],
+					}),
+				},
+				{ button: buttonItem },
+			),
+			{ allowInfer: true },
+		);
+
+		expect(context).toEqual({ framework: "react" });
+		expect(promptsMocks.selectInput).not.toHaveBeenCalled();
+		expect(promptsMocks.confirmInput).toHaveBeenCalledWith(
+			expect.stringMatching(/Detected .*react.* for .*Framework.* Use this\?/u),
+			{},
+			true,
+		);
+	});
+
+	test("it should preselect Yes on an optional boolean when a handler infers true because the detected answer should be the visible default", async () => {
+		promptsMocks.selectInput.mockResolvedValue("true");
+
+		const context = await captureShared(
+			registryWith(
+				{
+					verbose: selectCondition({
+						label: "Verbose",
+						kind: RegistryConditionKind.BOOLEAN,
+						description: "Enable verbose output?",
+						required: undefined,
+						values: [],
+						default: true,
+					}),
+				},
+				{ button: itemRequiring(["verbose"]) },
+			),
+			{ allowInfer: true },
+		);
+
+		expect(context).toEqual({ verbose: true });
+		expect(promptsMocks.selectInput).toHaveBeenCalledWith(
+			"Enable verbose output?",
+			{
+				options: [
+					{ label: "Yes", value: "true" },
+					{ label: "No", value: "false" },
+					{ label: "None", value: "None" },
+				],
+			},
+			"true",
+		);
+	});
+
+	test("it should pass a handler-inferred true as the confirm default on a required boolean because the detected answer should be the visible default", async () => {
+		const context = await captureShared(
+			registryWith(
+				{
+					verbose: selectCondition({
+						label: "Verbose",
+						kind: RegistryConditionKind.BOOLEAN,
+						description: "Enable verbose output?",
+						required: true,
+						values: [],
+						default: true,
+					}),
+				},
+				{ button: itemRequiring(["verbose"]) },
+			),
+			{ allowInfer: true },
+		);
+
+		expect(context).toEqual({ verbose: true });
+		expect(promptsMocks.confirmInput).toHaveBeenCalledWith(
+			"Enable verbose output?",
+			{},
+			true,
+		);
+	});
+
+	test("it should prefill a required text prompt with the condition default because the declared default is a usable answer, not just a fallback", async () => {
+		promptsMocks.textInput.mockResolvedValue("from-default");
+
+		const context = await captureShared(
+			registryWith(
+				{
+					appName: selectCondition({
+						label: "App name",
+						kind: RegistryConditionKind.TEXT,
+						description: "What is the app called?",
+						required: true,
+						values: [],
+						default: "fallback-app",
+					}),
+				},
+				{ button: itemRequiring(["appName"]) },
+			),
+			{ allowInfer: true },
+		);
+
+		expect(context).toEqual({ appName: "from-default" });
+		expect(promptsMocks.textInput).toHaveBeenCalledWith(
+			"What is the app called?",
+			{ required: true },
+			"fallback-app",
+		);
+	});
+
+	test("it should fall back to the label in the prompt message when a condition has no description because the prompt still needs naming text", async () => {
+		const context = await captureShared(
+			registryWith(
+				{ framework: selectCondition({ description: undefined }) },
+				{ button: buttonItem },
+			),
+		);
+
+		expect(context).toEqual({ framework: "react" });
+		expect(promptsMocks.selectInput).toHaveBeenCalledWith(
+			"Framework",
+			expect.anything(),
+			undefined,
+		);
+	});
+
+	test("it should build the project script runtime itself when no runtime is passed because shared condition capture must work without a caller-supplied runtime", async () => {
+		const context = await captureRequiredConditions(
+			registryWith({ framework: selectCondition() }, { button: buttonItem }),
+			"/registry/registry.json",
+			"/proj",
+			["button"],
+			{ allowInfer: false },
+		);
+
+		expect(context).toEqual({ framework: "react" });
+	});
 });
 
 describe("captureItemLocalConditionsForPlan", () => {
+	test("it should reject a plan node that names an unknown registry item because the install plan must stay consistent with the catalog", async () => {
+		const registry = registryWith({}, { card: cardItem });
+		const plan: InstallNode[] = [{ itemId: "ghost", sources: [] }];
+
+		await expect(
+			captureItemLocalConditionsForPlan(
+				registry,
+				"/registry/registry.json",
+				["card"],
+				plan,
+				{},
+				stubRuntime(),
+				{ allowInfer: false },
+			),
+		).rejects.toThrowError(
+			'Install plan references unknown registry item "ghost".',
+		);
+	});
 	const cardItem: IndexItem = {
 		title: "Card",
 		description: "A card component",

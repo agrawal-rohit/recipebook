@@ -86,7 +86,9 @@ function windowRows(
 ): string[] {
 	const linesFor = (start: number, end: number): number => {
 		// Each hidden end costs one `...` marker line on top of the rows it replaces.
-		let lines = (start > 0 ? 1 : 0) + (end < rows.length ? 1 : 0);
+		let lines = 0;
+		if (start > 0) lines += 1;
+		if (end < rows.length) lines += 1;
 		for (const row of rows.slice(start, end)) lines += row.split("\n").length;
 		return lines;
 	};

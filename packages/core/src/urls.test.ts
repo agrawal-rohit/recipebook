@@ -225,6 +225,12 @@ describe("joinIndexSource", () => {
 		);
 	});
 
+	test("it should reject an empty index location because a blank registry location cannot anchor a join", () => {
+		expect(() => joinIndexSource("   ", "r/button.json")).toThrowError(
+			"Registry index location must not be empty.",
+		);
+	});
+
 	test("it should reject a source that escapes the registry directory because a local registry must not read outside its own tree", () => {
 		expect(() =>
 			joinIndexSource("/registry/registry.json", "../outside.json"),

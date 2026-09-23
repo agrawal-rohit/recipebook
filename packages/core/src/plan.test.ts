@@ -117,6 +117,14 @@ describe("buildInstallPlan install order", () => {
 			{ itemId: "setup", beforeWriteScripts: ["r/setup.js"] },
 		]);
 	});
+
+	test("it should reject a pack-less item with neither a payload source nor install scripts because it would install nothing", () => {
+		expect(() =>
+			buildInstallPlan(["bare"], { bare: item({}) }, {}),
+		).toThrowError(
+			'Registry item "bare" is missing a compiled item source or install phase.',
+		);
+	});
 });
 
 describe("buildInstallPlan pack selection", () => {
@@ -176,6 +184,22 @@ describe("buildInstallPlan pack selection", () => {
 			buildInstallPlan(["button"], { button: packsItem }, { extras: ["docs"] }),
 		).toEqual([{ itemId: "button", sources: ["r/button.json"] }]);
 	});
+	test("it should reject two matching packs whose multi-key when maps are identical because identity comparison must order every when key", () => {
+		const multiKeyWhen = { framework: "react", extras: "lint" };
+		const ambiguous = item({
+			packs: [
+				pack("first", { when: { ...multiKeyWhen } }),
+				pack("second", { when: { ...multiKeyWhen } }),
+			],
+		});
+		expect(() =>
+			buildInstallPlan(
+				["button"],
+				{ button: ambiguous },
+				{ framework: "react", extras: "lint" },
+			),
+		).toThrowError(/selected indistinguishable packs/);
+	});
 });
 
 describe("buildInstallPlan failures", () => {
@@ -230,6 +254,22 @@ describe("buildInstallPlan failures", () => {
 				framework: "react",
 			}),
 		).toThrowError(/selected conflicting packs/);
+	});
+
+	test("it should include a pinned pack whose when clause does not match the context because an explicit pin overrides condition matching", () => {
+		const items = {
+			button: item({
+				packs: [
+					pack("react", { when: { framework: "react" } }),
+					pack("vue", { when: { framework: "vue" } }),
+				],
+			}),
+		};
+		const plan = buildInstallPlan(["button@vue"], items, {
+			framework: "react",
+		});
+		expect(plan[0].packIds).toEqual(["react", "vue"]);
+		expect(plan[0].sources).toEqual(["r/react.json", "r/vue.json"]);
 	});
 
 	test("it should reject a pin on a pack-less item and a pin naming an unknown pack because pins must reference real packs", () => {
@@ -296,6 +336,15 @@ describe("packageManager planning", () => {
 		expect(
 			catalogNeedsPackageManager([entry("button", { source: "r/x.json" })]),
 		).toBe(false);
+		expect(
+			catalogNeedsPackageManager([
+				entry("button", {
+					conditions: {
+						pkgManager: condition({ when: { packageManager: "npm" } }),
+					},
+				}),
+			]),
+		).toBe(true);
 	});
 
 	test("it should report a dropped dependsOn only when the chosen manager rules out a still-possible pack because candidate walks over-approximate", () => {
@@ -419,6 +468,30 @@ describe("collectRequiredConditions", () => {
 			}),
 		];
 		expect(collectRequiredConditions(entries, {}, {})).toEqual([]);
+	});
+
+	test("it should surface required boolean and text conditions without selectable values because non-select kinds prompt without option lists", () => {
+		const strict = condition({
+			label: "Strict mode",
+			kind: RegistryConditionKind.BOOLEAN,
+			values: undefined,
+			required: true,
+		});
+		expect(
+			collectRequiredConditions(
+				[entry("alpha", { requires: ["strict"] })],
+				{ strict },
+				{},
+			),
+		).toEqual([
+			{
+				key: "strict",
+				label: "Strict mode",
+				kind: RegistryConditionKind.BOOLEAN,
+				values: [],
+				required: true,
+			},
+		]);
 	});
 });
 
@@ -574,7 +647,7 @@ describe("assumeContextFromSelectedItems", () => {
 });
 
 describe("plan helpers", () => {
-	test("uniqueKnownRegistryItems should dedupe tokens first-wins and validate ids and pins because selection must reference real catalog entries", () => {
+	test("it should dedupe tokens first-wins and validate ids and pins on uniqueKnownRegistryItems because selection must reference real catalog entries", () => {
 		const items = {
 			button: item({ packs: [pack("react")] }),
 		};
@@ -589,7 +662,7 @@ describe("plan helpers", () => {
 		);
 	});
 
-	test("packWhenUsesCapturedKeys should be true exactly when a captured key appears in a pack when map because only those keys can change selection", () => {
+	test("it should be true exactly when a captured key appears in a pack when map on packWhenUsesCapturedKeys because only those keys can change selection", () => {
 		const entries: IndexEntry[] = [
 			entry("alpha", {
 				packs: [pack("react", { when: { framework: "react" } })],
@@ -715,5 +788,587 @@ describe("whenMatchesContext value-type matching", () => {
 		expect(
 			whenMatchesContext({ k: "a" }, {}, undefined, { allowUndecided: true }),
 		).toBe(true);
+	});
+
+	test("it should still match decided keys while allowUndecided tolerates gaps because tolerance must not loosen satisfied matchers", () => {
+		expect(
+			whenMatchesContext({ k: "a" }, { k: "b" }, undefined, {
+				allowUndecided: true,
+			}),
+		).toBe(false);
+	});
+
+	test("it should compare the selected package manager against the matcher because pack `when` gates on the runtime choice", () => {
+		expect(
+			whenMatchesContext(
+				{ packageManager: "pnpm" },
+				{},
+				NpmPackageManager.PNPM,
+			),
+		).toBe(true);
+		expect(
+			whenMatchesContext({ packageManager: "pnpm" }, {}, NpmPackageManager.NPM),
+		).toBe(false);
+	});
+});
+
+describe("buildInstallPlan selection output shapes", () => {
+	test("it should emit afterInstallScripts for scripts-only items because post-install hooks need a payload channel", () => {
+		expect(
+			buildInstallPlan(
+				["post"],
+				{ post: item({ afterInstall: ["r/after.js"] }) },
+				{},
+			),
+		).toEqual([{ itemId: "post", afterInstallScripts: ["r/after.js"] }]);
+	});
+
+	test("it should omit packIds when a packed item matches no pack because an empty overlay list is not a selection", () => {
+		const gated = item({
+			source: "r/button.json",
+			packs: [pack("react", { when: { framework: "react" } })],
+		});
+		expect(
+			buildInstallPlan(["button"], { button: gated }, { framework: "vue" }),
+		).toEqual([{ itemId: "button", sources: ["r/button.json"] }]);
+	});
+});
+
+describe("collectPresentWhenValues shapes", () => {
+	test("it should register a boolean when key as a valueless condition because boolean packs still need prompting", () => {
+		const entries: IndexEntry[] = [
+			entry("alpha", {
+				packs: [pack("docs", { when: { docs: true } })],
+			}),
+		];
+		expect(
+			collectRequiredConditions(
+				entries,
+				{
+					docs: condition({
+						label: "Docs",
+						kind: RegistryConditionKind.BOOLEAN,
+						values: [],
+					}),
+				},
+				{},
+			),
+		).toEqual([
+			{
+				key: "docs",
+				label: "Docs",
+				kind: RegistryConditionKind.BOOLEAN,
+				values: [],
+			},
+		]);
+	});
+
+	test("it should register multiselect when values by collecting list entries because any listed value keeps the pack possible", () => {
+		const multi = condition({
+			label: "Extras",
+			kind: RegistryConditionKind.MULTISELECT,
+			values: [
+				{ value: "lint", label: "Lint" },
+				{ value: "format", label: "Format" },
+				{ value: "docs", label: "Docs" },
+			],
+		});
+		const entries: IndexEntry[] = [
+			entry("alpha", {
+				packs: [
+					pack("lint", { when: { extras: ["lint", "docs"] } }),
+					pack("fmt", { when: { extras: ["format"] } }),
+				],
+			}),
+		];
+		const required = collectRequiredConditions(entries, { extras: multi }, {});
+		expect(required.map((entry) => entry.key)).toEqual(["extras"]);
+		expect(required[0].values.map((value) => value.value)).toEqual([
+			"lint",
+			"format",
+			"docs",
+		]);
+	});
+});
+
+describe("collectDeclaredScriptUris filter arms", () => {
+	const handlerRegistry: Registry = {
+		types: { component: { label: "Components" } },
+		conditions: {
+			bare: condition({ label: "Bare" }),
+		},
+		items: {
+			button: item({
+				requires: ["bare"],
+				packs: [pack("react", { when: { bare: "x" } })],
+			}),
+		},
+	};
+
+	test("it should harvest only handler-bearing conditions from requires and pack-when keys because handler-less conditions are prompt-only", () => {
+		const { infer, mutation } = collectDeclaredScriptUris(
+			handlerRegistry,
+			["button"],
+			{ context: {} },
+		);
+		expect(infer).toEqual([]);
+		expect(mutation).toEqual([]);
+		const withHandler: Registry = {
+			...handlerRegistry,
+			conditions: {
+				...handlerRegistry.conditions,
+				bare: condition({ label: "Bare", handler: "r/infer-bare.js" }),
+			},
+		};
+		expect(
+			collectDeclaredScriptUris(withHandler, ["button"], { context: {} }).infer,
+		).toEqual(["r/infer-bare.js"]);
+	});
+
+	test("it should skip handlers whose condition when fails because ruled-out inferers must not run", () => {
+		const gated: Registry = {
+			types: { component: { label: "Components" } },
+			conditions: {
+				framework: condition({
+					handler: "r/infer-framework.js",
+					when: { stage: "prod" },
+				}),
+				stage: condition({ label: "Stage" }),
+			},
+			items: {
+				button: item({
+					packs: [pack("react", { when: { framework: "react" } })],
+				}),
+			},
+		};
+		expect(
+			collectDeclaredScriptUris(gated, ["button"], {
+				context: { stage: "dev" },
+			}).infer,
+		).toEqual([]);
+		expect(
+			collectDeclaredScriptUris(gated, ["button"], {
+				context: { stage: "prod" },
+			}).infer,
+		).toEqual(["r/infer-framework.js"]);
+	});
+
+	test("it should default the context to empty and skip items missing from the registry because options are optional and ids may be stale", () => {
+		const withItem: Registry = {
+			types: { component: { label: "Components" } },
+			conditions: { framework: condition({ handler: "r/infer.js" }) },
+			items: {
+				button: item({ requires: ["framework"] }),
+			},
+		};
+		expect(collectDeclaredScriptUris(withItem, ["button"])).toEqual({
+			infer: ["r/infer.js"],
+			mutation: [],
+		});
+		expect(collectDeclaredScriptUris(withItem, ["ghost"])).toEqual({
+			infer: [],
+			mutation: [],
+		});
+	});
+});
+
+describe("collectRegistryDependencies candidate closure", () => {
+	test("it should include item-level dependsOn and skip deps of context-ruled-out packs because the closure must stay installable", () => {
+		const items = {
+			button: item({
+				packs: [
+					pack("react", {
+						when: { framework: "react" },
+						dependsOn: ["react-dep"],
+					}),
+					pack("vue", { when: { framework: "vue" }, dependsOn: ["vue-dep"] }),
+				],
+			}),
+			"react-dep": item({ source: "r/react-dep.json" }),
+			"vue-dep": item({ source: "r/vue-dep.json" }),
+		};
+		expect(
+			collectRegistryDependencies(["button"], items, { framework: "vue" }).map(
+				(e) => e.itemId,
+			),
+		).toEqual(["button", "vue-dep"]);
+	});
+
+	test("it should resolve dependsOn through pack pins and ignore duplicate references because tokens may pin dependencies", () => {
+		const items = {
+			button: item({
+				dependsOn: ["lib"],
+				packs: [pack("react", { dependsOn: ["lib@bundled"] })],
+			}),
+			lib: item({ source: "r/lib.json", packs: [pack("bundled")] }),
+		};
+		expect(
+			collectRegistryDependencies(["button"], items, {}).map((e) => e.itemId),
+		).toEqual(["button", "lib"]);
+		expect(
+			collectRegistryDependencies(["button@react"], items, {}).map(
+				(e) => e.itemId,
+			),
+		).toEqual(["button", "lib"]);
+	});
+});
+
+describe("packageManagerDropsCandidateDependsOn edges", () => {
+	test("it should ignore manager-dependent packs without dependsOn because dropped edges need a dep to drop", () => {
+		const entries: IndexEntry[] = [
+			entry("button", {
+				packs: [pack("pnpm-only", { when: { packageManager: "pnpm" } })],
+			}),
+		];
+		expect(
+			packageManagerDropsCandidateDependsOn(
+				entries,
+				["button"],
+				{},
+				NpmPackageManager.NPM,
+			),
+		).toBe(false);
+	});
+});
+
+describe("visitInstallNode revisit pinning", () => {
+	test("it should accept a second pin matching the first selection because diamond graphs revisit items", () => {
+		const items = {
+			app: item({ source: "r/app.json", dependsOn: ["button"] }),
+			gate: item({ source: "r/gate.json", dependsOn: ["button@react"] }),
+			button: item({
+				source: "r/button.json",
+				packs: [
+					pack("react", { when: { framework: "react" } }),
+					pack("vue", { when: { framework: "vue" } }),
+				],
+			}),
+		};
+		expect(
+			buildInstallPlan(["app", "gate"], items, { framework: "react" }).map(
+				(node) => node.itemId,
+			),
+		).toEqual(["button", "app", "gate"]);
+	});
+
+	test("it should throw when a dependency cycle is entered mid-walk because partially visited stacks are cycles", () => {
+		const items = {
+			a: item({ source: "r/a.json", dependsOn: ["b"] }),
+			b: item({ source: "r/b.json", dependsOn: ["b"] }),
+		};
+		expect(() => buildInstallPlan(["a"], items, {})).toThrowError(
+			'Registry dependency cycle detected at "b".',
+		);
+	});
+});
+
+describe("collectItemLocalConditions edge arms", () => {
+	test("it should skip items without local conditions and prompt non-select locals without option lists because text prompts need no values", () => {
+		const entries: IndexEntry[] = [
+			entry("plain", { source: "r/plain.json" }),
+			entry("alpha", {
+				conditions: {
+					name: condition({
+						label: "Name",
+						kind: RegistryConditionKind.TEXT,
+						values: undefined,
+					}),
+				},
+			}),
+		];
+		expect(collectItemLocalConditions(entries, {})).toEqual([
+			{
+				key: "name",
+				label: "Name",
+				kind: RegistryConditionKind.TEXT,
+				values: [],
+			},
+		]);
+	});
+
+	test("it should skip local conditions whose own when is unsatisfied because gated locals prompt only when reachable", () => {
+		const entries: IndexEntry[] = [
+			entry("alpha", {
+				conditions: {
+					tier: condition({ when: { stage: "prod" } }),
+					name: condition({
+						label: "Name",
+						kind: RegistryConditionKind.TEXT,
+						values: undefined,
+					}),
+				},
+			}),
+		];
+		const local = collectItemLocalConditions(entries, {});
+		expect(local.map((entry) => entry.key)).toEqual(["name"]);
+		expect(
+			collectItemLocalConditions(entries, { stage: "prod" }).map(
+				(entry) => entry.key,
+			),
+		).toEqual(["name", "tier"]);
+	});
+});
+
+describe("buildRequiredCondition optional fields", () => {
+	test("it should carry description, handler, and default onto the required condition because the CLI renders them", () => {
+		const rich = condition({
+			description: "Pick a framework",
+			handler: "r/infer.js",
+			default: "react",
+		});
+		const entries: IndexEntry[] = [entry("alpha", { requires: ["framework"] })];
+		expect(collectRequiredConditions(entries, { framework: rich }, {})).toEqual(
+			[
+				{
+					key: "framework",
+					label: "Framework",
+					kind: RegistryConditionKind.SELECT,
+					values: [
+						{ value: "react", label: "React" },
+						{ value: "vue", label: "Vue" },
+					],
+					description: "Pick a framework",
+					handler: "r/infer.js",
+					default: "react",
+				},
+			],
+		);
+	});
+});
+
+describe("assumeContextFromSelectedItems edge arms", () => {
+	test("it should skip plain tokens, reject unknown items, and tolerate pins without when maps because seeding only applies to declared pins", () => {
+		const items = {
+			button: item({ source: "r/button.json", packs: [pack("react")] }),
+		};
+		expect(assumeContextFromSelectedItems(["button"], items, {})).toEqual({});
+		expect(assumeContextFromSelectedItems(["button@react"], items, {})).toEqual(
+			{},
+		);
+		expect(() =>
+			assumeContextFromSelectedItems(["ghost@react"], items, {}),
+		).toThrowError('Registry item not found: "ghost".');
+	});
+});
+
+describe("seedPinnedPackWhen multiselect and pin conflicts", () => {
+	test("it should merge multiselect values from two pins instead of conflicting because multiselect accumulates", () => {
+		const conditions = {
+			extras: condition({
+				label: "Extras",
+				kind: RegistryConditionKind.MULTISELECT,
+				values: [
+					{ value: "lint", label: "Lint" },
+					{ value: "format", label: "Format" },
+				],
+			}),
+		};
+		const items = {
+			button: item({
+				packs: [
+					pack("lint", { when: { extras: ["lint"] } }),
+					pack("fmt", { when: { extras: ["format"] } }),
+				],
+			}),
+		};
+		expect(
+			assumeContextFromSelectedItems(
+				["button@lint", "button@fmt"],
+				items,
+				conditions,
+			),
+		).toEqual({
+			extras: ["lint", "format"],
+		});
+	});
+
+	test("it should tolerate a pinned pack seeding the same scalar value twice because equal pins do not conflict", () => {
+		const conditions = { framework: condition() };
+		const items = {
+			button: item({
+				packs: [pack("react", { when: { framework: "react" } })],
+			}),
+		};
+		expect(
+			assumeContextFromSelectedItems(
+				["button@react", "button@react"],
+				items,
+				conditions,
+			),
+		).toEqual({
+			framework: "react",
+		});
+	});
+});
+
+describe("collectRequiredConditions packageManager runtime key", () => {
+	test("it should not consult the conditions table for the reserved key because core owns the runtime value", () => {
+		const entries: IndexEntry[] = [
+			entry("alpha", {
+				requires: ["packageManager"],
+			}),
+		];
+		expect(
+			collectRequiredConditions(entries, {}, {}, NpmPackageManager.NPM, [
+				"alpha",
+			]),
+		).toEqual([]);
+	});
+});
+
+describe("plan branch sweep", () => {
+	test("it should omit sources from a packed item that matched nothing but has install phases because scripts-only packed items stay installable", () => {
+		const gated = item({
+			packs: [pack("react", { when: { framework: "react" } })],
+			beforeWrite: ["r/before.js"],
+		});
+		expect(
+			buildInstallPlan(["button"], { button: gated }, { framework: "vue" }),
+		).toEqual([{ itemId: "button", beforeWriteScripts: ["r/before.js"] }]);
+	});
+
+	test("it should ignore when values from context-ruled-out packs because ruled-out packs must not widen prompts", () => {
+		const entries: IndexEntry[] = [
+			entry("alpha", {
+				packs: [
+					pack("react", { when: { framework: "react", extras: "lint" } }),
+					pack("vue", { when: { framework: "vue" } }),
+				],
+			}),
+		];
+		expect(
+			collectRequiredConditions(
+				entries,
+				{ extras: condition({ label: "Extras" }) },
+				{ framework: "vue" },
+			),
+		).toEqual([]);
+	});
+
+	test("it should tolerate relevant packs without when maps because unconditional packs register nothing", () => {
+		const entries: IndexEntry[] = [
+			entry("alpha", { source: "r/a.json", packs: [pack("base")] }),
+		];
+		expect(collectRequiredConditions(entries, {}, {})).toEqual([]);
+	});
+
+	test("it should visit shared dependency targets once in the candidate closure because diamonds must not duplicate entries", () => {
+		const items = {
+			app: item({ dependsOn: ["b", "c"] }),
+			b: item({ dependsOn: ["d"] }),
+			c: item({ dependsOn: ["d"] }),
+			d: item({ source: "r/d.json" }),
+		};
+		expect(
+			collectRegistryDependencies(["app"], items).map((e) => e.itemId),
+		).toEqual(["app", "b", "d", "c"]);
+	});
+
+	test("it should reject a missing dependency in the candidate closure because walks cannot continue without documents", () => {
+		expect(() => collectRegistryDependencies(["ghost"], {})).toThrowError(
+			'Registry item not found: "ghost".',
+		);
+	});
+
+	test("it should scan packs without when maps for declared scripts because unconditional packs still declare hooks", () => {
+		const registry: Registry = {
+			types: { component: { label: "Components" } },
+			conditions: { framework: condition({ handler: "r/infer.js" }) },
+			items: {
+				button: item({
+					requires: ["framework"],
+					packs: [pack("base", { beforeWrite: ["r/pack-before.js"] })],
+				}),
+			},
+		};
+		expect(collectDeclaredScriptUris(registry, ["button"])).toEqual({
+			infer: ["r/infer.js"],
+			mutation: ["r/pack-before.js"],
+		});
+	});
+
+	test("it should report no dropped dependsOn for packs already ruled out by context because dead packs cannot drop edges", () => {
+		const entries: IndexEntry[] = [
+			entry("alpha", {
+				packs: [
+					pack("react", { when: { framework: "react" }, dependsOn: ["lib"] }),
+				],
+			}),
+		];
+		expect(
+			packageManagerDropsCandidateDependsOn(
+				entries,
+				["alpha"],
+				{ framework: "vue" },
+				NpmPackageManager.PNPM,
+			),
+		).toBe(false);
+	});
+
+	test("it should allow a plain-token revisit of a planned item because unpinned re-requests cannot conflict", () => {
+		const items = {
+			button: item({
+				source: "r/button.json",
+				packs: [pack("react", { when: { framework: "react" } })],
+			}),
+		};
+		expect(
+			buildInstallPlan(["button", "button"], items, { framework: "react" }),
+		).toEqual([
+			{
+				itemId: "button",
+				packIds: ["react"],
+				sources: ["r/button.json", "r/react.json"],
+			},
+		]);
+	});
+
+	test("it should throw when a select condition declares no values because a select prompt without options cannot proceed", () => {
+		const noValues = condition({ values: undefined }) as RegistryCondition;
+		expect(() =>
+			collectRequiredConditions(
+				[entry("alpha", { requires: ["framework"] })],
+				{ framework: noValues },
+				{},
+			),
+		).toThrowError(
+			'Condition "framework" has no selectable values for the current install set.',
+		);
+	});
+
+	test("it should skip shared conditions whose own when is unsatisfied because gated conditions prompt only when reachable", () => {
+		const gated = condition({ when: { stage: "prod" } });
+		const entries: IndexEntry[] = [entry("alpha", { requires: ["framework"] })];
+		expect(
+			collectRequiredConditions(
+				entries,
+				{ framework: gated },
+				{ stage: "dev" },
+			),
+		).toEqual([]);
+		expect(
+			collectRequiredConditions(
+				entries,
+				{ framework: gated },
+				{ stage: "prod" },
+			).map((entry) => entry.key),
+		).toEqual(["framework"]);
+	});
+
+	test("it should skip the reserved packageManager key when seeding pinned pack conditions because core selects the manager", () => {
+		const items = {
+			button: item({
+				packs: [
+					pack("pnpm", {
+						when: { packageManager: "pnpm", framework: "react" },
+					}),
+				],
+			}),
+		};
+		expect(
+			assumeContextFromSelectedItems(["button@pnpm"], items, {
+				framework: condition(),
+			}),
+		).toEqual({ framework: "react" });
 	});
 });

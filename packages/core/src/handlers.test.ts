@@ -6,6 +6,7 @@ import type { RegistryPackageManager } from "./index";
 import {
 	type CompiledItem,
 	createHandlerRuntime,
+	getScriptExecutor,
 	type HandlerRuntime,
 	inferConditionDefault,
 	isFileAsync,
@@ -205,6 +206,22 @@ describe("runBeforeWriteHook", () => {
 		expect(state.secrets).toEqual(["OTHER", "TOKEN"]);
 	});
 
+	test("it should accept null-prototype hook results because structuredClone and Object.create(null) outputs are plain records", async () => {
+		fs.writeFileSync(
+			path.join(registryDir, "r/hook.js"),
+			"module.exports = async () => { const result = Object.create(null); result.bindings = { hookKey: 'hookValue' }; return result; };",
+		);
+
+		const state = await runBeforeWriteHook(
+			indexLocation(),
+			"r/hook.js",
+			realRuntime(),
+			hookOptions(),
+		);
+
+		expect(state.bindings).toEqual({ hookKey: "hookValue" });
+	});
+
 	test("it should pass the hook the item identity, conditions, bindings, and working payload because scripts plan around install state", async () => {
 		fs.writeFileSync(
 			path.join(registryDir, "r/hook.js"),
@@ -273,6 +290,58 @@ describe("runBeforeWriteHook", () => {
 		}
 	});
 
+	test("it should reject malformed hook payload fields because hook output is trusted data", async () => {
+		// Distinct script names per case: the in-process require cache is keyed by
+		// realpath, which differs from the /var symlink on macOS tmpdirs.
+		const cases: Array<[string, RegExp]> = [
+			[
+				"module.exports = async () => ({ bindings: 'nope' });",
+				/bindings must be an object/,
+			],
+			[
+				"module.exports = async () => ({ bindings: { k: 5 } });",
+				/binding "k" must be a string/,
+			],
+			[
+				"module.exports = async () => ({ commands: { npm: 'tsc' } });",
+				/commands\.npm must be an object/,
+			],
+			[
+				"module.exports = async () => ({ commands: 'tsc' });",
+				/commands must be an object/,
+			],
+			[
+				"module.exports = async () => ({ commands: { deno: {} } });",
+				/commands has unknown ecosystem "deno"/,
+			],
+			[
+				"module.exports = async () => ({ dependencies: { npm: 'zod' } });",
+				/dependencies\.npm must be an object/,
+			],
+			[
+				"module.exports = async () => ({ removeFiles: 'src/old.txt' });",
+				/removeFiles must be an array/,
+			],
+			[
+				"module.exports = async () => ({ removeFiles: [5] });",
+				/removeFiles entries must be non-empty strings/,
+			],
+		];
+		let caseIndex = 0;
+		for (const [script, expected] of cases) {
+			const scriptUri = `r/malformed-${caseIndex++}.js`;
+			fs.writeFileSync(path.join(registryDir, scriptUri), script);
+			await expect(
+				runBeforeWriteHook(
+					indexLocation(),
+					scriptUri,
+					realRuntime(),
+					hookOptions(),
+				),
+			).rejects.toThrowError(expected);
+		}
+	});
+
 	test("it should reject a non-function export because the hook contract is a function", async () => {
 		fs.writeFileSync(
 			path.join(registryDir, "r/hook.js"),
@@ -322,6 +391,17 @@ describe("runAfterInstallHook", () => {
 		).rejects.toThrowError(
 			'After-install hook at "r/hook.js" must not return a value.',
 		);
+	});
+});
+
+describe("getScriptExecutor", () => {
+	test("it should expose the installed executor and undefined after reset because install flows must be able to inspect the active loader", () => {
+		expect(getScriptExecutor()).toBeUndefined();
+		const executor: ScriptExecutor = { loadModule: vi.fn() };
+		setScriptExecutor(executor);
+		expect(getScriptExecutor()).toBe(executor);
+		setScriptExecutor(undefined);
+		expect(getScriptExecutor()).toBeUndefined();
 	});
 });
 
@@ -437,6 +517,21 @@ describe("inferConditionDefault", () => {
 		).toBe("vue");
 	});
 
+	test("it should pass the condition description and declared values to the infer hook because handlers prompt with full context", async () => {
+		fs.writeFileSync(
+			path.join(registryDir, "r/infer.js"),
+			"module.exports = { infer: async (ctx) => (ctx.description === 'Pick one' && Array.isArray(ctx.values) && ctx.values.length === 2 ? 'react' : undefined) };",
+		);
+		expect(
+			await inferConditionDefault(
+				indexLocation(),
+				inferCondition({ description: "Pick one" }),
+				realRuntime(),
+				{},
+			),
+		).toBe("react");
+	});
+
 	test("it should skip the handler entirely when allowHandler is false because some install flows disable inference", async () => {
 		expect(
 			await inferConditionDefault(
@@ -476,6 +571,28 @@ describe("inferConditionDefault", () => {
 				{},
 			),
 		).toBe("my-app");
+	});
+
+	test("it should omit values from the handler context and fall back to the static default when the condition declares no values because boolean and text kinds carry no option list", async () => {
+		fs.writeFileSync(
+			path.join(registryDir, "r/infer.js"),
+			"module.exports = { infer: async (ctx) => {\n" +
+				"\t\tif ('values' in ctx) throw new Error('values leaked');\n" +
+				"\t\treturn true;\n" +
+				"\t} };",
+		);
+		expect(
+			await inferConditionDefault(
+				indexLocation(),
+				inferCondition({
+					kind: RegistryConditionKind.BOOLEAN,
+					values: [],
+					default: true,
+				}),
+				realRuntime(),
+				{},
+			),
+		).toBe(true);
 	});
 
 	test("it should return undefined when nothing can be suggested because prompting proceeds without a default", async () => {
@@ -522,5 +639,39 @@ describe("runInstallHookOptions", () => {
 		expect(
 			runInstallHookOptions({ itemId: "button", packIds: ["react"] }, rest),
 		).toEqual({ itemId: "button", packIds: ["react"], ...rest });
+	});
+});
+
+describe("createHandlerRuntime realpath and directory edges", () => {
+	test("it should delegate isDirectory to the provided helper because production injects a stat-based check", async () => {
+		const isDirectory = vi.fn(async () => true);
+		const runtime = createHandlerRuntime(projectDir, {
+			isFile: async () => false,
+			isDirectory,
+			readFile: async () => "",
+			run: async () => "",
+		});
+
+		expect(await runtime.isDirectory("src")).toBe(true);
+		expect(isDirectory).toHaveBeenCalledWith(path.join(projectDir, "src"));
+	});
+
+	test("it should rethrow realpath failures other than missing paths because silent confinement loosening is unsafe", () => {
+		const spy = vi.spyOn(fs, "realpathSync").mockImplementation(() => {
+			throw Object.assign(new Error("EACCES: permission denied"), {
+				code: "EACCES",
+			});
+		});
+		try {
+			expect(() =>
+				createHandlerRuntime(projectDir, {
+					isFile: async () => false,
+					readFile: async () => "",
+					run: async () => "",
+				}),
+			).toThrowError("EACCES: permission denied");
+		} finally {
+			spy.mockRestore();
+		}
 	});
 });

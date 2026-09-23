@@ -42,7 +42,7 @@ function usageLineCount(logSpy: { mock: { calls: unknown[][] } }): number {
 		.filter((line) => line.includes("Usage:")).length;
 }
 
-describe("cli run()", () => {
+describe("run", () => {
 	let previousArgv: string[];
 
 	beforeEach(() => {
