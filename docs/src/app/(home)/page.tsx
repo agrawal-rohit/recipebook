@@ -11,7 +11,7 @@ export default function HomePage() {
             "radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--color-primary) 25%, transparent), transparent 70%), var(--color-background)",
         }}
       />
-      <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-(--fd-layout-width) flex-col justify-center px-4 py-10 md:py-12">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-(--fd-layout-width) flex-col justify-center px-6 py-10 md:py-12">
         <section className="grid min-w-0 items-center gap-10 md:grid-cols-2 md:gap-12 lg:gap-16">
           <div className="flex min-w-0 flex-col gap-6">
             <div className="flex flex-col gap-4">
