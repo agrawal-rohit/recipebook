@@ -238,7 +238,7 @@ describe("add command pre-run source validation", () => {
 
 		await vi.waitFor(() => expect(addMock).toHaveBeenCalledTimes(1));
 		expect(configSetMock).toHaveBeenCalledTimes(1);
-		expect(configSetMock).toHaveBeenCalledWith(undefined);
+		expect(configSetMock).toHaveBeenCalledWith();
 		expect(loadRegistry).toHaveBeenCalledTimes(2);
 		expect(addMock.mock.calls[0]?.[0]).toBe(fakeRegistry.registry);
 		expect(addMock.mock.calls[0]?.[1]).toBe(fakeRegistry.indexLocation);
