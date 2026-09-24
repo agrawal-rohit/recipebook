@@ -126,3 +126,25 @@ html > body[data-scroll-locked] {
     margin-inline-end: 0;
   }
 }
+
+/* Home navbar transparent state (top of page, mobile menu closed): fumadocs
+   adds bg-fd-background/80 on the nav root only once it turns opaque, so its
+   absence is the signal for the initial state. */
+#nd-nav {
+  transition: height 150ms;
+}
+
+#nd-nav:has(> nav:not(.bg-fd-background\/80)) {
+  height: 4.5rem;
+}
+
+#nd-nav > nav {
+  transition-property:
+    box-shadow, background-color, border-radius, border-bottom-width,
+    padding-block;
+}
+
+#nd-nav > nav:not(.bg-fd-background\/80) {
+  border-bottom-width: 0;
+  padding-block: 0.5rem;
+}

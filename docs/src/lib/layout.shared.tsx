@@ -1,13 +1,17 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import { Logo } from "@/components/logo";
 import { appName, docsRoute, githubURL } from "./shared";
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
       title: (
-        <p className="font-medium tracking-tight text-lg lowercase">
-          {appName}
-        </p>
+        <div className="flex items-center gap-2">
+          <Logo />
+          <p className="font-medium tracking-tight text-lg lowercase">
+            {appName}
+          </p>
+        </div>
       ),
     },
     links: [
