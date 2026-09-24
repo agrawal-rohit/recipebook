@@ -15,7 +15,7 @@ html > body[data-scroll-locked] {
   --font-sans: "Mona Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
   /* Custom Palette */
-  --color-primary: #f59e0b;
+  --color-primary: #f18290;
   --color-destructive: #ef4444;
   --color-warning: #fe9900;
   --color-success: #00bd7d;

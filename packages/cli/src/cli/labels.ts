@@ -6,7 +6,7 @@ import chalk from "chalk";
  * @returns Styled string with brand hex color.
  */
 export const primaryText = (message: string): string =>
-	chalk.hex("#F59E0B")(message);
+	chalk.hex("#F18290")(message);
 
 /**
  * Muted secondary text for CLI output.
