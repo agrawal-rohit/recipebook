@@ -335,7 +335,9 @@ async function materializeCompiledItemFiles(
 function joinTargetUnder(targetRoot: string, innerPath: string): string {
 	if (!targetRoot || targetRoot === ".")
 		return innerPath.split(path.sep).join("/");
-	const trimmed = targetRoot.replace(/[/\\]+$/, "");
+	let trimmed = targetRoot;
+	while (trimmed.endsWith("/") || trimmed.endsWith("\\"))
+		trimmed = trimmed.slice(0, -1);
 	return `${trimmed}/${innerPath.split(path.sep).join("/")}`;
 }
 

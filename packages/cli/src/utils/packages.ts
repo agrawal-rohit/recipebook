@@ -137,18 +137,15 @@ export async function mergeProjectCommands(
 			continue;
 		/* v8 ignore stop */
 
-		switch (ecosystem) {
-			case RegistryEcosystem.NPM:
-				await mergeNpmProjectCommands(projectDir, ecosystemCommands, overwrite);
-				break;
+		if (ecosystem === RegistryEcosystem.NPM) {
+			await mergeNpmProjectCommands(projectDir, ecosystemCommands, overwrite);
+		} else {
 			/* v8 ignore start */
 			// Stryker disable all: unreachable exhaustive default
-			default: {
-				const exhaustive: never = ecosystem;
-				throw new Error(
-					`Unsupported ecosystem for project commands: ${String(exhaustive)}`,
-				);
-			}
+			const exhaustive: never = ecosystem;
+			throw new Error(
+				`Unsupported ecosystem for project commands: ${String(exhaustive)}`,
+			);
 			// Stryker restore all
 			/* v8 ignore stop */
 		}

@@ -19,7 +19,7 @@ describe("unwrapModuleExport", () => {
 	});
 
 	test("it should pass null through unchanged because only objects can carry a default export", () => {
-		expect(unwrapModuleExport(null)).toBe(null);
+		expect(unwrapModuleExport(null)).toBeNull();
 	});
 
 	test("it should pass primitives through unchanged because only objects can carry a default export", () => {
