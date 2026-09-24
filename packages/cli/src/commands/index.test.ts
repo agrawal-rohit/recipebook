@@ -1,4 +1,4 @@
-import type { Registry } from "@yoinker/core";
+import type { Registry } from "@recipebook/core";
 import cac, { type CAC } from "cac";
 import {
 	afterEach,
@@ -43,7 +43,7 @@ const configUnsetMock = vi.mocked(configUnsetCommand);
 function noRegistrySourceError(): Error {
 	return Object.assign(
 		new Error(
-			"No registry source configured. Add one with `yoinker configure set <https URL or file path>`, set YOINKER_REGISTRY, or pass --registry <source>.",
+			"No registry source configured. Add one with `recipebook configure set <https URL or file path>`, set RECIPEBOOK_REGISTRY, or pass --registry <source>.",
 		),
 		{ name: "NoRegistrySourceError" },
 	);
@@ -61,20 +61,20 @@ function restoreIsTTY(): void {
 }
 
 async function runConfigureCli(args: string[]): Promise<void> {
-	const app = cac("yoinker");
+	const app = cac("recipebook");
 	registerCommandsCli(app, async () => {
 		throw new Error("registry loader must not run for configure commands");
 	});
-	await app.parse(["node", "yoinker", ...args]);
+	await app.parse(["node", "recipebook", ...args]);
 }
 
 async function runAddCli(
 	loadRegistry: () => Promise<LoadedRegistry>,
 	args: string[] = [],
 ): Promise<void> {
-	const app = cac("yoinker");
+	const app = cac("recipebook");
 	registerCommandsCli(app, loadRegistry);
-	await app.parse(["node", "yoinker", "add", ...args]);
+	await app.parse(["node", "recipebook", "add", ...args]);
 }
 
 describe("configure command wiring", () => {
@@ -155,7 +155,7 @@ describe("configure command wiring", () => {
 			`Unknown configure action "${action}"`,
 		);
 		expect(errorOutput.join("\n")).toContain(
-			"Usage: yoinker configure <get|set|unset> [source]",
+			"Usage: recipebook configure <get|set|unset> [source]",
 		);
 	});
 
@@ -579,7 +579,7 @@ describe("command argument guards against parser contract drift", () => {
 		await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1));
 		expect(errorOutput.join("\n")).toContain('Unknown configure action "42"');
 		expect(errorOutput.join("\n")).toContain(
-			"Usage: yoinker configure <get|set|unset> [source]",
+			"Usage: recipebook configure <get|set|unset> [source]",
 		);
 	});
 });

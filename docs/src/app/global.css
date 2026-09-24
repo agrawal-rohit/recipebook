@@ -1,12 +1,128 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+@import "tw-animate-css";
 
-html {
-  scrollbar-gutter: stable;
-}
+@custom-variant dark (&:is(.dark *));
 
 html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
+}
+
+@theme {
+  /* Typography */
+  --font-sans: "Mona Sans Variable", ui-sans-serif, system-ui, sans-serif;
+
+  /* Custom Palette */
+  --color-primary: #f59e0b;
+  --color-destructive: #ef4444;
+  --color-warning: #fe9900;
+  --color-success: #00bd7d;
+  --color-info: #3b82f6;
+
+  /* Neutral Colors */
+  --white: #ffffff;
+  --color-neutral-30: #fafbfc;
+  --color-neutral-50: #f8fafc;
+  --color-neutral-70: #f3f5f7;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+
+  /* Surface Colors */
+  --color-background: var(--white);
+  --color-accent: var(--color-neutral-100);
+  --color-border: var(--color-neutral-200);
+  --color-ring: var(--color-neutral-500);
+  --color-input: var(--color-neutral-300);
+
+  /* Text Colors */
+  --color-foreground: var(--color-neutral-800);
+  --color-primary-foreground: var(--white);
+  --color-accent-foreground: var(--color-neutral-900);
+  --color-muted: var(--color-neutral-500);
+  --color-muted-foreground: var(--color-neutral-600);
+}
+
+.dark {
+  --color-background: #0f172a;
+  --color-accent: #1e293b;
+  --color-border: #334155;
+  --color-ring: #94a3b8;
+  --color-input: #475569;
+  --color-foreground: #f8fafc;
+  --color-accent-foreground: #fafbfc;
+  --color-muted: #94a3b8;
+  --color-muted-foreground: #cbd5e1;
+}
+
+/* Fumadocs UI Palette */
+:root,
+.dark,
+.dark #nd-sidebar {
+  --color-fd-background: var(--color-background);
+  --color-fd-foreground: var(--color-foreground);
+  --color-fd-muted: var(--color-accent);
+  --color-fd-muted-foreground: var(--color-muted-foreground);
+  --color-fd-popover: var(--color-background);
+  --color-fd-popover-foreground: var(--color-foreground);
+  --color-fd-card: var(--color-accent);
+  --color-fd-card-foreground: var(--color-foreground);
+  --color-fd-border: var(--color-border);
+  --color-fd-primary: var(--color-primary);
+  --color-fd-primary-foreground: var(--color-primary-foreground);
+  --color-fd-secondary: var(--color-accent);
+  --color-fd-secondary-foreground: var(--color-accent-foreground);
+  --color-fd-accent: var(--color-accent);
+  --color-fd-accent-foreground: var(--color-accent-foreground);
+  --color-fd-ring: var(--color-ring);
+  --color-fd-overlay: color-mix(
+    in srgb,
+    var(--color-neutral-900) 20%,
+    transparent
+  );
+  --color-fd-info: var(--color-info);
+  --color-fd-warning: var(--color-warning);
+  --color-fd-error: var(--color-destructive);
+  --color-fd-success: var(--color-success);
+  --color-fd-idea: var(--color-primary);
+  --color-fd-diff-remove: color-mix(
+    in srgb,
+    var(--color-destructive) 12%,
+    transparent
+  );
+  --color-fd-diff-remove-symbol: var(--color-destructive);
+  --color-fd-diff-add: color-mix(
+    in srgb,
+    var(--color-success) 10%,
+    transparent
+  );
+  --color-fd-diff-add-symbol: var(--color-success);
+}
+
+.dark,
+.dark #nd-sidebar {
+  --color-fd-overlay: color-mix(in srgb, #0f172a 50%, transparent);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@media (max-width: 1023px) {
+  #nd-nav .ms-auto.-me-1\.5 {
+    margin-inline-end: 0;
+  }
 }

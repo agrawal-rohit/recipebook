@@ -1,4 +1,4 @@
-name: yoinker-codeql
+name: recipebook-codeql
 paths-ignore:
   - packages/*/dist
   - docs/.next

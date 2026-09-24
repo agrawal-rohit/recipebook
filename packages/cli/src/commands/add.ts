@@ -26,7 +26,7 @@ import {
 	selectPackageManager,
 	setScriptExecutor,
 	uniqueKnownRegistryItems,
-} from "@yoinker/core";
+} from "@recipebook/core";
 import chalk from "chalk";
 import { dimText, primaryText } from "../cli/labels";
 import { groupedSelectInput, selectInput } from "../cli/prompts";

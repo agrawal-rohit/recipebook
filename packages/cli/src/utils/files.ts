@@ -5,7 +5,7 @@ import {
 	isMissingPathError,
 	joinRelativePathUnderRoot,
 	writeFileAsync,
-} from "@yoinker/core";
+} from "@recipebook/core";
 import { primaryText } from "../cli/labels";
 import { confirmInput } from "../cli/prompts";
 

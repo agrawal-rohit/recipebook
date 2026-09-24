@@ -27,8 +27,12 @@ let registryDir: string;
 let projectDir: string;
 
 beforeEach(() => {
-	registryDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-handlers-reg-"));
-	projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-handlers-proj-"));
+	registryDir = fs.mkdtempSync(
+		path.join(os.tmpdir(), "recipebook-handlers-reg-"),
+	);
+	projectDir = fs.mkdtempSync(
+		path.join(os.tmpdir(), "recipebook-handlers-proj-"),
+	);
 	fs.mkdirSync(path.join(registryDir, "r"), { recursive: true });
 });
 
@@ -139,7 +143,7 @@ describe("createHandlerRuntime", () => {
 
 	test("it should reject symlinked paths that realpath outside the project because lexical confinement alone is bypassable", async () => {
 		const outsideDir = fs.mkdtempSync(
-			path.join(os.tmpdir(), "yoinker-handlers-out-"),
+			path.join(os.tmpdir(), "recipebook-handlers-out-"),
 		);
 		fs.writeFileSync(path.join(outsideDir, "secret.txt"), "secret");
 		fs.symlinkSync(outsideDir, path.join(projectDir, "link"));

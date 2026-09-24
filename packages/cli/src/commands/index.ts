@@ -9,7 +9,7 @@ import {
 	configUnsetCommand,
 } from "./config";
 
-/** Subcommands of `yoinker configure`, dispatched from one CAC command. */
+/** Subcommands of `recipebook configure`, dispatched from one CAC command. */
 enum ConfigureAction {
 	GET = "get",
 	SET = "set",
@@ -60,13 +60,13 @@ function optionalStringArg(value: unknown, label: string): string | undefined {
 }
 
 /**
- * Parse a `yoinker configure` action token.
+ * Parse a `recipebook configure` action token.
  * @param action - Raw CAC action argument.
  * @returns A known {@link ConfigureAction}.
  * @throws Error when `action` is not get, set, or unset.
  */
 function parseConfigureAction(action: unknown): ConfigureAction {
-	const usage = "Usage: yoinker configure <get|set|unset> [source]";
+	const usage = "Usage: recipebook configure <get|set|unset> [source]";
 	if (typeof action !== "string")
 		throw new Error(`Unknown configure action "${String(action)}". ${usage}`);
 
@@ -95,7 +95,7 @@ function assertNoConfigSource(
 }
 
 /**
- * Dispatch a parsed `yoinker configure` action.
+ * Dispatch a parsed `recipebook configure` action.
  * @param action - Raw CAC action argument.
  * @param source - Optional registry source from CAC.
  * @throws Error when the action is unknown, or get/unset is given a source.

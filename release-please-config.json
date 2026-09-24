@@ -8,7 +8,7 @@
 	"plugins": ["node-workspace"],
 	"packages": {
 		"packages/cli": {
-			"component": "yoinker"
+			"component": "recipebook"
 		},
 		"packages/core": {
 			"component": "core"

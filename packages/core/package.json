@@ -1,7 +1,7 @@
 {
-	"name": "@yoinker/core",
+	"name": "@recipebook/core",
 	"version": "0.2.1",
-	"description": "Shared primitives and utilities for building a `yoinker` registry",
+	"description": "Shared primitives and utilities for building a `recipebook` registry",
 	"license": "MIT",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",

@@ -6,19 +6,19 @@ import {
 	compiledItem,
 	NpmPackageManager,
 	type RegistryEcosystemDependencies,
-} from "@yoinker/core";
+} from "@recipebook/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { installDeclaredPackages, mergeProjectCommands } from "./packages";
 
 /**
- * `@yoinker/core` resolves to built CJS in node_modules, so `node:child_process`
+ * `@recipebook/core` resolves to built CJS in node_modules, so `node:child_process`
  * cannot be intercepted; mock the core shell wrapper instead, which is the
  * process boundary `installDeclaredPackages` actually calls.
  */
 const shellMocks = vi.hoisted(() => ({
 	runArgvAsync: vi.fn(),
 }));
-vi.mock("@yoinker/core", async (importOriginal) => ({
+vi.mock("@recipebook/core", async (importOriginal) => ({
 	...(await importOriginal()),
 	runArgvAsync: shellMocks.runArgvAsync,
 }));
@@ -47,7 +47,7 @@ beforeEach(() => {
 	// silence them so CI/tests stay quiet (restored by afterEach's restoreAllMocks).
 	vi.spyOn(console, "log").mockImplementation(() => {});
 	projectDir = fs.realpathSync(
-		fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-packages-")),
+		fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-packages-")),
 	);
 });
 

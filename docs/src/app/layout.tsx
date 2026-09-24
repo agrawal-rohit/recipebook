@@ -7,8 +7,8 @@ import "./global.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Yoinker | Declarative registries for anything you share",
-    template: "%s | Yoinker",
+    default: "Recipebook | Declarative registries for anything you share",
+    template: "%s | Recipebook",
   },
 };
 

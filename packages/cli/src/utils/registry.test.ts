@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { InvalidJsonError, sha256Integrity } from "@yoinker/core";
+import { InvalidJsonError, sha256Integrity } from "@recipebook/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import * as registryModule from "./registry";
 import {
@@ -22,15 +22,15 @@ const MINIMAL_REGISTRY_JSON = JSON.stringify({
 /** Minimal compiled item that passes `compiledItemSchema`. */
 const MINIMAL_ITEM_JSON = JSON.stringify({ files: [] });
 
-// Keep an ambient `YOINKER_REGISTRY` from leaking into tests that expect the
+// Keep an ambient `RECIPEBOOK_REGISTRY` from leaking into tests that expect the
 // saved-config path to be consulted.
 beforeEach(() => {
-	delete process.env.YOINKER_REGISTRY;
+	delete process.env.RECIPEBOOK_REGISTRY;
 });
 
 describe("locateRegistry source precedence", () => {
-	test("it should prefer an explicit --registry flag over YOINKER_REGISTRY and the saved config when both are set because the explicit flag is the highest-precedence source", async () => {
-		vi.stubEnv("YOINKER_REGISTRY", "https://env.example.com/registry.json");
+	test("it should prefer an explicit --registry flag over RECIPEBOOK_REGISTRY and the saved config when both are set because the explicit flag is the highest-precedence source", async () => {
+		vi.stubEnv("RECIPEBOOK_REGISTRY", "https://env.example.com/registry.json");
 		try {
 			await expect(
 				locateRegistry({
@@ -43,8 +43,8 @@ describe("locateRegistry source precedence", () => {
 		}
 	});
 
-	test("it should prefer YOINKER_REGISTRY over the saved config when both are set because an environment override must win over saved state", async () => {
-		vi.stubEnv("YOINKER_REGISTRY", "https://env.example.com/registry.json");
+	test("it should prefer RECIPEBOOK_REGISTRY over the saved config when both are set because an environment override must win over saved state", async () => {
+		vi.stubEnv("RECIPEBOOK_REGISTRY", "https://env.example.com/registry.json");
 		try {
 			await expect(
 				locateRegistry({
@@ -57,7 +57,7 @@ describe("locateRegistry source precedence", () => {
 	});
 
 	test("it should use the saved config when no flag or env override exists because the saved registry is what the user configured", async () => {
-		expect(process.env.YOINKER_REGISTRY).toBeUndefined();
+		expect(process.env.RECIPEBOOK_REGISTRY).toBeUndefined();
 		await expect(
 			locateRegistry({
 				savedRegistry: "https://saved.example.com/registry.json",
@@ -91,7 +91,7 @@ describe("locateRegistry explicit-only resolution", () => {
 
 	beforeEach(() => {
 		probeRoot = fs.mkdtempSync(
-			path.join(os.tmpdir(), "yoinker-locate-explicit-"),
+			path.join(os.tmpdir(), "recipebook-locate-explicit-"),
 		);
 		// Workers cannot `process.chdir()` (Stryker's vitest pool is threads), so
 		// stub the single cwd seam that `locateRegistry` reads instead.
@@ -103,7 +103,7 @@ describe("locateRegistry explicit-only resolution", () => {
 		fs.rmSync(probeRoot, { recursive: true, force: true });
 	});
 
-	test("it should throw a NoRegistrySourceError naming `yoinker configure set` when no flag, env, or saved source is configured because the remediation must tell the user exactly how to add a source", async () => {
+	test("it should throw a NoRegistrySourceError naming `recipebook configure set` when no flag, env, or saved source is configured because the remediation must tell the user exactly how to add a source", async () => {
 		const error: unknown = await locateRegistry().then(
 			() => null,
 			(e) => e,
@@ -111,7 +111,7 @@ describe("locateRegistry explicit-only resolution", () => {
 
 		expect(error).toBeInstanceOf(Error);
 		expect((error as Error).name).toBe("NoRegistrySourceError");
-		expect((error as Error).message).toContain("yoinker configure set");
+		expect((error as Error).message).toContain("recipebook configure set");
 	});
 
 	test("it should not discover a registry.json in the working directory when no explicit source is configured because implicit discovery contradicts explicit-only sources", async () => {
@@ -126,8 +126,8 @@ describe("locateRegistry explicit-only resolution", () => {
 		expect((error as Error).name).toBe("NoRegistrySourceError");
 	});
 
-	test("it should throw NoRegistrySourceError instead of falling through to the saved config when YOINKER_REGISTRY is empty because an empty env var must not silently fall back to saved state", async () => {
-		vi.stubEnv("YOINKER_REGISTRY", "");
+	test("it should throw NoRegistrySourceError instead of falling through to the saved config when RECIPEBOOK_REGISTRY is empty because an empty env var must not silently fall back to saved state", async () => {
+		vi.stubEnv("RECIPEBOOK_REGISTRY", "");
 		try {
 			const error: unknown = await locateRegistry({
 				savedRegistry: "https://saved.example.com/registry.json",
@@ -402,7 +402,9 @@ describe("loadRuntimeRegistry local file", () => {
 	let tmpDir: string;
 
 	beforeEach(() => {
-		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-registry-load-"));
+		tmpDir = fs.mkdtempSync(
+			path.join(os.tmpdir(), "recipebook-registry-load-"),
+		);
 	});
 
 	afterEach(() => {
@@ -439,7 +441,7 @@ describe("loadRuntimeRegistry local file", () => {
 		const registryPath = path.join(tmpDir, "registry.json");
 		fs.writeFileSync(registryPath, MINIMAL_REGISTRY_JSON, "utf8");
 		const readFileSpy = vi
-			.spyOn(await import("@yoinker/core"), "readFileAsync")
+			.spyOn(await import("@recipebook/core"), "readFileAsync")
 			.mockRejectedValueOnce(
 				Object.assign(new Error("denied"), { code: "EACCES" }),
 			);
@@ -545,7 +547,7 @@ describe("loadRuntimeRegistry local file", () => {
 	test("it should stringify a non-Error local read rejection because whatever the filesystem layer throws must still reach the labeled error", async () => {
 		const registryPath = path.join(tmpDir, "registry.json");
 		const readFileSpy = vi
-			.spyOn(await import("@yoinker/core"), "readFileAsync")
+			.spyOn(await import("@recipebook/core"), "readFileAsync")
 			.mockRejectedValueOnce("plain string failure");
 		try {
 			const error = await loadRuntimeRegistry(registryPath).then(
@@ -590,7 +592,9 @@ describe("loadCompiledItems", () => {
 	let tmpDir: string;
 
 	beforeEach(() => {
-		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-registry-items-"));
+		tmpDir = fs.mkdtempSync(
+			path.join(os.tmpdir(), "recipebook-registry-items-"),
+		);
 	});
 
 	afterEach(() => {

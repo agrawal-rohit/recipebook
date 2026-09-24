@@ -89,7 +89,7 @@ describe("animateIntro", () => {
 		expect(readline.createInterface).not.toHaveBeenCalled();
 		const output = mockStdout.write.mock.calls.map((call) => call[0]).join("");
 		expect(output.includes("\u001b")).toBe(false);
-		expect(output).toContain("yoinker");
+		expect(output).toContain("recipebook");
 		expect(output).toContain("hello world");
 		expect(output).not.toContain("hello  world");
 	});

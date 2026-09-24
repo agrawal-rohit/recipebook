@@ -1,17 +1,17 @@
 {
 	"version": "0.2.1",
-	"name": "yoinker-workspace",
+	"name": "recipebook-workspace",
 	"type": "module",
-	"description": "Workspace for the yoinker CLI and core library.",
+	"description": "Workspace for the recipebook CLI and core library.",
 	"author": "Rohit Agrawal <https://github.com/agrawal-rohit>",
-	"repository": "https://github.com/agrawal-rohit/yoinker",
-	"homepage": "https://github.com/agrawal-rohit/yoinker#readme",
+	"repository": "https://github.com/agrawal-rohit/recipebook",
+	"homepage": "https://github.com/agrawal-rohit/recipebook#readme",
 	"license": "MIT",
 	"private": true,
 	"engines": {
 		"node": ">=20"
 	},
-	"bugs": "https://github.com/agrawal-rohit/yoinker/issues",
+	"bugs": "https://github.com/agrawal-rohit/recipebook/issues",
 	"scripts": {
 		"build": "pnpm -r --filter \"./packages/*\" run build",
 		"test": "pnpm -r --filter \"./packages/*\" run build && pnpm -r --filter \"./packages/*\" run test",
@@ -21,10 +21,10 @@
 		"lint": "pnpm exec biome lint --write",
 		"format": "pnpm exec biome format --write",
 		"check": "pnpm run typecheck && pnpm exec biome check --write --no-errors-on-unmatched",
-		"cov": "pnpm --filter @yoinker/core run build && vitest run --coverage --passWithNoTests",
+		"cov": "pnpm --filter @recipebook/core run build && vitest run --coverage --passWithNoTests",
 		"quality": "fallow",
 		"quality:changes": "fallow audit --format compact",
-		"prepack": "pnpm --filter yoinker run prepack",
+		"prepack": "pnpm --filter recipebook run prepack",
 		"prepare": "husky",
 		"docs:dev": "pnpm --filter docs run dev",
 		"docs:build": "pnpm --filter docs run build"

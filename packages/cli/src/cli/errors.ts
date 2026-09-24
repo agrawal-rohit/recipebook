@@ -21,7 +21,7 @@ export class InterruptError extends Error {
 /** No registry source is configured, so a source-dependent command cannot run. */
 export class NoRegistrySourceError extends Error {
 	constructor(
-		message = "No registry source configured. Add one with `yoinker configure set <https URL or file path>`, set YOINKER_REGISTRY, or pass --registry <source>.",
+		message = "No registry source configured. Add one with `recipebook configure set <https URL or file path>`, set RECIPEBOOK_REGISTRY, or pass --registry <source>.",
 	) {
 		super(message);
 		this.name = "NoRegistrySourceError";

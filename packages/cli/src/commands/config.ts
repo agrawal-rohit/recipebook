@@ -4,7 +4,7 @@ import {
 	assertSafeRemoteUrl,
 	isAbsoluteHttpUrl,
 	isMissingPathError,
-} from "@yoinker/core";
+} from "@recipebook/core";
 import {
 	configPath,
 	readConfig,
@@ -28,7 +28,7 @@ function printConfiguration(
 	console.log(dimText(`  registry:    ${registry ?? "(not set)"}`));
 	console.log(dimText(`  config file: ${filePath}`));
 	if (registry === undefined)
-		console.log(dimText("Run `yoinker configure set <source>` to add one."));
+		console.log(dimText("Run `recipebook configure set <source>` to add one."));
 	console.log();
 }
 

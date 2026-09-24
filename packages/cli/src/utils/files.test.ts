@@ -6,7 +6,7 @@ import {
 	type CompiledItem,
 	type CompiledItemFile,
 	compiledItem,
-} from "@yoinker/core";
+} from "@recipebook/core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
 	confirmFileOverwrites,
@@ -35,7 +35,7 @@ let projectDir: string;
 beforeEach(() => {
 	promptsMocks.confirmInput.mockReset();
 	projectDir = fs.realpathSync(
-		fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-files-")),
+		fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-files-")),
 	);
 });
 
@@ -137,7 +137,7 @@ describe("planFileWrites", () => {
 
 	test("it should reject a destination whose ancestor path is a symbolic link because the write could land outside the project", async () => {
 		const outside = fs.mkdtempSync(
-			path.join(os.tmpdir(), "yoinker-files-outside-"),
+			path.join(os.tmpdir(), "recipebook-files-outside-"),
 		);
 		fs.symlinkSync(outside, path.join(projectDir, "link"));
 
@@ -194,7 +194,7 @@ describe("writePlannedFile", () => {
 
 	test("it should re-reject a symlink ancestor that appeared after planning because the planning-time jail is not enough on its own", async () => {
 		const outside = fs.mkdtempSync(
-			path.join(os.tmpdir(), "yoinker-files-outside-"),
+			path.join(os.tmpdir(), "recipebook-files-outside-"),
 		);
 		const destination = path.join(projectDir, "link/new.txt");
 

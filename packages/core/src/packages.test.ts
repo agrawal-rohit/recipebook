@@ -246,7 +246,7 @@ describe("packageManagerSpec and bindings", () => {
 
 describe("detectPackageManagerFromLockfileList", () => {
 	const managers = ecosystemManagers[RegistryEcosystem.NPM];
-	const absolute = path.join(os.tmpdir(), "yoinker-packages-detect");
+	const absolute = path.join(os.tmpdir(), "recipebook-packages-detect");
 
 	test("it should return the single matching manager and lockfile because unambiguous lockfiles identify the manager", () => {
 		const pathExists = vi.fn(
@@ -282,7 +282,7 @@ describe("npmEcosystemAdapter.detectFromManifest", () => {
 	let tempDir: string;
 
 	beforeEach(() => {
-		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-manifest-"));
+		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-manifest-"));
 	});
 	afterEach(() => {
 		fs.rmSync(tempDir, { recursive: true, force: true });
@@ -344,7 +344,7 @@ describe("selectPackageManager", () => {
 	let tempDir: string;
 
 	beforeEach(() => {
-		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-select-pm-"));
+		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-select-pm-"));
 	});
 	afterEach(() => {
 		fs.rmSync(tempDir, { recursive: true, force: true });
@@ -402,7 +402,7 @@ describe("selectPackageManager prompt fallback", () => {
 	let tempDir: string;
 
 	beforeEach(() => {
-		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-select-pm2-"));
+		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-select-pm2-"));
 	});
 	afterEach(() => {
 		fs.rmSync(tempDir, { recursive: true, force: true });

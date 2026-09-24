@@ -18,9 +18,9 @@ function registryFlagValue(flag: unknown): string | undefined {
 	return flag.trim();
 }
 
-/** Run the yoinker CLI. */
+/** Run the recipebook CLI. */
 export default async function run(): Promise<void> {
-	const app = cac("yoinker");
+	const app = cac("recipebook");
 	app.option("--registry <source>", "Use a custom registry URL");
 
 	/**

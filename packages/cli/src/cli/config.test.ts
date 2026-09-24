@@ -1,12 +1,12 @@
-/** Mocked @yoinker/core readFileAsync seam — lets tests simulate a file vanishing (or failing) between lstat and read. */
+/** Mocked @recipebook/core readFileAsync seam — lets tests simulate a file vanishing (or failing) between lstat and read. */
 const coreMocks = vi.hoisted(() => ({
 	readFileAsync: vi.fn(),
 	actualReadFileAsync: undefined as
 		| ((path: string) => Promise<string>)
 		| undefined,
 }));
-vi.mock("@yoinker/core", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@yoinker/core")>();
+vi.mock("@recipebook/core", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@recipebook/core")>();
 	coreMocks.actualReadFileAsync = actual.readFileAsync;
 	return { ...actual, readFileAsync: coreMocks.readFileAsync };
 });
@@ -18,20 +18,22 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
 	configPath,
+	type RecipebookConfig,
 	readConfig,
 	unsetRegistryConfig,
 	writeConfig,
-	type YoinkerConfig,
 } from "./config";
 
 /** Create a throwaway XDG config root and an env that points at it, so no test ever touches the real user config. */
 function makeIsolatedEnv(): { root: string; env: NodeJS.ProcessEnv } {
-	const root = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-config-test-"));
+	const root = fs.mkdtempSync(
+		path.join(os.tmpdir(), "recipebook-config-test-"),
+	);
 	return { root, env: { XDG_CONFIG_HOME: root } };
 }
 
 function configFilePath(root: string): string {
-	return path.join(root, "yoinker", "config.json");
+	return path.join(root, "recipebook", "config.json");
 }
 
 /** Create a FIFO at the config path so the config guards must reject it as a special node. */
@@ -42,7 +44,7 @@ function makeFifo(filePath: string): void {
 }
 
 describe("configPath", () => {
-	test("it should resolve the config path under XDG_CONFIG_HOME and append yoinker/config.json when the variable is set because users on XDG systems expect their config there", () => {
+	test("it should resolve the config path under XDG_CONFIG_HOME and append recipebook/config.json when the variable is set because users on XDG systems expect their config there", () => {
 		const { root, env } = makeIsolatedEnv();
 		try {
 			expect(configPath(env)).toBe(configFilePath(root));
@@ -68,13 +70,13 @@ describe("configPath", () => {
 
 	test("it should resolve a relative XDG_CONFIG_HOME against the working directory when it is not absolute because relative env values are interpreted from where the process runs", () => {
 		expect(configPath({ XDG_CONFIG_HOME: "relcfg" })).toBe(
-			path.resolve(process.cwd(), "relcfg", "yoinker", "config.json"),
+			path.resolve(process.cwd(), "relcfg", "recipebook", "config.json"),
 		);
 	});
 
-	test("it should default to ~/.config/yoinker/config.json when XDG_CONFIG_HOME is unset because that is the conventional location on systems without XDG", () => {
+	test("it should default to ~/.config/recipebook/config.json when XDG_CONFIG_HOME is unset because that is the conventional location on systems without XDG", () => {
 		expect(configPath({})).toBe(
-			path.join(os.homedir(), ".config", "yoinker", "config.json"),
+			path.join(os.homedir(), ".config", "recipebook", "config.json"),
 		);
 	});
 });
@@ -137,7 +139,7 @@ describe("readConfig", () => {
 		fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
 		fs.writeFileSync(configFilePath(root), raw);
 		await expect(readConfig(env)).rejects.toThrow(
-			/Malformed yoinker config at .*config\.json: Config root must be a JSON object\./,
+			/Malformed recipebook config at .*config\.json: Config root must be a JSON object\./,
 		);
 	});
 
@@ -145,7 +147,7 @@ describe("readConfig", () => {
 		fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
 		fs.writeFileSync(configFilePath(root), "{ not json");
 		await expect(readConfig(env)).rejects.toThrow(
-			/^Malformed yoinker config at .*config\.json: .+\. Fix or delete the file, then retry\.$/,
+			/^Malformed recipebook config at .*config\.json: .+\. Fix or delete the file, then retry\.$/,
 		);
 	});
 
@@ -153,7 +155,7 @@ describe("readConfig", () => {
 		fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
 		fs.writeFileSync(configFilePath(root), '{"telemetry": true}');
 		await expect(readConfig(env)).rejects.toThrow(
-			/Malformed yoinker config at .*config\.json: Unknown config key "telemetry"\./,
+			/Malformed recipebook config at .*config\.json: Unknown config key "telemetry"\./,
 		);
 	});
 
@@ -166,7 +168,7 @@ describe("readConfig", () => {
 		fs.mkdirSync(path.dirname(configFilePath(root)), { recursive: true });
 		fs.writeFileSync(configFilePath(root), raw);
 		await expect(readConfig(env)).rejects.toThrow(
-			/Malformed yoinker config at .*config\.json: "registry" must be a non-empty string URL or file path\./,
+			/Malformed recipebook config at .*config\.json: "registry" must be a non-empty string URL or file path\./,
 		);
 	});
 
@@ -177,7 +179,7 @@ describe("readConfig", () => {
 			`{"registry":"${"a".repeat(65_537)}"}`,
 		);
 		await expect(readConfig(env)).rejects.toThrow(
-			/Cannot read yoinker config at .*config\.json: file is too large\./,
+			/Cannot read recipebook config at .*config\.json: file is too large\./,
 		);
 	});
 
@@ -225,7 +227,7 @@ describe("readConfig", () => {
 		});
 		try {
 			await expect(readConfig(env)).rejects.toThrow(
-				/Malformed yoinker config at .*config\.json: thrown string\. Fix or delete the file, then retry\./,
+				/Malformed recipebook config at .*config\.json: thrown string\. Fix or delete the file, then retry\./,
 			);
 		} finally {
 			parseSpy.mockRestore();
@@ -241,14 +243,14 @@ describe("readConfig", () => {
 		);
 		fs.symlinkSync(target, configFilePath(root), "file");
 		await expect(readConfig(env)).rejects.toThrow(
-			/Cannot read yoinker config at .*config\.json: file is a symbolic link\./,
+			/Cannot read recipebook config at .*config\.json: file is a symbolic link\./,
 		);
 	});
 
 	test("it should refuse to read when the config path is a directory because a directory holds no config file", async () => {
 		fs.mkdirSync(configFilePath(root), { recursive: true });
 		await expect(readConfig(env)).rejects.toThrow(
-			/Cannot read yoinker config at .*config\.json: path is a directory\./,
+			/Cannot read recipebook config at .*config\.json: path is a directory\./,
 		);
 	});
 
@@ -259,7 +261,7 @@ describe("readConfig", () => {
 			makeFifo(configFilePath(root));
 			// The guard short-circuits before any blocking read of the FIFO.
 			await expect(readConfig(env)).rejects.toThrow(
-				/Cannot read yoinker config at .*config\.json: path is neither a file nor a directory\./,
+				/Cannot read recipebook config at .*config\.json: path is neither a file nor a directory\./,
 			);
 		},
 	);
@@ -277,7 +279,7 @@ describe("writeConfig", () => {
 		fs.rmSync(root, { recursive: true, force: true });
 	});
 
-	test("it should create the yoinker directory with mode 0o700 when writing because the config directory must be private to the user", async () => {
+	test("it should create the recipebook directory with mode 0o700 when writing because the config directory must be private to the user", async () => {
 		await writeConfig({ registry: "https://example.com/registry.json" }, env);
 		const dirMode =
 			fs.statSync(path.dirname(configFilePath(root))).mode & 0o777;
@@ -310,7 +312,7 @@ describe("writeConfig", () => {
 			{
 				registry: "https://example.com/registry.json",
 				telemetry: true,
-			} as YoinkerConfig,
+			} as RecipebookConfig,
 			env,
 		);
 		// A persisted unknown key would make readConfig reject the file.
@@ -327,7 +329,7 @@ describe("writeConfig", () => {
 		["empty string", { registry: "" }],
 		["whitespace-only string", { registry: "   " }],
 	])("it should reject a `%s` registry and write nothing when writing because the registry must be a non-empty string URL or file path", async (_label, bad) => {
-		await expect(writeConfig(bad as YoinkerConfig, env)).rejects.toThrow(
+		await expect(writeConfig(bad as RecipebookConfig, env)).rejects.toThrow(
 			'"registry" must be a non-empty string URL or file path.',
 		);
 		expect(fs.existsSync(configFilePath(root))).toBe(false);
@@ -354,7 +356,7 @@ describe("writeConfig", () => {
 		await expect(
 			writeConfig({ registry: "https://example.com/registry.json" }, env),
 		).rejects.toThrow(
-			/Cannot write yoinker config at .*config\.json: file is a symbolic link\./,
+			/Cannot write recipebook config at .*config\.json: file is a symbolic link\./,
 		);
 		expect(fs.readFileSync(target, "utf8")).toBe("keep me");
 	});
@@ -378,7 +380,7 @@ describe("writeConfig", () => {
 		await expect(
 			writeConfig({ registry: "https://example.com/registry.json" }, env),
 		).rejects.toThrow(
-			/Cannot write yoinker config at .*config\.json: path is a directory\./,
+			/Cannot write recipebook config at .*config\.json: path is a directory\./,
 		);
 	});
 
@@ -390,7 +392,7 @@ describe("writeConfig", () => {
 			await expect(
 				writeConfig({ registry: "https://example.com/registry.json" }, env),
 			).rejects.toThrow(
-				/Cannot write yoinker config at .*\.json: path is neither a file nor a directory\./,
+				/Cannot write recipebook config at .*\.json: path is neither a file nor a directory\./,
 			);
 		},
 	);

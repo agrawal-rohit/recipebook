@@ -16,7 +16,7 @@ import {
 	type RegistryContextValue,
 	type RegistryPackageManager,
 	type RequiredCondition,
-} from "@yoinker/core";
+} from "@recipebook/core";
 import { primaryText } from "../cli/labels";
 import {
 	confirmInput,

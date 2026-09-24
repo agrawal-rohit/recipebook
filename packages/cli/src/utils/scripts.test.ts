@@ -8,7 +8,7 @@ import {
 	type Registry,
 	RegistryConditionKind,
 	setScriptExecutor,
-} from "@yoinker/core";
+} from "@recipebook/core";
 import { afterEach, describe, expect, test } from "vitest";
 import { prepareScriptExecution, projectScriptHelpers } from "./scripts";
 
@@ -100,7 +100,7 @@ describe("prepareScriptExecution", () => {
 
 	test("it should install a sandbox executor for a local index with an infer handler because declared handlers must load through the sandbox, never in-process", async () => {
 		const probeRoot = fs.realpathSync(
-			fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-prepare-scripts-")),
+			fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-prepare-scripts-")),
 		);
 		fs.writeFileSync(
 			path.join(probeRoot, "registry.json"),
@@ -164,7 +164,7 @@ describe("prepareScriptExecution", () => {
 describe("projectScriptHelpers", () => {
 	test("it should confine file helpers to the project directory and run commands with the project cwd because catalog scripts must not escape the install root", async () => {
 		const projectDir = fs.realpathSync(
-			fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-script-helpers-")),
+			fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-script-helpers-")),
 		);
 		fs.writeFileSync(path.join(projectDir, "inside.txt"), "yes");
 

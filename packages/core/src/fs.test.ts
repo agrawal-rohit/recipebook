@@ -36,7 +36,7 @@ describe("fs temp workspace", () => {
 	let tmpDir: string;
 
 	beforeEach(() => {
-		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "yoinker-fs-test-"));
+		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-fs-test-"));
 	});
 
 	afterEach(() => {
