@@ -3,6 +3,7 @@ import { animatedIntro } from "../cli/animated-intro";
 import { NoRegistrySourceError, runCliCommand } from "../cli/errors";
 import type { LoadedRegistry } from "../utils/registry";
 import { addCommand } from "./add";
+import { buildCommand } from "./build";
 import {
 	configGetCommand,
 	configSetCommand,
@@ -57,6 +58,39 @@ function optionalStringArg(value: unknown, label: string): string | undefined {
 	if (value === undefined) return undefined;
 	if (typeof value !== "string") throw new Error(`${label} must be a string.`);
 	return value;
+}
+
+/**
+ * Narrow an optional string-valued CLI flag.
+ * @param value - Parsed CAC option value.
+ * @param name - Flag name for error messages (e.g. `"--types-file-name"`).
+ * @returns The string, or `undefined` when unset.
+ * @throws Error when `value` is `true` (a valueless flag) or not a string.
+ */
+function optionalStringFlag(value: unknown, name: string): string | undefined {
+	if (value === undefined) return undefined;
+	if (value === true) throw new Error(`Option ${name} requires a value.`);
+	if (typeof value !== "string")
+		throw new Error(`Option ${name} must be a string.`);
+	return value;
+}
+
+/**
+ * Narrow the repeatable `--external` flag to a package list.
+ * @param value - Parsed CAC option value (a string or array of strings).
+ * @returns External package names, or `undefined` when unset.
+ * @throws Error when `value` is `true` (a valueless flag) or not a string.
+ */
+function externalPackagesArg(value: unknown): string[] | undefined {
+	if (value === undefined) return undefined;
+	if (value === true) throw new Error("Option --external requires a value.");
+	const entries = Array.isArray(value) ? value : [value];
+	return entries.map((entry) => {
+		if (entry === true) throw new Error("Option --external requires a value.");
+		if (typeof entry !== "string")
+			throw new Error("Option --external must be a string or list of strings.");
+		return entry;
+	});
 }
 
 /**
@@ -153,7 +187,7 @@ async function loadRegistryOrPromptSource(
 		if (!process.stdin.isTTY) throw error;
 
 		// Prompt and persist a source, then re-read config so the retry resolves it.
-		await configSetCommand(undefined);
+		await configSetCommand();
 		return loadRegistry();
 	}
 }
@@ -197,4 +231,93 @@ export function registerCommandsCli(
 			await runConfigureAction(action, source);
 		});
 	});
+
+	const buildCmd = app.command(
+		"build [sourceDir] [outDir]",
+		"Compile a registry source directory into a compiled registry",
+	);
+	buildCmd.option(
+		"--registry-file-name <name>",
+		"Index file name under outDir",
+	);
+	buildCmd.option(
+		"--item-manifest-file-name <name>",
+		"Item manifest file name under an item folder",
+	);
+	buildCmd.option(
+		"--types-file-name <name>",
+		"Types document path under sourceDir",
+	);
+	buildCmd.option(
+		"--conditions-file-name <name>",
+		"Shared conditions path under sourceDir",
+	);
+	buildCmd.option(
+		"--compiled-dir-name <name>",
+		"Index-relative directory for compiled output",
+	);
+	buildCmd.option(
+		"--external <package>",
+		"Extra package marked external for install/handler bundles (repeatable)",
+	);
+	buildCmd.action(
+		async (
+			sourceDir?: unknown,
+			outDir?: unknown,
+			options: {
+				registryFileName?: unknown;
+				itemManifestFileName?: unknown;
+				typesFileName?: unknown;
+				conditionsFileName?: unknown;
+				compiledDirName?: unknown;
+				external?: unknown;
+				"--"?: string[];
+			} = {},
+		) => {
+			await runCliCommand(async () => {
+				// CAC stores every positional in `app.args`; reject anything beyond
+				// the two bound positionals so a stray package cannot become a dir.
+				const boundCount =
+					(sourceDir === undefined ? 0 : 1) + (outDir === undefined ? 0 : 1);
+				if ((app.args ?? []).slice(boundCount).length > 0)
+					throw new Error(
+						"build takes at most a source directory and an output directory; pass one package per --external flag.",
+					);
+
+				// CAC stores post-"--" tokens in `options["--"]` and never binds them to
+				// positionals; rejecting them avoids silently building the wrong tree.
+				if ((options["--"] ?? []).length > 0)
+					throw new Error(
+						'build does not accept arguments after "--"; pass the source and output directories as regular positional arguments.',
+					);
+				const source = optionalStringArg(sourceDir, "build sourceDir") ?? ".";
+				const out = optionalStringArg(outDir, "build outDir") ?? "dist";
+				const overrides = {
+					registryFileName: optionalStringFlag(
+						options.registryFileName,
+						"--registry-file-name",
+					),
+					itemManifestFileName: optionalStringFlag(
+						options.itemManifestFileName,
+						"--item-manifest-file-name",
+					),
+					typesFileName: optionalStringFlag(
+						options.typesFileName,
+						"--types-file-name",
+					),
+					conditionsFileName: optionalStringFlag(
+						options.conditionsFileName,
+						"--conditions-file-name",
+					),
+					compiledDirName: optionalStringFlag(
+						options.compiledDirName,
+						"--compiled-dir-name",
+					),
+					bundleExternalPackages: externalPackagesArg(options.external),
+				};
+				await animatedIntro("building the registry");
+				await buildCommand(source, out, overrides);
+			});
+		},
+	);
 }
