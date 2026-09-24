@@ -15,8 +15,8 @@
 	"scripts": {
 		"build": "pnpm -r --filter \"./packages/*\" run build",
 		"test": "pnpm -r --filter \"./packages/*\" run build && pnpm -r --filter \"./packages/*\" run test",
-		"mutate": "stryker run",
-		"mutate:changed": "stryker run --incremental --mutate \"packages/*/src/**/*.ts,!packages/*/src/**/*.test.ts,!packages/*/src/**/*.spec.ts\"",
+		"mutate": "pnpm --filter @recipebook/core run build && stryker run",
+		"mutate:changed": "pnpm --filter @recipebook/core run build && stryker run --incremental --mutate \"packages/*/src/**/*.ts,!packages/*/src/**/*.test.ts,!packages/*/src/**/*.spec.ts\"",
 		"typecheck": "pnpm -r --filter \"./packages/*\" run typecheck",
 		"lint": "pnpm exec biome lint --write",
 		"format": "pnpm exec biome format --write",
