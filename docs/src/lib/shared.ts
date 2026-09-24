@@ -11,6 +11,9 @@ export const gitConfig = {
   branch: "main",
 };
 
+export const githubURL = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
+export const licenseURL = `${githubURL}/blob/${gitConfig.branch}/LICENSE`;
+
 const getContentUrl = createGetUrl(docsContentRoute);
 
 export function getPageMarkdownUrl(page: { slugs: string[]; locale?: string }) {

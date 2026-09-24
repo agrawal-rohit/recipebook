@@ -1,11 +1,22 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
-import { appName, gitConfig } from "./shared";
+import { appName, docsRoute, githubURL } from "./shared";
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: <p className="font-medium text-brand">{appName}</p>,
+      title: (
+        <p className="font-medium tracking-tight text-lg lowercase">
+          {appName}
+        </p>
+      ),
     },
-    githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
+    links: [
+      {
+        text: "Docs",
+        url: docsRoute,
+        active: "nested-url",
+      },
+    ],
+    githubUrl: githubURL,
   };
 }

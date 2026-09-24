@@ -1,6 +1,6 @@
-import "@fontsource/geist/400.css";
-import "@fontsource/geist/500.css";
-import "@fontsource/geist/600.css";
+import "@fontsource/encode-sans/400.css";
+import "@fontsource/encode-sans/500.css";
+import "@fontsource/encode-sans/600.css";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata, Viewport } from "next";
 import "./global.css";
@@ -22,7 +22,7 @@ export const viewport: Viewport = {
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="font-sans" suppressHydrationWarning>
-      <body className="flex min-h-screen flex-col">
+      <body className="flex min-h-screen flex-col" suppressHydrationWarning>
         <RootProvider>{children}</RootProvider>
       </body>
     </html>

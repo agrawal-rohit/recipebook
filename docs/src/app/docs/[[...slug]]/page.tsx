@@ -10,15 +10,22 @@ import { createRelativeLink } from "fumadocs-ui/mdx";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
-import { getPageImageUrl, getPageMarkdownUrl, gitConfig } from "@/lib/shared";
+import {
+  getPageImageUrl,
+  getPageMarkdownUrl,
+  gitConfig,
+  githubURL,
+} from "@/lib/shared";
 import { source } from "@/lib/source";
 
-export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
+export default async function Page(
+  props: Readonly<PageProps<"/docs/[[...slug]]">>,
+) {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  const MDX = page.data.body;
+  const Mdx = page.data.body;
   const markdownUrl = getPageMarkdownUrl(page).url;
 
   return (
@@ -31,11 +38,11 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
         <MarkdownCopyButton markdownUrl={markdownUrl} />
         <ViewOptionsPopover
           markdownUrl={markdownUrl}
-          githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/content/docs/${page.path}`}
+          githubUrl={`${githubURL}/blob/${gitConfig.branch}/content/docs/${page.path}`}
         />
       </div>
       <DocsBody>
-        <MDX
+        <Mdx
           components={getMDXComponents({
             // this allows you to link to other pages with relative file paths
             a: createRelativeLink(source, page),
