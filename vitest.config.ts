@@ -20,6 +20,7 @@ export default defineConfig({
 				"docs/**",
 				"**/coverage/**",
 				"packages/*/dist/**",
+				"packages/cli/bin/**",
 				"**/commitlint.config.*",
 				"**/lint-staged.config.js",
 				"**/stryker.config.mjs",
