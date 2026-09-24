@@ -38,8 +38,7 @@ jobs:
         with:
           args: >
             -Dsonar.projectVersion=${{ github.sha }}
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.test.inclusions=**/*.test.ts
             -Dsonar.qualitygate.wait=true
+            -Dsonar.branch.name=${{ github.ref_name }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
