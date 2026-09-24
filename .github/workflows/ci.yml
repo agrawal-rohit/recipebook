@@ -128,7 +128,6 @@ jobs:
 
   dependency-review:
     name: Code Security (Dependency Review)
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
