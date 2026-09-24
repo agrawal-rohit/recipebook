@@ -1,6 +1,4 @@
-import "@fontsource/encode-sans/400.css";
-import "@fontsource/encode-sans/500.css";
-import "@fontsource/encode-sans/600.css";
+import "@fontsource-variable/mona-sans";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata, Viewport } from "next";
 import "./global.css";
