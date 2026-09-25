@@ -1,4 +1,4 @@
-import * as core from "@recipebook/core";
+import * as core from "recipebook-core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { addCommand } from "./add";
 
@@ -14,7 +14,7 @@ const coreMocks = vi.hoisted(() => ({
 	setScriptExecutor: vi.fn(),
 }));
 
-vi.mock("@recipebook/core", async (importOriginal) => ({
+vi.mock("recipebook-core", async (importOriginal) => ({
 	...(await importOriginal()),
 	...coreMocks,
 }));

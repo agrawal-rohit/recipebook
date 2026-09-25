@@ -19,7 +19,7 @@ import {
 	runArgvAsync,
 	uniqueSorted,
 	writeFileAsync,
-} from "@recipebook/core";
+} from "recipebook-core";
 import { primaryText } from "../cli/labels";
 import { confirmInput } from "../cli/prompts/confirm";
 import { runWithTasks } from "../cli/tasks";

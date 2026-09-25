@@ -1,5 +1,5 @@
 import path from "node:path";
-import { type BuildRegistryOptions, buildRegistry } from "@recipebook/core";
+import { type BuildRegistryOptions, buildRegistry } from "recipebook-core";
 import { dimText, primaryText } from "../cli/labels";
 
 /** Overrides accepted from the CLI, mirroring core's option names. */

@@ -6,7 +6,7 @@ import {
 	lstatAsync,
 	readFileAsync,
 	removeAsync,
-} from "@recipebook/core";
+} from "recipebook-core";
 
 /** Maximum size of the global config file. */
 const CONFIG_FILE_BYTE_LIMIT = 65_536;

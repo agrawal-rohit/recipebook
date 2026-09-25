@@ -1,12 +1,12 @@
-/** Mocked @recipebook/core readFileAsync seam — lets tests simulate a file vanishing (or failing) between lstat and read. */
+/** Mocked recipebook-core readFileAsync seam — lets tests simulate a file vanishing (or failing) between lstat and read. */
 const coreMocks = vi.hoisted(() => ({
 	readFileAsync: vi.fn(),
 	actualReadFileAsync: undefined as
 		| ((path: string) => Promise<string>)
 		| undefined,
 }));
-vi.mock("@recipebook/core", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@recipebook/core")>();
+vi.mock("recipebook-core", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("recipebook-core")>();
 	coreMocks.actualReadFileAsync = actual.readFileAsync;
 	return { ...actual, readFileAsync: coreMocks.readFileAsync };
 });

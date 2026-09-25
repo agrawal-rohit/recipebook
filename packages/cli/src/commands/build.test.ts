@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type * as core from "@recipebook/core";
+import type * as core from "recipebook-core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { buildCommand } from "./build";
 
@@ -7,7 +7,7 @@ const coreMocks = vi.hoisted(() => ({
 	buildRegistry: vi.fn(),
 }));
 
-vi.mock("@recipebook/core", async (importOriginal) => ({
+vi.mock("recipebook-core", async (importOriginal) => ({
 	...(await importOriginal()),
 	...coreMocks,
 }));

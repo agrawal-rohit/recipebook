@@ -11,7 +11,7 @@ import {
 	type Registry,
 	readFileAsync,
 	verifyItemIntegrity,
-} from "@recipebook/core";
+} from "recipebook-core";
 import { NoRegistrySourceError } from "../cli/errors";
 
 /** Maximum JSON document size for registry indexes and compiled items. */

@@ -6,19 +6,19 @@ import {
 	compiledItem,
 	NpmPackageManager,
 	type RegistryEcosystemDependencies,
-} from "@recipebook/core";
+} from "recipebook-core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { installDeclaredPackages, mergeProjectCommands } from "./packages";
 
 /**
- * `@recipebook/core` resolves to built CJS in node_modules, so `node:child_process`
+ * `recipebook-core` resolves to built CJS in node_modules, so `node:child_process`
  * cannot be intercepted; mock the core shell wrapper instead, which is the
  * process boundary `installDeclaredPackages` actually calls.
  */
 const shellMocks = vi.hoisted(() => ({
 	runArgvAsync: vi.fn(),
 }));
-vi.mock("@recipebook/core", async (importOriginal) => ({
+vi.mock("recipebook-core", async (importOriginal) => ({
 	...(await importOriginal()),
 	runArgvAsync: shellMocks.runArgvAsync,
 }));

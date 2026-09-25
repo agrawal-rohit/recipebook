@@ -8,7 +8,7 @@ import {
 	type Registry,
 	RegistryConditionKind,
 	setScriptExecutor,
-} from "@recipebook/core";
+} from "recipebook-core";
 import { afterEach, describe, expect, test } from "vitest";
 import { prepareScriptExecution, projectScriptHelpers } from "./scripts";
 

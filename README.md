@@ -21,7 +21,7 @@
 `recipebook` eliminates repetitive project setup by providing opinionated templates with pre-configured tooling, best practices, and reusable registry items. It ships with two complementary packages:
 
 - **`recipebook`**: the CLI users run via `npx` to scaffold projects and add components
-- **`@recipebook/core`**: shared internals and registry-document validation
+- **`recipebook-core`**: shared internals and registry-document validation
 
 No registry ships in the box — you must point the CLI at a registry source explicitly with the `--registry` flag, the `RECIPEBOOK_REGISTRY` environment variable, or a saved source persisted with `recipebook configure set`.
 
@@ -68,15 +68,15 @@ Registry source precedence: `--registry` flag > `RECIPEBOOK_REGISTRY` env > save
 ```text
 packages/
 ├── cli/        # published as `recipebook`
-└── core/       # published as `@recipebook/core`
+└── core/       # published as `recipebook-core`
 docs/           # documentation site
 ```
 
 ## Consuming registries
 
-`@recipebook/core` validates, parses, and plans installs from registry documents, and provides `buildRegistry` so third-party authors can compile a registry source tree into a compliant index. Registries are authored and hosted outside this repository; a registry source is an HTTPS URL or a local file path to a compiled index.
+`recipebook-core` validates, parses, and plans installs from registry documents, and provides `buildRegistry` so third-party authors can compile a registry source tree into a compliant index. Registries are authored and hosted outside this repository; a registry source is an HTTPS URL or a local file path to a compiled index.
 
-`@recipebook/core` exposes:
+`recipebook-core` exposes:
 
 - Schema types and validation for the index (`IndexItem`) and compiled items (`CompiledItem`)
 - `parseRegistryDocument()` and `parseWithSchema()` for runtime validation (unknown keys are rejected; use `compiledItemSchema` for compiled items)

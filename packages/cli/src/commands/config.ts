@@ -4,7 +4,7 @@ import {
 	assertSafeRemoteUrl,
 	isAbsoluteHttpUrl,
 	isMissingPathError,
-} from "@recipebook/core";
+} from "recipebook-core";
 import {
 	configPath,
 	readConfig,

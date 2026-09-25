@@ -36,7 +36,7 @@ Please be specific about your environment and include steps to reproduce issues 
 The repository is a pnpm workspace with the following structure:
 
 - `packages/cli`: published as `recipebook`
-- `packages/core`: published as `@recipebook/core`
+- `packages/core`: published as `recipebook-core`
 - `docs`: documentation site
 
 ## Making Changes
@@ -96,7 +96,20 @@ Small documentation fixes (typos, clarifications) are always welcome!
 
 > [!IMPORTANT]
 >
-> - [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) must be configured
+> **npm publish from CI** — The **Publish to npm** job in [`.github/workflows/release.yml`](./.github/workflows/release.yml) authenticates with a granular npm token: set repository secret **`NPM_TOKEN`**, which the workflow passes as `NODE_AUTH_TOKEN`. Provenance is still signed via GitHub OIDC (`--provenance`); that is separate from [npm trusted publishing](https://docs.npmjs.com/trusted-publishers).
+>
+> One-time setup before the first CI publish (you do **not** need to create empty packages or attach trusted publishers on npm):
+>
+> 1. Use any **personal npm account** (no npm org required). Published names are unscoped `recipebook` and `recipebook-core`.
+> 2. Create a **granular access token** on that account with: Packages read and write, **Bypass two-factor authentication**, and permission to publish **new** packages (not locked to package names that do not exist yet).
+> 3. Add the token to this repository as the GitHub Actions secret **`NPM_TOKEN`**.
+>
+> The first successful publish **creates** `recipebook` and `recipebook-core` on the registry if they are not there yet.
+>
+> npm plans to remove bypass-2FA token publishing around **January 2027**. After packages exist, maintainers may optionally attach GitHub Actions trusted publishers in the npm UI and drop `NPM_TOKEN`; that hardening is not required for first release.
+>
+> The publish job uses Node 24. Other CI jobs use Node 20.
+>
 > - `GH_ADMIN_TOKEN` must be added to the repository secrets and able to open pull requests that trigger CI and create protected release tags
 
 This repository uses [release-please](https://github.com/googleapis/release-please)
@@ -128,7 +141,7 @@ Every push to `main` runs the `Release` workflow:
 3. Squash-merge the Release PR to:
    - bump only the packages that changed
    - create component tags (for example `recipebook@v0.3.0`, `core@v0.3.0`)
-   - publish only the released packages to npm with trusted publishing
+   - publish only the released packages to npm
 
 The workflow in [`.github/workflows/release.yml`](./.github/workflows/release.yml)
 is package-agnostic: it runs release-please, then `pnpm -r publish`, which
@@ -137,7 +150,7 @@ package, edit only [`release-please-config.json`](./release-please-config.json)
 and [`.release-please-manifest.json`](./.release-please-manifest.json). For a
 Python or Rust repo, keep the release-please job and swap the publish step.
 
-**Note:** `recipebook` and `@recipebook/core` version independently. Because the CLI depends on core via `workspace:*`, releasing core also patch-bumps the CLI so a core fix always ships in a new CLI release.
+**Note:** `recipebook` and `recipebook-core` version independently. Because the CLI depends on core via `workspace:*`, releasing core also patch-bumps the CLI so a core fix always ships in a new CLI release.
 
 ### Testing Pre-releases
 
@@ -149,8 +162,8 @@ test it the same way you would test a stable publish:
 # For recipebook itself
 npx recipebook@1.2.3-rc.1 --help
 
-# For @recipebook/core
-npm install @recipebook/core@1.2.3-rc.1
+# For recipebook-core
+npm install recipebook-core@1.2.3-rc.1
 ```
 
 Found a bug? Fix it on `main`, merge the change, and merge the next Release PR

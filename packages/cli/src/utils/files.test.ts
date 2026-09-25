@@ -6,7 +6,7 @@ import {
 	type CompiledItem,
 	type CompiledItemFile,
 	compiledItem,
-} from "@recipebook/core";
+} from "recipebook-core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
 	confirmFileOverwrites,

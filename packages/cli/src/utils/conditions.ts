@@ -16,7 +16,7 @@ import {
 	type RegistryContextValue,
 	type RegistryPackageManager,
 	type RequiredCondition,
-} from "@recipebook/core";
+} from "recipebook-core";
 import { primaryText } from "../cli/labels";
 import { confirmInput } from "../cli/prompts/confirm";
 import { multiselectInput, selectInput } from "../cli/prompts/select";

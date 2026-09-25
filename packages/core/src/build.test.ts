@@ -374,16 +374,16 @@ describe("buildRegistry bundle require-scan", () => {
 
 	test("it should reject a script that runtime-requires an external package because bundles must stay self-contained", async () => {
 		writeScriptSourceTree(
-			'module.exports = async () => require("@recipebook/core");',
+			'module.exports = async () => require("recipebook-core");',
 		);
 		await expect(buildRegistry({ sourceDir, outDir })).rejects.toThrowError(
-			/Registry item "button" beforeWrite must not runtime-import @recipebook\/core\./,
+			/Registry item "button" beforeWrite must not runtime-import recipebook-core\./,
 		);
 	});
 
 	test("it should allow a type-only import because esbuild erases types before the require scan", async () => {
 		writeScriptSourceTree(
-			'import type { X } from "@recipebook/core";\nexport default async () => 1;',
+			'import type { X } from "recipebook-core";\nexport default async () => 1;',
 		);
 		const registry = await buildRegistry({ sourceDir, outDir });
 		expect(registry.items.button.beforeWrite).toEqual([

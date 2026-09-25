@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { InvalidJsonError, sha256Integrity } from "@recipebook/core";
+import { InvalidJsonError, sha256Integrity } from "recipebook-core";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import * as registryModule from "./registry";
 import {
@@ -441,7 +441,7 @@ describe("loadRuntimeRegistry local file", () => {
 		const registryPath = path.join(tmpDir, "registry.json");
 		fs.writeFileSync(registryPath, MINIMAL_REGISTRY_JSON, "utf8");
 		const readFileSpy = vi
-			.spyOn(await import("@recipebook/core"), "readFileAsync")
+			.spyOn(await import("recipebook-core"), "readFileAsync")
 			.mockRejectedValueOnce(
 				Object.assign(new Error("denied"), { code: "EACCES" }),
 			);
@@ -547,7 +547,7 @@ describe("loadRuntimeRegistry local file", () => {
 	test("it should stringify a non-Error local read rejection because whatever the filesystem layer throws must still reach the labeled error", async () => {
 		const registryPath = path.join(tmpDir, "registry.json");
 		const readFileSpy = vi
-			.spyOn(await import("@recipebook/core"), "readFileAsync")
+			.spyOn(await import("recipebook-core"), "readFileAsync")
 			.mockRejectedValueOnce("plain string failure");
 		try {
 			const error = await loadRuntimeRegistry(registryPath).then(

@@ -1,5 +1,5 @@
 {
-	"name": "@recipebook/core",
+	"name": "recipebook-core",
 	"version": "0.2.1",
 	"description": "Shared primitives and utilities for building a `recipebook` registry",
 	"license": "MIT",

@@ -47,6 +47,7 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup
         with:
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Build workspace
@@ -55,4 +56,5 @@ jobs:
       - name: Publish packages
         env:
           NPM_CONFIG_PROVENANCE: true
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm -r publish --provenance --access public --no-git-checks

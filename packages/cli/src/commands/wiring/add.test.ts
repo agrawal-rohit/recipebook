@@ -1,5 +1,5 @@
-import type { Registry } from "@recipebook/core";
 import cac, { type CAC } from "cac";
+import type { Registry } from "recipebook-core";
 import {
 	afterEach,
 	beforeEach,

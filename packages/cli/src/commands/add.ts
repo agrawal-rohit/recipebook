@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import {
 	assumeContextFromSelectedItems,
 	buildInstallPlan,
@@ -26,8 +27,7 @@ import {
 	selectPackageManager,
 	setScriptExecutor,
 	uniqueKnownRegistryItems,
-} from "@recipebook/core";
-import chalk from "chalk";
+} from "recipebook-core";
 import { dimText, primaryText } from "../cli/labels";
 import { groupedSelectInput, selectInput } from "../cli/prompts/select";
 import { runWithTasks, task, taskGroup } from "../cli/tasks";

@@ -1,4 +1,4 @@
-# @recipebook/core
+# recipebook-core
 
 Shared primitives and utilities for building and consuming `recipebook` registries.
 
@@ -9,7 +9,7 @@ This package powers the [`recipebook`](https://www.npmjs.com/package/recipebook)
 Third-party authors compile a registry source tree into an index plus compiled items:
 
 ```ts
-import { buildRegistry } from "@recipebook/core";
+import { buildRegistry } from "recipebook-core";
 
 await buildRegistry({
 	sourceDir: "/path/to/my-registry/registry",
@@ -20,7 +20,7 @@ await buildRegistry({
 	// typesFileName: "types.json",
 	// conditionsFileName: "conditions/conditions.json",
 	// compiledDirName: "r",
-	// bundleExternalPackages: ["acme-helpers"], // always includes @recipebook/core
+	// bundleExternalPackages: ["acme-helpers"], // always includes recipebook-core
 });
 ```
 
