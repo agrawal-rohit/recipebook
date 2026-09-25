@@ -1,6 +1,6 @@
 {
 	"name": "@recipebook/core",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "Shared primitives and utilities for building a `recipebook` registry",
 	"license": "MIT",
 	"main": "./dist/index.js",
