@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/agrawal-rohit/recipebook/compare/core@v0.3.0...core@v0.3.1) (2026-09-25)
+
+
+### Fixed
+
+* renamed core package name, added NPM token in the workflow ([4377058](https://github.com/agrawal-rohit/recipebook/commit/43770588df5c9644b0182af6a3aa40c44ab969f6))
+
 ## [0.3.0](https://github.com/agrawal-rohit/recipebook/compare/core@v0.2.1...core@v0.3.0) (2026-09-25)
 
 
