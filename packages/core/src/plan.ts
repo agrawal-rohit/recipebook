@@ -99,7 +99,7 @@ export interface InstallNode {
 }
 
 /** Result of selecting installable sources (base and optional packs) for one index item. */
-export type RegistryItemSelection = Omit<InstallNode, "itemId">;
+type RegistryItemSelection = Omit<InstallNode, "itemId">;
 
 /** Index item id paired with its document for graph walks. */
 export interface IndexEntry {
@@ -385,7 +385,7 @@ function assertPackedItemIsInstallable(
  * @param packageManager - Selected npm package manager for pack `when`.
  * @returns Selected pack ids, compiled item source URIs, and optional install script URIs.
  */
-export function selectRegistryPacks(
+function selectRegistryPacks(
 	itemId: string,
 	item: IndexItem,
 	context: RegistryContext,

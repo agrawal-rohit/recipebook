@@ -11,7 +11,6 @@ export class OperationCanceledError extends Error {
 
 /** User interrupted the CLI (Ctrl+C during the animated intro). */
 export class InterruptError extends Error {
-	readonly exitCode = 130;
 	constructor(message = "Interrupted") {
 		super(message);
 		this.name = "InterruptError";
@@ -51,7 +50,7 @@ export function printError(message: string): void {
  * Print a cancel message (non-fatal styling).
  * @param message - The cancel message to display.
  */
-export function printCancel(message: string): void {
+function printCancel(message: string): void {
 	printLabeled(dimText(" canceled "), message);
 }
 
@@ -74,7 +73,7 @@ export async function runCliCommand(
 		}
 
 		if (error instanceof InterruptError) {
-			process.exit(error.exitCode);
+			process.exit(130);
 			return;
 		}
 

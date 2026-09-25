@@ -314,6 +314,33 @@ async function executeModuleLoader<T>(
 }
 
 /**
+ * Build a `loadModule` method from a shared loader invocation.
+ * @param options - Path locator and integrity map.
+ * @param invoke - Loader that resolves an absolute path to a module export.
+ * @returns A `loadModule` implementation.
+ */
+function createScriptLoadModule(
+	options: CreateScriptExecutorOptions,
+	invoke: (absolutePath: string) => Promise<unknown>,
+): ScriptExecutor["loadModule"] {
+	return function loadModule<T>(
+		indexLocation: string,
+		scriptUri: string,
+		isValid: (value: unknown) => value is T,
+		errorMessage: string,
+	): Promise<T> {
+		return executeModuleLoader(
+			options,
+			indexLocation,
+			scriptUri,
+			isValid,
+			errorMessage,
+			invoke,
+		);
+	};
+}
+
+/**
  * In-process `require` executor (used for tests and as the pre-sandbox path).
  * @param options - Path locator and integrity map.
  * @returns Script executor.
@@ -323,24 +350,10 @@ function createInProcessScriptExecutor(
 ): ScriptExecutor {
 	const requireScript = createRequire(__filename);
 	return {
-		async loadModule<T>(
-			indexLocation: string,
-			scriptUri: string,
-			isValid: (value: unknown) => value is T,
-			errorMessage: string,
-		): Promise<T> {
-			return executeModuleLoader(
-				options,
-				indexLocation,
-				scriptUri,
-				isValid,
-				errorMessage,
-				async (absolutePath) => {
-					Reflect.deleteProperty(requireScript.cache, absolutePath);
-					return requireScript(absolutePath);
-				},
-			);
-		},
+		loadModule: createScriptLoadModule(options, async (absolutePath) => {
+			Reflect.deleteProperty(requireScript.cache, absolutePath);
+			return requireScript(absolutePath);
+		}),
 	};
 }
 
@@ -363,22 +376,9 @@ function createSandboxedScriptExecutor(
 	if (!path.isAbsolute(runnerPath))
 		throw new Error("Sandbox runner path must be an absolute path.");
 	return {
-		async loadModule<T>(
-			indexLocation: string,
-			scriptUri: string,
-			isValid: (value: unknown) => value is T,
-			errorMessage: string,
-		): Promise<T> {
-			return executeModuleLoader(
-				options,
-				indexLocation,
-				scriptUri,
-				isValid,
-				errorMessage,
-				(absolutePath) =>
-					loadSandboxedModule(absolutePath, projectDir, runnerPath),
-			);
-		},
+		loadModule: createScriptLoadModule(options, (absolutePath) =>
+			loadSandboxedModule(absolutePath, projectDir, runnerPath),
+		),
 	};
 }
 

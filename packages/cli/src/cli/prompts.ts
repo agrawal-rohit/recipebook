@@ -355,17 +355,17 @@ export async function groupedSelectInput(
 	);
 
 	const guideIndent = 3;
-	const renderRow = (option: FlatRow, active: boolean): string => {
-		// A non-item row is a group header: a bold blank-line-prefixed label, no radio glyph.
-		// Headers always use `value` as the group name (set when flattening).
-		if (typeof option.group !== "string")
-			return wrapStyledText(
-				`\n${chalk.bold(primaryText(String(option.value)))}`,
-				"",
-				"",
-				guideIndent,
-			);
+	// A non-item row is a group header: a bold blank-line-prefixed label, no radio glyph.
+	// Headers always use `value` as the group name (set when flattening).
+	const renderGroupHeader = (option: FlatRow): string =>
+		wrapStyledText(
+			`\n${chalk.bold(primaryText(String(option.value)))}`,
+			"",
+			"",
+			guideIndent,
+		);
 
+	const renderItemRow = (option: FlatRow, active: boolean): string => {
 		const label = option.label ?? String(option.value);
 		const next = flatOptions[flatOptions.indexOf(option) + 1];
 		const isLast = next === undefined || next.group === true;
@@ -381,6 +381,11 @@ export async function groupedSelectInput(
 
 		return wrapStyledText(text, startPrefix, continuationPrefix, guideIndent);
 	};
+
+	const renderRow = (option: FlatRow, active: boolean): string =>
+		typeof option.group === "string"
+			? renderItemRow(option, active)
+			: renderGroupHeader(option);
 
 	// Guide bars are always on (`settings.withGuide` defaults to true), matching the reference.
 	const result = await new SelectPrompt<
