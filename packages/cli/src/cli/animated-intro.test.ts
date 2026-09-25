@@ -343,11 +343,11 @@ describe("animateIntro", () => {
 	});
 
 	describe("createFixedHeightRenderer", () => {
+		const makeRenderer = () =>
+			createFixedHeightRenderer(mockStdout as unknown as NodeJS.WriteStream, 3);
+
 		test("it should pad missing lines with empty strings on first paint because every paint must fill the reserved height", () => {
-			const renderer = createFixedHeightRenderer(
-				mockStdout as unknown as NodeJS.WriteStream,
-				3,
-			);
+			const renderer = makeRenderer();
 
 			renderer.paint(["only-one"]);
 
@@ -361,10 +361,7 @@ describe("animateIntro", () => {
 		});
 
 		test("it should repaint in place with clear-line sequences between rows because updating rows must not accumulate stale output", () => {
-			const renderer = createFixedHeightRenderer(
-				mockStdout as unknown as NodeJS.WriteStream,
-				3,
-			);
+			const renderer = makeRenderer();
 
 			renderer.paint(["a", "b", "c"]);
 			mockStdout.write.mockClear();
@@ -384,10 +381,7 @@ describe("animateIntro", () => {
 		});
 
 		test("it should write a trailing newline only after a paint because finish must not emit stray output when nothing was printed", () => {
-			const renderer = createFixedHeightRenderer(
-				mockStdout as unknown as NodeJS.WriteStream,
-				3,
-			);
+			const renderer = makeRenderer();
 
 			renderer.finish();
 			expect(mockStdout.write).not.toHaveBeenCalled();

@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
 	buildInterpolationContext,
 	type CompiledItem,
+	type InterpolationView,
 	interpolateCompiledItem,
 	NpmPackageManager,
 	type RegistryConditionValue,
@@ -70,65 +71,37 @@ describe("interpolateCompiledItem", () => {
 });
 
 describe("interpolation sections and syntax", () => {
-	test("it should render truthy sections and render inverted sections when the key is absent because templates branch on context", () => {
-		const truthy = interpolateCompiledItem(
-			item([
-				{
-					target: "a.txt",
-					content: "{{#lint}}LINT{{/lint}}{{^lint}}NO LINT{{/lint}}",
-				},
-			]),
-			{ lint: true },
-		);
-		expect(truthy.files[0].content).toBe("LINT");
+	const render = (content: string, context: InterpolationView): string =>
+		interpolateCompiledItem(item([{ target: "a.txt", content }]), context)
+			.files[0].content;
 
-		const absent = interpolateCompiledItem(
-			item([
-				{
-					target: "a.txt",
-					content: "{{#lint}}LINT{{/lint}}{{^lint}}NO LINT{{/lint}}",
-				},
-			]),
-			{},
+	test("it should render truthy sections and render inverted sections when the key is absent because templates branch on context", () => {
+		expect(
+			render("{{#lint}}LINT{{/lint}}{{^lint}}NO LINT{{/lint}}", { lint: true }),
+		).toBe("LINT");
+		expect(render("{{#lint}}LINT{{/lint}}{{^lint}}NO LINT{{/lint}}", {})).toBe(
+			"NO LINT",
 		);
-		expect(absent.files[0].content).toBe("NO LINT");
 	});
 
 	test("it should render `{{.}}` only inside a section because bare dots have no context", () => {
-		expect(
-			interpolateCompiledItem(
-				item([{ target: "a.txt", content: "{{#items}}{{.}},{{/items}}" }]),
-				{ items: ["a", "b"] },
-			).files[0].content,
-		).toBe("a,b,");
-		expect(() =>
-			interpolateCompiledItem(
-				item([{ target: "a.txt", content: "{{.}}" }]),
-				{},
-			),
-		).toThrowError('Unknown interpolation key "." in file "a.txt".');
+		expect(render("{{#items}}{{.}},{{/items}}", { items: ["a", "b"] })).toBe(
+			"a,b,",
+		);
+		expect(() => render("{{.}}", {})).toThrowError(
+			'Unknown interpolation key "." in file "a.txt".',
+		);
 	});
 
 	test("it should reject partials because registry payloads are self-contained", () => {
-		expect(() =>
-			interpolateCompiledItem(
-				item([{ target: "a.txt", content: "{{> header}}" }]),
-				{},
-			),
-		).toThrowError('Unknown interpolation partial "header" in file "a.txt".');
+		expect(() => render("{{> header}}", {})).toThrowError(
+			'Unknown interpolation partial "header" in file "a.txt".',
+		);
 	});
 
 	test("it should preserve GitHub Actions dollar-brace expressions because CI files are not Mustache", () => {
 		expect(
-			interpolateCompiledItem(
-				item([
-					{
-						target: "a.txt",
-						content: `token: \${{ secrets.GITHUB_TOKEN }} {{name}}`,
-					},
-				]),
-				{ name: "x" },
-			).files[0].content,
+			render(`token: \${{ secrets.GITHUB_TOKEN }} {{name}}`, { name: "x" }),
 		).toBe(`token: \${{ secrets.GITHUB_TOKEN }} x`);
 	});
 });

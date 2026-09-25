@@ -281,6 +281,11 @@ describe("npmEcosystemAdapter.detectFromManifest", () => {
 	const managers = ecosystemManagers[RegistryEcosystem.NPM];
 	let tempDir: string;
 
+	const detect = (
+		pred: () => boolean,
+	): ReturnType<typeof npmEcosystemAdapter.detectFromManifest> =>
+		npmEcosystemAdapter.detectFromManifest(tempDir, managers, pred);
+
 	beforeEach(() => {
 		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "recipebook-manifest-"));
 	});
@@ -293,50 +298,30 @@ describe("npmEcosystemAdapter.detectFromManifest", () => {
 			path.join(tempDir, "package.json"),
 			JSON.stringify({ packageManager: "pnpm@9.0.0" }),
 		);
-		expect(
-			await npmEcosystemAdapter.detectFromManifest(
-				tempDir,
-				managers,
-				() => true,
-			),
-		).toBe(NpmPackageManager.PNPM);
+		expect(await detect(() => true)).toBe(NpmPackageManager.PNPM);
 	});
 
 	test("it should return undefined when the manifest or field is missing because absence must not guess", async () => {
-		expect(
-			await npmEcosystemAdapter.detectFromManifest(
-				tempDir,
-				managers,
-				() => false,
-			),
-		).toBeUndefined();
+		expect(await detect(() => false)).toBeUndefined();
 		fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({}));
-		expect(
-			await npmEcosystemAdapter.detectFromManifest(
-				tempDir,
-				managers,
-				() => true,
-			),
-		).toBeUndefined();
+		expect(await detect(() => true)).toBeUndefined();
 	});
 
 	test("it should wrap malformed package.json in InvalidJsonError because read failures must be explicit", async () => {
 		fs.writeFileSync(path.join(tempDir, "package.json"), "{not json");
-		await expect(
-			npmEcosystemAdapter.detectFromManifest(tempDir, managers, () => true),
-		).rejects.toThrowError(InvalidJsonError);
+		await expect(detect(() => true)).rejects.toThrowError(InvalidJsonError);
 	});
 
 	test("it should reject a non-object package.json document because a manifest that is not an object cannot declare a manager", async () => {
 		fs.writeFileSync(path.join(tempDir, "package.json"), "null");
-		await expect(
-			npmEcosystemAdapter.detectFromManifest(tempDir, managers, () => true),
-		).rejects.toThrowError("package.json must be a JSON object.");
+		await expect(detect(() => true)).rejects.toThrowError(
+			"package.json must be a JSON object.",
+		);
 
 		fs.writeFileSync(path.join(tempDir, "package.json"), "[]");
-		await expect(
-			npmEcosystemAdapter.detectFromManifest(tempDir, managers, () => true),
-		).rejects.toThrowError("package.json must be a JSON object.");
+		await expect(detect(() => true)).rejects.toThrowError(
+			"package.json must be a JSON object.",
+		);
 	});
 });
 
