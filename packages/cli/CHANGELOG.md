@@ -1,0 +1,62 @@
+# Changelog
+
+## [0.3.0](https://github.com/agrawal-rohit/recipebook/compare/recipebook@v0.2.1...recipebook@v0.3.0) (2026-09-25)
+
+
+### Added
+
+* added 'add' command logic ([64a41c5](https://github.com/agrawal-rohit/recipebook/commit/64a41c55aa4eb64ec53f690c1934578420bca41a))
+* added `build` command in the CLI ([69daaf9](https://github.com/agrawal-rohit/recipebook/commit/69daaf9d4838dbad6507674cd1d3ebfe083054aa))
+* added config-based registry source setup, removed registry items for now ([5490b44](https://github.com/agrawal-rohit/recipebook/commit/5490b441bca96a9a03db723dd3fa3578f3829de8))
+* added hook-based install scripts logic ([e2de53a](https://github.com/agrawal-rohit/recipebook/commit/e2de53a2329684c4e468ac62c818534b12f3f346))
+* added secure package management configuration ([799ea03](https://github.com/agrawal-rohit/recipebook/commit/799ea03ef280d37f76063b03bbcf6a051fcd4bb2))
+* added starter templates ([5ef7f51](https://github.com/agrawal-rohit/recipebook/commit/5ef7f513ab16489850125689396dd3bf73bc2138))
+* added ugly ass code for safe script execution ([aecb83b](https://github.com/agrawal-rohit/recipebook/commit/aecb83b3213393b4b43154e6b210555bd1fb2ffc))
+* park again after API cleanup and multiple changes ([034a6ac](https://github.com/agrawal-rohit/recipebook/commit/034a6ace4cb622a1cc158f25509011efdd657fde))
+
+
+### Fixed
+
+* a little code cleanup ([bc48f44](https://github.com/agrawal-rohit/recipebook/commit/bc48f447f95ef358eca5f3e93c0de2a0c6dd95a4))
+* added changes to building logic ([4dd3f6a](https://github.com/agrawal-rohit/recipebook/commit/4dd3f6a4135ebaf129672f2e5488d58000c7c696))
+* did some more code cleanup ([94a277a](https://github.com/agrawal-rohit/recipebook/commit/94a277a7617e8c8717df579618381ac82c82130b))
+* fixed failing CI jobs ([1be27b8](https://github.com/agrawal-rohit/recipebook/commit/1be27b8a73ef7b8ae3e11bcf0fdf29057c72c5a1))
+* fixed some bugs when testing instruction adding examples ([6255844](https://github.com/agrawal-rohit/recipebook/commit/625584490a9ee2885bb22efee0c7844b67146cd3))
+* fixed sonarqube flagged issues ([cfc38ff](https://github.com/agrawal-rohit/recipebook/commit/cfc38ff87f12ae76bbadd802bf960949a63e2d1b))
+* fixed the config commands ([d7855d8](https://github.com/agrawal-rohit/recipebook/commit/d7855d8c09d2e25526964da16d16500dcd4be6b3))
+* improved compiled registry output, added a mutation testing convention ([7e094ab](https://github.com/agrawal-rohit/recipebook/commit/7e094ab2526e2474242f6ba80a5adabadd77813f))
+* made registry types declarative ([8ecf0d6](https://github.com/agrawal-rohit/recipebook/commit/8ecf0d6b01c194b64e5fbfdc1d5dd983c63199b8))
+* made the compilted registry leaner ([5515d48](https://github.com/agrawal-rohit/recipebook/commit/5515d48a92e5e392e6ba3da73be954340ef50677))
+* moved around more code ([9e83b9b](https://github.com/agrawal-rohit/recipebook/commit/9e83b9b95f8c5bda3c1029c934c94a807f096534))
+* removed registry version and schema version ([b2912db](https://github.com/agrawal-rohit/recipebook/commit/b2912dbaee865731eb3703952a75c1bb97fa6270))
+* shifted to embedded content built registry for easier consumption ([2cc14ed](https://github.com/agrawal-rohit/recipebook/commit/2cc14edf9cdf2adfcc81a35cb6fd159dfc625a0f))
+* some changes to the package manager logic ([356d4ac](https://github.com/agrawal-rohit/recipebook/commit/356d4ac9e7bf273227f9edad4f14e0a314ec6778))
+* updated "add" command CLI logging and refactored logic ([73bc8c6](https://github.com/agrawal-rohit/recipebook/commit/73bc8c61e05025396db78205674568688328e2aa))
+
+
+### Changed
+
+* add more unit tests ([f410aa7](https://github.com/agrawal-rohit/recipebook/commit/f410aa7df89e0271301c10f53882971c8ee2d0af))
+* added missing test cases ([7baac6b](https://github.com/agrawal-rohit/recipebook/commit/7baac6b1e6f560ab7f8862103d2ea41a7e7dcfea))
+* added missing test cases ([bcf38c0](https://github.com/agrawal-rohit/recipebook/commit/bcf38c0e4e24855bdec04866147e89c1aff6d916))
+* added more CLI tests ([f02cd96](https://github.com/agrawal-rohit/recipebook/commit/f02cd96f0c1bfbaf2ed3328e8a24f10c356910a7))
+* added more test cases to core ([57fd5b1](https://github.com/agrawal-rohit/recipebook/commit/57fd5b1935429513d9c4525cd25c0a2ae2542c84))
+* added more unit tests to the core functions ([90cc7ea](https://github.com/agrawal-rohit/recipebook/commit/90cc7eaf678f994040542210fc41f590ee4c488b))
+* added remaining test cases ([23245ef](https://github.com/agrawal-rohit/recipebook/commit/23245ef21667677f16c20b135ffc43b63b9e3a83))
+* added test cases for bin and index entrypoint in the cli ([898c49e](https://github.com/agrawal-rohit/recipebook/commit/898c49e72aee05a2078a95e00833d39f94f4dada))
+* added test cases for remaining core paths ([09d059f](https://github.com/agrawal-rohit/recipebook/commit/09d059fca47316cba974e57d0c7de3be0ef15386))
+* fixed breaking tests and zizmor errors ([0a99fcb](https://github.com/agrawal-rohit/recipebook/commit/0a99fcbe76b250d3e42136df8e975bcb2ca4139e))
+* fixed failing tests ([f953d0a](https://github.com/agrawal-rohit/recipebook/commit/f953d0ac8e3c57493f3d2b321f74ca856ae84476))
+* partition cli prompt modules by family ([9e4951c](https://github.com/agrawal-rohit/recipebook/commit/9e4951cc61c4469f6a6456e9a53576ea2ae7551a))
+* some test file sonarqube improvements ([1f681a0](https://github.com/agrawal-rohit/recipebook/commit/1f681a0209f48b7d19cfa59b1d9d05bfabde3a03))
+* split cli command wiring and extract shared arg helpers ([a590077](https://github.com/agrawal-rohit/recipebook/commit/a59007749133cfc76f62e46d22e2a0772fb18e7f))
+* split oversized test describes via shared helpers ([8f6e80f](https://github.com/agrawal-rohit/recipebook/commit/8f6e80f0559be548b8acbe2541cb90b975feadcc))
+* unwrap largest oversized describe blocks to top-level tests ([6f5f9c2](https://github.com/agrawal-rohit/recipebook/commit/6f5f9c21d89a5b74341f4ec2756177f26e763395))
+* updated breaking tests, added some missing coverage in a few files ([950344c](https://github.com/agrawal-rohit/recipebook/commit/950344c5b5d347391d133145c9ed821acd992011))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @recipebook/core bumped to 0.3.0
