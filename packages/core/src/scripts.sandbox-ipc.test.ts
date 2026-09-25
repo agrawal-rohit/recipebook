@@ -165,237 +165,226 @@ describe("loadSandboxedModule rejects malformed child IPC fail-closed", () => {
 	});
 });
 
-describe("loadSandboxedModule call flow", () => {
-	/**
-	 * Complete a probe, then start a call session and return its child plus
-	 * promise so tests can play the child side.
-	 */
-	async function startCall(
-		scriptBody: string,
-		ctx: Record<string, unknown> = {},
-	): Promise<{
-		child: (typeof ipc.children)[number];
-		pending: Promise<unknown>;
-	}> {
-		const scriptPath = path.join(tempDir, "hook.js");
-		fs.writeFileSync(scriptPath, scriptBody);
-		const probe = loadSandboxedModule(scriptPath, tempDir, runnerPath);
-		latestChild().emit("message", { type: "probe-result", shape: "function" });
-		const loaded = (await probe) as (
-			ctx: Record<string, unknown>,
-		) => Promise<unknown>;
-		const pending = loaded(ctx);
-		return { child: latestChild(), pending };
-	}
+/**
+ * Complete a probe, then start a call session and return its child plus
+ * promise so tests can play the child side.
+ */
+async function startCall(
+	scriptBody: string,
+	ctx: Record<string, unknown> = {},
+): Promise<{
+	child: (typeof ipc.children)[number];
+	pending: Promise<unknown>;
+}> {
+	const scriptPath = path.join(tempDir, "hook.js");
+	fs.writeFileSync(scriptPath, scriptBody);
+	const probe = loadSandboxedModule(scriptPath, tempDir, runnerPath);
+	latestChild().emit("message", { type: "probe-result", shape: "function" });
+	const loaded = (await probe) as (
+		ctx: Record<string, unknown>,
+	) => Promise<unknown>;
+	const pending = loaded(ctx);
+	return { child: latestChild(), pending };
+}
 
-	test("it should propagate a failed child result as a rejection because script errors must surface to the caller", async () => {
-		const { pending } = await startCall("module.exports = () => 1;");
-		latestChild().emit("message", {
-			type: "result",
-			ok: false,
-			error: "boom",
-		});
-		await expect(pending).rejects.toThrowError("boom");
+test("it should propagate a failed child result as a rejection because script errors must surface to the caller", async () => {
+	const { pending } = await startCall("module.exports = () => 1;");
+	latestChild().emit("message", {
+		type: "result",
+		ok: false,
+		error: "boom",
 	});
+	await expect(pending).rejects.toThrowError("boom");
+});
 
-	test("it should serialize the context by dropping functions and overriding projectDir because only JSON-safe fields cross IPC", async () => {
-		const { child } = await startCall("module.exports = () => 1;", {
-			fn: () => undefined,
-			key: "v",
-			projectDir: "/x",
-		});
-		expect(child.send).toHaveBeenCalledWith(
-			expect.objectContaining({ type: "call", exportPath: [] }),
-		);
-		const call = child.send.mock.calls.find(
-			(args) => (args[0] as { type: string }).type === "call",
-		)?.[0] as { context: Record<string, unknown> };
-		expect(call.context).toEqual({
-			key: "v",
-			projectDir: fs.realpathSync(tempDir),
-		});
+test("it should serialize the context by dropping functions and overriding projectDir because only JSON-safe fields cross IPC", async () => {
+	const { child } = await startCall("module.exports = () => 1;", {
+		fn: () => undefined,
+		key: "v",
+		projectDir: "/x",
 	});
-
-	test("it should reject a context whose __proto__ key is present because prototype pollution must not cross IPC", async () => {
-		const { pending } = await startCall(
-			"module.exports = () => 1;",
-			JSON.parse('{"__proto__":"evil","key":"v"}') as Record<string, unknown>,
-		);
-		await expect(pending).rejects.toThrowError(
-			'Handler context key "__proto__" is not allowed.',
-		);
+	expect(child.send).toHaveBeenCalledWith(
+		expect.objectContaining({ type: "call", exportPath: [] }),
+	);
+	const call = child.send.mock.calls.find(
+		(args) => (args[0] as { type: string }).type === "call",
+	)?.[0] as { context: Record<string, unknown> };
+	expect(call.context).toEqual({
+		key: "v",
+		projectDir: fs.realpathSync(tempDir),
 	});
+});
 
-	test("it should reject a context with an empty-string key because such keys cannot be addressed safely", async () => {
-		const { pending } = await startCall(
-			"module.exports = () => 1;",
-			JSON.parse('{"":"v"}'),
-		);
-		await expect(pending).rejects.toThrowError(
-			'Handler context key "" is not allowed.',
-		);
+test("it should reject a context whose __proto__ key is present because prototype pollution must not cross IPC", async () => {
+	const { pending } = await startCall(
+		"module.exports = () => 1;",
+		JSON.parse('{"__proto__":"evil","key":"v"}') as Record<string, unknown>,
+	);
+	await expect(pending).rejects.toThrowError(
+		'Handler context key "__proto__" is not allowed.',
+	);
+});
+
+test("it should reject a context with an empty-string key because such keys cannot be addressed safely", async () => {
+	const { pending } = await startCall(
+		"module.exports = () => 1;",
+		JSON.parse('{"":"v"}'),
+	);
+	await expect(pending).rejects.toThrowError(
+		'Handler context key "" is not allowed.',
+	);
+});
+
+test("it should mediate isFile host calls against the project directory because the child has no direct filesystem access", async () => {
+	fs.writeFileSync(path.join(tempDir, "f.txt"), "hi");
+	fs.mkdirSync(path.join(tempDir, "d"));
+	const { child, pending } = await startCall("module.exports = () => 1;", {});
+	child.emit("message", {
+		type: "host",
+		id: 1,
+		method: "isFile",
+		args: ["f.txt"],
 	});
-
-	test("it should mediate isFile host calls against the project directory because the child has no direct filesystem access", async () => {
-		fs.writeFileSync(path.join(tempDir, "f.txt"), "hi");
-		fs.mkdirSync(path.join(tempDir, "d"));
-		const { child, pending } = await startCall("module.exports = () => 1;", {});
-		child.emit("message", {
-			type: "host",
+	child.emit("message", {
+		type: "host",
+		id: 2,
+		method: "isFile",
+		args: ["missing.txt"],
+	});
+	child.emit("message", {
+		type: "host",
+		id: 3,
+		method: "isDirectory",
+		args: ["d"],
+	});
+	child.emit("message", {
+		type: "host",
+		id: 4,
+		method: "readFile",
+		args: ["f.txt"],
+	});
+	await vi.waitFor(() => {
+		expect(child.send).toHaveBeenCalledWith({
+			type: "host-result",
 			id: 1,
-			method: "isFile",
-			args: ["f.txt"],
+			ok: true,
+			value: true,
 		});
-		child.emit("message", {
-			type: "host",
+		expect(child.send).toHaveBeenCalledWith({
+			type: "host-result",
 			id: 2,
-			method: "isFile",
-			args: ["missing.txt"],
+			ok: true,
+			value: false,
 		});
-		child.emit("message", {
-			type: "host",
+		expect(child.send).toHaveBeenCalledWith({
+			type: "host-result",
 			id: 3,
-			method: "isDirectory",
-			args: ["d"],
+			ok: true,
+			value: true,
 		});
-		child.emit("message", {
-			type: "host",
+		expect(child.send).toHaveBeenCalledWith({
+			type: "host-result",
 			id: 4,
-			method: "readFile",
-			args: ["f.txt"],
+			ok: true,
+			value: "hi",
 		});
-		await vi.waitFor(() => {
-			expect(child.send).toHaveBeenCalledWith({
-				type: "host-result",
-				id: 1,
-				ok: true,
-				value: true,
-			});
-			expect(child.send).toHaveBeenCalledWith({
-				type: "host-result",
-				id: 2,
-				ok: true,
-				value: false,
-			});
-			expect(child.send).toHaveBeenCalledWith({
-				type: "host-result",
-				id: 3,
-				ok: true,
-				value: true,
-			});
-			expect(child.send).toHaveBeenCalledWith({
-				type: "host-result",
-				id: 4,
-				ok: true,
-				value: "hi",
-			});
-		});
-		child.emit("message", { type: "result", ok: true, value: "done" });
-		await pending;
 	});
+	child.emit("message", { type: "result", ok: true, value: "done" });
+	await pending;
+});
 
-	test("it should mediate run host calls with a sanitized environment and log the command because command execution is privileged", async () => {
-		process.env.RECIPEBOOK_TEST_SECRET_KEY = "leak-me";
-		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			const { child, pending } = await startCall(
-				"module.exports = () => 1;",
-				{},
-			);
-			child.emit("message", {
-				type: "host",
-				id: 1,
-				method: "run",
-				args: ["echo hi"],
-			});
-			await vi.waitFor(() => {
-				expect(child.send).toHaveBeenCalledWith({
-					type: "host-result",
-					id: 1,
-					ok: true,
-					value: "ran",
-				});
-			});
-			// Scope to the call made by this test's own temp dir, never "first call",
-			// so shuffled ordering cannot leak a sibling test's invocation here.
-			const call = vi
-				.mocked(runAsync)
-				.mock.calls.find(
-					(call) =>
-						(call[1] as { cwd: string }).cwd === fs.realpathSync(tempDir),
-				);
-			if (!call) {
-				throw new Error("expected runAsync call scoped to temp dir");
-			}
-			const [, opts] = call;
-			if (!opts) {
-				throw new Error("expected runAsync options");
-			}
-			expect(opts.cwd).toBe(fs.realpathSync(tempDir));
-			expect(opts.stdio).toBe("pipe");
-			const env = opts.env;
-			if (!env) {
-				throw new Error("expected runAsync env");
-			}
-			expect(env.PATH).toBeDefined();
-			expect(env.RECIPEBOOK_TEST_SECRET_KEY).toBeUndefined();
-			expect(errorSpy).toHaveBeenCalledWith("[recipebook:script] run: echo hi");
-			child.emit("message", { type: "result", ok: true, value: "done" });
-			await pending;
-		} finally {
-			errorSpy.mockRestore();
-		}
-	});
-
-	test("it should answer host calls with ok:false when the host helper throws because children must see failures as results", async () => {
-		vi.mocked(runAsync).mockRejectedValueOnce(new Error("nope"));
-		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			const { child, pending } = await startCall(
-				"module.exports = () => 1;",
-				{},
-			);
-			child.emit("message", {
-				type: "host",
-				id: 1,
-				method: "run",
-				args: ["x"],
-			});
-			await vi.waitFor(() => {
-				expect(child.send).toHaveBeenCalledWith({
-					type: "host-result",
-					id: 1,
-					ok: false,
-					error: "nope",
-				});
-			});
-			child.emit("message", { type: "result", ok: true, value: "done" });
-			await pending;
-		} finally {
-			errorSpy.mockRestore();
-		}
-	});
-
-	test("it should fail closed on an empty host argument because malformed requests are never executed", async () => {
+test("it should mediate run host calls with a sanitized environment and log the command because command execution is privileged", async () => {
+	process.env.RECIPEBOOK_TEST_SECRET_KEY = "leak-me";
+	const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+	try {
 		const { child, pending } = await startCall("module.exports = () => 1;", {});
 		child.emit("message", {
 			type: "host",
 			id: 1,
-			method: "readFile",
-			args: [],
+			method: "run",
+			args: ["echo hi"],
 		});
 		await vi.waitFor(() => {
-			const hostResult = child.send.mock.calls.find(
-				(args) => (args[0] as { type: string }).type === "host-result",
-			)?.[0] as { ok: boolean; error: string };
-			expect(hostResult.ok).toBe(false);
-			expect(hostResult.error).toContain(
-				"requires a non-empty string argument.",
+			expect(child.send).toHaveBeenCalledWith({
+				type: "host-result",
+				id: 1,
+				ok: true,
+				value: "ran",
+			});
+		});
+		// Scope to the call made by this test's own temp dir, never "first call",
+		// so shuffled ordering cannot leak a sibling test's invocation here.
+		const call = vi
+			.mocked(runAsync)
+			.mock.calls.find(
+				(call) => (call[1] as { cwd: string }).cwd === fs.realpathSync(tempDir),
 			);
+		if (!call) {
+			throw new Error("expected runAsync call scoped to temp dir");
+		}
+		const [, opts] = call;
+		if (!opts) {
+			throw new Error("expected runAsync options");
+		}
+		expect(opts.cwd).toBe(fs.realpathSync(tempDir));
+		expect(opts.stdio).toBe("pipe");
+		const env = opts.env;
+		if (!env) {
+			throw new Error("expected runAsync env");
+		}
+		expect(env.PATH).toBeDefined();
+		expect(env.RECIPEBOOK_TEST_SECRET_KEY).toBeUndefined();
+		expect(errorSpy).toHaveBeenCalledWith("[recipebook:script] run: echo hi");
+		child.emit("message", { type: "result", ok: true, value: "done" });
+		await pending;
+	} finally {
+		errorSpy.mockRestore();
+	}
+});
+
+test("it should answer host calls with ok:false when the host helper throws because children must see failures as results", async () => {
+	vi.mocked(runAsync).mockRejectedValueOnce(new Error("nope"));
+	const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+	try {
+		const { child, pending } = await startCall("module.exports = () => 1;", {});
+		child.emit("message", {
+			type: "host",
+			id: 1,
+			method: "run",
+			args: ["x"],
+		});
+		await vi.waitFor(() => {
+			expect(child.send).toHaveBeenCalledWith({
+				type: "host-result",
+				id: 1,
+				ok: false,
+				error: "nope",
+			});
 		});
 		child.emit("message", { type: "result", ok: true, value: "done" });
 		await pending;
+	} finally {
+		errorSpy.mockRestore();
+	}
+});
+
+test("it should fail closed on an empty host argument because malformed requests are never executed", async () => {
+	const { child, pending } = await startCall("module.exports = () => 1;", {});
+	child.emit("message", {
+		type: "host",
+		id: 1,
+		method: "readFile",
+		args: [],
 	});
+	await vi.waitFor(() => {
+		const hostResult = child.send.mock.calls.find(
+			(args) => (args[0] as { type: string }).type === "host-result",
+		)?.[0] as { ok: boolean; error: string };
+		expect(hostResult.ok).toBe(false);
+		expect(hostResult.error).toContain("requires a non-empty string argument.");
+	});
+	child.emit("message", { type: "result", ok: true, value: "done" });
+	await pending;
 });
 
 describe("loadSandboxedModule child teardown", () => {

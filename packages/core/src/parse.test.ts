@@ -191,367 +191,361 @@ describe("parseRegistryDocument duplicate detection", () => {
 	});
 });
 
-describe("parseRegistryDocument condition rules", () => {
-	test("it should require values for select conditions because a select without options cannot be prompted", () => {
-		expect(() =>
-			parseRegistryDocument(
-				baseDocument({
-					conditions: {
-						framework: {
-							label: "Framework",
-							kind: RegistryConditionKind.SELECT,
-						},
+test("it should require values for select conditions because a select without options cannot be prompted", () => {
+	expect(() =>
+		parseRegistryDocument(
+			baseDocument({
+				conditions: {
+					framework: {
+						label: "Framework",
+						kind: RegistryConditionKind.SELECT,
 					},
-					items: {
-						button: baseItem({ requires: ["framework"] }),
-					},
-				}),
-			),
-		).toThrowError(
-			'Registry condition "framework" must declare at least one value.',
-		);
-	});
-
-	test("it should reject an empty values array with the empty-values message because the Zod size check fires before the condition refinement", () => {
-		expect(() =>
-			parseWithSchema(
-				registryConditionSchema,
-				{
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [],
 				},
-				'Registry condition "framework"',
-			),
-		).toThrowError(
-			'Registry condition "framework" must declare at least one value.',
-		);
-	});
-
-	test("it should reject an empty files array with the file-count message because payloads must carry at least one file", () => {
-		expect(() =>
-			parseWithSchema(
-				registryItemSchema,
-				{
-					id: "button",
-					title: "Button",
-					description: "A button component",
-					type: "component",
-					files: [],
+				items: {
+					button: baseItem({ requires: ["framework"] }),
 				},
-				"Registry item",
-			),
-		).toThrowError("Registry item.files must declare at least one file.");
-	});
-
-	test("it should fall back to the raw Zod message for unmapped empty arrays because not every too-small array has bespoke phrasing", () => {
-		expect(() =>
-			parseWithSchema(
-				registryPackSchema,
-				{
-					id: "lint",
-					title: "Lint",
-					when: { framework: [] },
-				},
-				"Registry pack",
-			),
-		).toThrowError(/when\.framework: Too small/);
-	});
-
-	test("it should reject duplicate condition values because repeated options confuse prompting", () => {
-		expect(() =>
-			parseWithSchema(
-				registryConditionSchema,
-				{
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [
-						{ value: "react", label: "React" },
-						{ value: "react", label: "React again" },
-					],
-				},
-				'Registry condition "framework"',
-			),
-		).toThrowError('has duplicate value "react".');
-	});
-
-	test("it should reject the reserved `None` value because the CLI appends it as the skip option", () => {
-		expect(() =>
-			parseWithSchema(
-				registryConditionSchema,
-				{
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [{ value: "None", label: "Skip" }],
-				},
-				'Registry condition "framework"',
-			),
-		).toThrowError('value "None" is reserved.');
-	});
-
-	test("it should reject defaults that are not declared values because a default the user cannot choose is broken", () => {
-		expect(() =>
-			parseWithSchema(
-				registryConditionSchema,
-				{
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [{ value: "react", label: "React" }],
-					default: "vue",
-				},
-				'Registry condition "framework"',
-			),
-		).toThrowError('default "vue" is not a declared value.');
-	});
-
-	test("it should reject min on non-multiselect conditions because min only applies to multiselect prompting", () => {
-		expect(() =>
-			parseWithSchema(
-				registryConditionSchema,
-				{
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					min: 2,
-					values: [{ value: "react", label: "React" }],
-				},
-				'Registry condition "framework"',
-			),
-		).toThrowError('can only declare min for kind "multiselect".');
-	});
-
-	test("it should reject bindings on multiselect values because multiselects capture many values and cannot bind one option", () => {
-		expect(() =>
-			parseWithSchema(
-				registryConditionSchema,
-				{
-					label: "Extras",
-					kind: RegistryConditionKind.MULTISELECT,
-					values: [
-						{
-							value: "lint",
-							label: "Lint",
-							bindings: { lintCommand: "pnpm lint" },
-						},
-					],
-				},
-				'Registry condition "extras"',
-			),
-		).toThrowError('of kind "multiselect" cannot declare option bindings.');
-	});
-
-	test("it should reject option binding keys that reuse their own condition key because bindings would overwrite the captured condition", () => {
-		const document = baseDocument({
-			conditions: {
-				framework: {
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [
-						{
-							value: "react",
-							label: "React",
-							bindings: { framework: "react-bind" },
-						},
-					],
-				},
-			},
-			items: { button: baseItem({ requires: ["framework"] }) },
-		});
-		// Shared conditions are caught by the cross-map guard…
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'Registry condition "framework" value "react" cannot declare bindings.framework (collides with a condition key).',
-		);
-
-		// …while item-local conditions are caught by the schema refinement.
-		const localDocument = baseDocument({
-			items: {
-				button: baseItem({
-					conditions: {
-						framework: {
-							label: "Framework",
-							kind: RegistryConditionKind.SELECT,
-							values: [
-								{
-									value: "react",
-									label: "React",
-									bindings: { framework: "react-bind" },
-								},
-							],
-						},
-					},
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(localDocument)).toThrowError(
-			'Registry condition "framework" option bindings cannot reuse the condition key "framework".',
-		);
-	});
-
-	test("it should reject text and boolean conditions that declare values because those kinds prompt without options", () => {
-		expect(() =>
-			parseWithSchema(
-				registryConditionSchema,
-				{
-					label: "Name",
-					kind: RegistryConditionKind.TEXT,
-					values: [{ value: "x", label: "X" }],
-				},
-				'Registry condition "name"',
-			),
-		).toThrowError('of kind "text" cannot declare values.');
-		expect(() =>
-			parseWithSchema(
-				registryConditionSchema,
-				{
-					label: "Flag",
-					kind: RegistryConditionKind.BOOLEAN,
-					values: [{ value: "x", label: "X" }],
-				},
-				'Registry condition "flag"',
-			),
-		).toThrowError('of kind "boolean" cannot declare values.');
-	});
+			}),
+		),
+	).toThrowError(
+		'Registry condition "framework" must declare at least one value.',
+	);
 });
 
-describe("parseRegistryDocument when-map rules", () => {
-	test("it should reject a pack when key that is not declared because undeclared conditions cannot be captured", () => {
-		const document = baseDocument({
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "react",
-							title: "React",
-							source: "r/button/react.json",
-							when: { framework: "react" },
-						},
-					],
-				}),
+test("it should reject an empty values array with the empty-values message because the Zod size check fires before the condition refinement", () => {
+	expect(() =>
+		parseWithSchema(
+			registryConditionSchema,
+			{
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [],
 			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'Registry item "button" pack "react" references unknown when key "framework".',
-		);
-	});
+			'Registry condition "framework"',
+		),
+	).toThrowError(
+		'Registry condition "framework" must declare at least one value.',
+	);
+});
 
-	test("it should reject a when value not declared by its condition because matchers must reference real options", () => {
-		const document = baseDocument({
-			conditions: {
-				framework: {
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [{ value: "react", label: "React" }],
+test("it should reject an empty files array with the file-count message because payloads must carry at least one file", () => {
+	expect(() =>
+		parseWithSchema(
+			registryItemSchema,
+			{
+				id: "button",
+				title: "Button",
+				description: "A button component",
+				type: "component",
+				files: [],
+			},
+			"Registry item",
+		),
+	).toThrowError("Registry item.files must declare at least one file.");
+});
+
+test("it should fall back to the raw Zod message for unmapped empty arrays because not every too-small array has bespoke phrasing", () => {
+	expect(() =>
+		parseWithSchema(
+			registryPackSchema,
+			{
+				id: "lint",
+				title: "Lint",
+				when: { framework: [] },
+			},
+			"Registry pack",
+		),
+	).toThrowError(/when\.framework: Too small/);
+});
+
+test("it should reject duplicate condition values because repeated options confuse prompting", () => {
+	expect(() =>
+		parseWithSchema(
+			registryConditionSchema,
+			{
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [
+					{ value: "react", label: "React" },
+					{ value: "react", label: "React again" },
+				],
+			},
+			'Registry condition "framework"',
+		),
+	).toThrowError('has duplicate value "react".');
+});
+
+test("it should reject the reserved `None` value because the CLI appends it as the skip option", () => {
+	expect(() =>
+		parseWithSchema(
+			registryConditionSchema,
+			{
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [{ value: "None", label: "Skip" }],
+			},
+			'Registry condition "framework"',
+		),
+	).toThrowError('value "None" is reserved.');
+});
+
+test("it should reject defaults that are not declared values because a default the user cannot choose is broken", () => {
+	expect(() =>
+		parseWithSchema(
+			registryConditionSchema,
+			{
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [{ value: "react", label: "React" }],
+				default: "vue",
+			},
+			'Registry condition "framework"',
+		),
+	).toThrowError('default "vue" is not a declared value.');
+});
+
+test("it should reject min on non-multiselect conditions because min only applies to multiselect prompting", () => {
+	expect(() =>
+		parseWithSchema(
+			registryConditionSchema,
+			{
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				min: 2,
+				values: [{ value: "react", label: "React" }],
+			},
+			'Registry condition "framework"',
+		),
+	).toThrowError('can only declare min for kind "multiselect".');
+});
+
+test("it should reject bindings on multiselect values because multiselects capture many values and cannot bind one option", () => {
+	expect(() =>
+		parseWithSchema(
+			registryConditionSchema,
+			{
+				label: "Extras",
+				kind: RegistryConditionKind.MULTISELECT,
+				values: [
+					{
+						value: "lint",
+						label: "Lint",
+						bindings: { lintCommand: "pnpm lint" },
+					},
+				],
+			},
+			'Registry condition "extras"',
+		),
+	).toThrowError('of kind "multiselect" cannot declare option bindings.');
+});
+
+test("it should reject option binding keys that reuse their own condition key because bindings would overwrite the captured condition", () => {
+	const document = baseDocument({
+		conditions: {
+			framework: {
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [
+					{
+						value: "react",
+						label: "React",
+						bindings: { framework: "react-bind" },
+					},
+				],
+			},
+		},
+		items: { button: baseItem({ requires: ["framework"] }) },
+	});
+	// Shared conditions are caught by the cross-map guard…
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'Registry condition "framework" value "react" cannot declare bindings.framework (collides with a condition key).',
+	);
+
+	// …while item-local conditions are caught by the schema refinement.
+	const localDocument = baseDocument({
+		items: {
+			button: baseItem({
+				conditions: {
+					framework: {
+						label: "Framework",
+						kind: RegistryConditionKind.SELECT,
+						values: [
+							{
+								value: "react",
+								label: "React",
+								bindings: { framework: "react-bind" },
+							},
+						],
+					},
 				},
-			},
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "react",
-							title: "React",
-							source: "r/button/react.json",
-							when: { framework: "vue" },
-						},
-					],
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'uses undeclared when value "vue" for key "framework".',
-		);
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(localDocument)).toThrowError(
+		'Registry condition "framework" option bindings cannot reuse the condition key "framework".',
+	);
+});
 
-	test("it should reject text conditions used in when because text answers cannot match a fixed set", () => {
-		const document = baseDocument({
-			conditions: {
-				name: { label: "Name", kind: RegistryConditionKind.TEXT },
+test("it should reject text and boolean conditions that declare values because those kinds prompt without options", () => {
+	expect(() =>
+		parseWithSchema(
+			registryConditionSchema,
+			{
+				label: "Name",
+				kind: RegistryConditionKind.TEXT,
+				values: [{ value: "x", label: "X" }],
 			},
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "named",
-							title: "Named",
-							source: "r/button/named.json",
-							when: { name: "x" },
-						},
-					],
-				}),
+			'Registry condition "name"',
+		),
+	).toThrowError('of kind "text" cannot declare values.');
+	expect(() =>
+		parseWithSchema(
+			registryConditionSchema,
+			{
+				label: "Flag",
+				kind: RegistryConditionKind.BOOLEAN,
+				values: [{ value: "x", label: "X" }],
 			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			/text conditions cannot be used in when/,
-		);
-	});
+			'Registry condition "flag"',
+		),
+	).toThrowError('of kind "boolean" cannot declare values.');
+});
 
-	test("it should reject non-boolean when values for boolean conditions because boolean matchers are true or false", () => {
-		const document = baseDocument({
-			conditions: {
-				flag: { label: "Flag", kind: RegistryConditionKind.BOOLEAN },
-			},
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "flagged",
-							title: "Flagged",
-							source: "r/button/flagged.json",
-							when: { flag: "yes" },
-						},
-					],
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'uses invalid when value "yes" for boolean key "flag" (expected true or false).',
-		);
+test("it should reject a pack when key that is not declared because undeclared conditions cannot be captured", () => {
+	const document = baseDocument({
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "react",
+						title: "React",
+						source: "r/button/react.json",
+						when: { framework: "react" },
+					},
+				],
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'Registry item "button" pack "react" references unknown when key "framework".',
+	);
+});
 
-	test("it should reject unknown packageManager when values because only registered managers may gate packs", () => {
-		const document = baseDocument({
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "npm-only",
-							title: "npm only",
-							source: "r/button/npm.json",
-							when: { packageManager: "npm10" },
-						},
-					],
-				}),
+test("it should reject a when value not declared by its condition because matchers must reference real options", () => {
+	const document = baseDocument({
+		conditions: {
+			framework: {
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [{ value: "react", label: "React" }],
 			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'uses undeclared when value "npm10" for key "packageManager".',
-		);
+		},
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "react",
+						title: "React",
+						source: "r/button/react.json",
+						when: { framework: "vue" },
+					},
+				],
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'uses undeclared when value "vue" for key "framework".',
+	);
+});
 
-	test("it should rethrow unexpected when values for fixed-set conditions because non-string matchers signal a policy bug", () => {
-		const document = baseDocument({
-			conditions: {
-				framework: {
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [{ value: "react", label: "React" }],
-				},
-			},
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "react",
-							title: "React",
-							source: "r/button/react.json",
-							when: { framework: true },
-						},
-					],
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			/unexpected:true/,
-		);
+test("it should reject text conditions used in when because text answers cannot match a fixed set", () => {
+	const document = baseDocument({
+		conditions: {
+			name: { label: "Name", kind: RegistryConditionKind.TEXT },
+		},
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "named",
+						title: "Named",
+						source: "r/button/named.json",
+						when: { name: "x" },
+					},
+				],
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		/text conditions cannot be used in when/,
+	);
+});
+
+test("it should reject non-boolean when values for boolean conditions because boolean matchers are true or false", () => {
+	const document = baseDocument({
+		conditions: {
+			flag: { label: "Flag", kind: RegistryConditionKind.BOOLEAN },
+		},
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "flagged",
+						title: "Flagged",
+						source: "r/button/flagged.json",
+						when: { flag: "yes" },
+					},
+				],
+			}),
+		},
+	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'uses invalid when value "yes" for boolean key "flag" (expected true or false).',
+	);
+});
+
+test("it should reject unknown packageManager when values because only registered managers may gate packs", () => {
+	const document = baseDocument({
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "npm-only",
+						title: "npm only",
+						source: "r/button/npm.json",
+						when: { packageManager: "npm10" },
+					},
+				],
+			}),
+		},
+	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'uses undeclared when value "npm10" for key "packageManager".',
+	);
+});
+
+test("it should rethrow unexpected when values for fixed-set conditions because non-string matchers signal a policy bug", () => {
+	const document = baseDocument({
+		conditions: {
+			framework: {
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [{ value: "react", label: "React" }],
+			},
+		},
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "react",
+						title: "React",
+						source: "r/button/react.json",
+						when: { framework: true },
+					},
+				],
+			}),
+		},
+	});
+	expect(() => parseRegistryDocument(document)).toThrowError(/unexpected:true/);
 });
 
 describe("parseRegistryDocument reserved keys", () => {
@@ -577,69 +571,67 @@ describe("parseRegistryDocument reserved keys", () => {
 	});
 });
 
-describe("parseRegistryDocument condition graph", () => {
-	test("it should reject a required condition that is not declared because prompts need a definition", () => {
-		const document = baseDocument({
-			items: { button: baseItem({ requires: ["framework"] }) },
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'Registry item "button" requires unknown condition "framework".',
-		);
+test("it should reject a required condition that is not declared because prompts need a definition", () => {
+	const document = baseDocument({
+		items: { button: baseItem({ requires: ["framework"] }) },
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'Registry item "button" requires unknown condition "framework".',
+	);
+});
 
-	test("it should reject a key listed in both requires and item-local conditions because one key cannot be both shared and local", () => {
-		const document = baseDocument({
-			items: {
-				button: baseItem({
-					requires: ["style"],
-					conditions: {
-						style: { label: "Style", kind: RegistryConditionKind.TEXT },
-					},
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			/lists "style" in both requires and local conditions./,
-		);
+test("it should reject a key listed in both requires and item-local conditions because one key cannot be both shared and local", () => {
+	const document = baseDocument({
+		items: {
+			button: baseItem({
+				requires: ["style"],
+				conditions: {
+					style: { label: "Style", kind: RegistryConditionKind.TEXT },
+				},
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		/lists "style" in both requires and local conditions./,
+	);
+});
 
-	test("it should reject a local condition key claimed by two items because ownership must be unambiguous", () => {
-		const document = baseDocument({
-			items: {
-				button: baseItem({
-					conditions: {
-						style: { label: "Style", kind: RegistryConditionKind.TEXT },
-					},
-				}),
-				card: baseItem({
-					conditions: {
-						style: { label: "Style", kind: RegistryConditionKind.TEXT },
-					},
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'Item-level condition "style" is declared by both "button" and "card".',
-		);
+test("it should reject a local condition key claimed by two items because ownership must be unambiguous", () => {
+	const document = baseDocument({
+		items: {
+			button: baseItem({
+				conditions: {
+					style: { label: "Style", kind: RegistryConditionKind.TEXT },
+				},
+			}),
+			card: baseItem({
+				conditions: {
+					style: { label: "Style", kind: RegistryConditionKind.TEXT },
+				},
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'Item-level condition "style" is declared by both "button" and "card".',
+	);
+});
 
-	test("it should reject a local condition colliding with a shared condition because keys must have one definition", () => {
-		const document = baseDocument({
-			conditions: {
-				style: { label: "Style", kind: RegistryConditionKind.TEXT },
-			},
-			items: {
-				button: baseItem({
-					conditions: {
-						style: { label: "Style", kind: RegistryConditionKind.TEXT },
-					},
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'condition "style" collides with a shared condition.',
-		);
+test("it should reject a local condition colliding with a shared condition because keys must have one definition", () => {
+	const document = baseDocument({
+		conditions: {
+			style: { label: "Style", kind: RegistryConditionKind.TEXT },
+		},
+		items: {
+			button: baseItem({
+				conditions: {
+					style: { label: "Style", kind: RegistryConditionKind.TEXT },
+				},
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'condition "style" collides with a shared condition.',
+	);
 });
 
 describe("parseRegistryDocument installable payloads", () => {
@@ -755,148 +747,142 @@ describe("parseWithSchema error mapping", () => {
 	});
 });
 
-describe("parseRegistryDocument message phrasing arms", () => {
-	test("it should phrase multiple unknown keys with the plural message because several typos need listing", () => {
-		const document = baseDocument({});
-		document.itemz = {};
-		document.typez = {};
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			"Registry has unknown keys: itemz, typez.",
-		);
-	});
+test("it should phrase multiple unknown keys with the plural message because several typos need listing", () => {
+	const document = baseDocument({});
+	document.itemz = {};
+	document.typez = {};
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		"Registry has unknown keys: itemz, typez.",
+	);
+});
 
-	test("it should phrase invalid pack ids with the path-segment message because pack ids become payload paths", () => {
-		const document = baseDocument({
-			items: {
-				button: baseItem({
-					packs: [{ id: "a/b", title: "Bad", source: "r/x.json" }],
-				}),
+test("it should phrase invalid pack ids with the path-segment message because pack ids become payload paths", () => {
+	const document = baseDocument({
+		items: {
+			button: baseItem({
+				packs: [{ id: "a/b", title: "Bad", source: "r/x.json" }],
+			}),
+		},
+	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		/Registry items\["button"\]\.packs\[0\]\.id must be a single path segment/,
+	);
+});
+
+test("it should phrase empty when-string values as non-empty strings because blank matchers are typos", () => {
+	expect(() =>
+		parseWithSchema(
+			registryPackSchema,
+			{ id: "lint", title: "Lint", when: { framework: "" } },
+			"Registry pack",
+		),
+	).toThrowError("Registry pack.when.framework must be a non-empty string.");
+});
+
+test("it should fall back to the raw message for root-level array issues because there is no path segment to phrase", () => {
+	expect(() =>
+		parseWithSchema(z.array(z.string()).min(1), [], "Checklist"),
+	).toThrowError(/Checklist: Too small/);
+});
+
+test("it should rethrow non-Zod errors untouched because only validation failures are rephrased", () => {
+	const throwing = z.unknown().transform(() => {
+		throw new Error("boom");
+	});
+	expect(() => parseWithSchema(throwing, "x", "Whatever")).toThrowError("boom");
+});
+
+test("it should reject a types key named `all` because the CLI reserves it for filtering", () => {
+	const document = baseDocument({});
+	document.types = { all: { label: "All" } };
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'Registry type "all" is reserved.',
+	);
+});
+
+test("it should reject boolean when values for select conditions with the raw assertion code because remapping must not swallow unknown failures", () => {
+	const document = baseDocument({
+		conditions: {
+			framework: {
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [{ value: "react", label: "React" }],
 			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			/Registry items\["button"\]\.packs\[0\]\.id must be a single path segment/,
-		);
+		},
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "react",
+						title: "React",
+						source: "r/button/react.json",
+						when: { framework: true },
+					},
+				],
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError("unexpected:true");
+});
 
-	test("it should phrase empty when-string values as non-empty strings because blank matchers are typos", () => {
-		expect(() =>
-			parseWithSchema(
-				registryPackSchema,
-				{ id: "lint", title: "Lint", when: { framework: "" } },
-				"Registry pack",
-			),
-		).toThrowError("Registry pack.when.framework must be a non-empty string.");
+test("it should accept an array packageManager when because packs can gate on a set of managers", () => {
+	const document = baseDocument({
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "flex",
+						title: "Flex",
+						source: "r/button/flex.json",
+						when: { packageManager: ["npm", "pnpm"] },
+					},
+				],
+			}),
+		},
 	});
-
-	test("it should fall back to the raw message for root-level array issues because there is no path segment to phrase", () => {
-		expect(() =>
-			parseWithSchema(z.array(z.string()).min(1), [], "Checklist"),
-		).toThrowError(/Checklist: Too small/);
+	const registry = parseRegistryDocument(document);
+	expect(registry.items.button.packs?.[0]?.when).toEqual({
+		packageManager: ["npm", "pnpm"],
 	});
+});
 
-	test("it should rethrow non-Zod errors untouched because only validation failures are rephrased", () => {
-		const throwing = z.unknown().transform(() => {
-			throw new Error("boom");
-		});
-		expect(() => parseWithSchema(throwing, "x", "Whatever")).toThrowError(
-			"boom",
-		);
+test("it should reject a when key that is undeclared even when other conditions exist because matchers need definitions", () => {
+	const document = baseDocument({
+		conditions: {
+			flag: { label: "Flag", kind: RegistryConditionKind.BOOLEAN },
+		},
+		items: {
+			button: baseItem({
+				packs: [
+					{
+						id: "x",
+						title: "X",
+						source: "r/x.json",
+						when: { framework: "react" },
+					},
+				],
+			}),
+		},
 	});
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		'Registry item "button" pack "x" references unknown when key "framework".',
+	);
+});
 
-	test("it should reject a types key named `all` because the CLI reserves it for filtering", () => {
-		const document = baseDocument({});
-		document.types = { all: { label: "All" } };
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'Registry type "all" is reserved.',
-		);
-	});
-
-	test("it should reject boolean when values for select conditions with the raw assertion code because remapping must not swallow unknown failures", () => {
-		const document = baseDocument({
-			conditions: {
-				framework: {
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [{ value: "react", label: "React" }],
-				},
+test("it should keep parsed conditions on the returned registry because shared definitions must survive parsing", () => {
+	const document = baseDocument({
+		conditions: {
+			framework: {
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [{ value: "react", label: "React" }],
 			},
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "react",
-							title: "React",
-							source: "r/button/react.json",
-							when: { framework: true },
-						},
-					],
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			"unexpected:true",
-		);
+		},
+		items: { button: baseItem({ requires: ["framework"] }) },
 	});
-
-	test("it should accept an array packageManager when because packs can gate on a set of managers", () => {
-		const document = baseDocument({
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "flex",
-							title: "Flex",
-							source: "r/button/flex.json",
-							when: { packageManager: ["npm", "pnpm"] },
-						},
-					],
-				}),
-			},
-		});
-		const registry = parseRegistryDocument(document);
-		expect(registry.items.button.packs?.[0]?.when).toEqual({
-			packageManager: ["npm", "pnpm"],
-		});
-	});
-
-	test("it should reject a when key that is undeclared even when other conditions exist because matchers need definitions", () => {
-		const document = baseDocument({
-			conditions: {
-				flag: { label: "Flag", kind: RegistryConditionKind.BOOLEAN },
-			},
-			items: {
-				button: baseItem({
-					packs: [
-						{
-							id: "x",
-							title: "X",
-							source: "r/x.json",
-							when: { framework: "react" },
-						},
-					],
-				}),
-			},
-		});
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			'Registry item "button" pack "x" references unknown when key "framework".',
-		);
-	});
-
-	test("it should keep parsed conditions on the returned registry because shared definitions must survive parsing", () => {
-		const document = baseDocument({
-			conditions: {
-				framework: {
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [{ value: "react", label: "React" }],
-				},
-			},
-			items: { button: baseItem({ requires: ["framework"] }) },
-		});
-		expect(parseRegistryDocument(document).conditions?.framework?.label).toBe(
-			"Framework",
-		);
-	});
+	expect(parseRegistryDocument(document).conditions?.framework?.label).toBe(
+		"Framework",
+	);
 });
 
 describe("parseKeyedRecord null handling", () => {
@@ -991,129 +977,127 @@ describe("parseKeyedRecord raw-key safety", () => {
 	});
 });
 
-describe("schema normalization edges", () => {
-	test("it should accept a scalar beforeWrite string because one-script items need not wrap arrays", () => {
-		const item = parseWithSchema(
+test("it should accept a scalar beforeWrite string because one-script items need not wrap arrays", () => {
+	const item = parseWithSchema(
+		registryItemSchema,
+		{
+			id: "hooks",
+			title: "Hooks",
+			description: "Runs setup",
+			type: "component",
+			beforeWrite: "setup.js",
+		},
+		'Registry item "hooks"',
+	);
+	expect(item.beforeWrite).toEqual(["setup.js"]);
+});
+
+test("it should reject blank descriptions because empty strings are not descriptions", () => {
+	expect(() =>
+		parseWithSchema(
 			registryItemSchema,
 			{
-				id: "hooks",
-				title: "Hooks",
-				description: "Runs setup",
+				id: "quiet",
+				title: "Quiet",
+				description: "",
 				type: "component",
-				beforeWrite: "setup.js",
+				files: [{ source: "f.txt", target: "f.txt" }],
 			},
-			'Registry item "hooks"',
-		);
-		expect(item.beforeWrite).toEqual(["setup.js"]);
-	});
+			'Registry item "quiet"',
+		),
+	).toThrowError(
+		'Registry item "quiet".description must be a non-empty string.',
+	);
+});
 
-	test("it should reject blank descriptions because empty strings are not descriptions", () => {
-		expect(() =>
-			parseWithSchema(
-				registryItemSchema,
-				{
-					id: "quiet",
-					title: "Quiet",
-					description: "",
-					type: "component",
-					files: [{ source: "f.txt", target: "f.txt" }],
-				},
-				'Registry item "quiet"',
-			),
-		).toThrowError(
-			'Registry item "quiet".description must be a non-empty string.',
-		);
+test("it should keep an ecosystem dependency map with runtime or dev entries and drop empty ones because empty maps are noise", () => {
+	const base = {
+		id: "button",
+		title: "Button",
+		description: "A button component",
+		type: "component",
+		files: [{ source: "f.txt", target: "f.txt" }],
+	};
+	const withRuntime = parseWithSchema(
+		registryItemSchema,
+		{ ...base, dependencies: { npm: { runtime: ["left-pad"] } } },
+		'Registry item "button"',
+	);
+	expect(withRuntime.dependencies).toEqual({
+		npm: { runtime: ["left-pad"] },
 	});
-
-	test("it should keep an ecosystem dependency map with runtime or dev entries and drop empty ones because empty maps are noise", () => {
-		const base = {
-			id: "button",
-			title: "Button",
-			description: "A button component",
-			type: "component",
-			files: [{ source: "f.txt", target: "f.txt" }],
-		};
-		const withRuntime = parseWithSchema(
+	expect(
+		parseWithSchema(
 			registryItemSchema,
-			{ ...base, dependencies: { npm: { runtime: ["left-pad"] } } },
+			{ ...base, dependencies: { npm: { dev: ["left-pad"] } } },
 			'Registry item "button"',
-		);
-		expect(withRuntime.dependencies).toEqual({
-			npm: { runtime: ["left-pad"] },
-		});
-		expect(
-			parseWithSchema(
-				registryItemSchema,
-				{ ...base, dependencies: { npm: { dev: ["left-pad"] } } },
-				'Registry item "button"',
-			).dependencies,
-		).toEqual({ npm: { dev: ["left-pad"] } });
-		expect(
-			parseWithSchema(
-				registryItemSchema,
-				{ ...base, dependencies: {} },
-				'Registry item "button"',
-			).dependencies,
-		).toBeUndefined();
-		expect(
-			parseWithSchema(
-				registryItemSchema,
-				{ ...base, dependencies: { npm: {} } },
-				'Registry item "button"',
-			).dependencies,
-		).toBeUndefined();
-	});
+		).dependencies,
+	).toEqual({ npm: { dev: ["left-pad"] } });
+	expect(
+		parseWithSchema(
+			registryItemSchema,
+			{ ...base, dependencies: {} },
+			'Registry item "button"',
+		).dependencies,
+	).toBeUndefined();
+	expect(
+		parseWithSchema(
+			registryItemSchema,
+			{ ...base, dependencies: { npm: {} } },
+			'Registry item "button"',
+		).dependencies,
+	).toBeUndefined();
+});
 
-	test("it should keep required flags and drop non-true ones because required is a boolean tri-state", () => {
-		const required = parseWithSchema(
-			registryConditionSchema,
-			{ label: "Name", kind: RegistryConditionKind.TEXT, required: true },
-			'Registry condition "name"',
-		);
-		expect(required.required).toBe(true);
-		const optional = parseWithSchema(
-			registryConditionSchema,
-			{ label: "Name", kind: RegistryConditionKind.TEXT, required: false },
-			'Registry condition "name"',
-		);
-		expect(optional.required).toBeUndefined();
-	});
+test("it should keep required flags and drop non-true ones because required is a boolean tri-state", () => {
+	const required = parseWithSchema(
+		registryConditionSchema,
+		{ label: "Name", kind: RegistryConditionKind.TEXT, required: true },
+		'Registry condition "name"',
+	);
+	expect(required.required).toBe(true);
+	const optional = parseWithSchema(
+		registryConditionSchema,
+		{ label: "Name", kind: RegistryConditionKind.TEXT, required: false },
+		'Registry condition "name"',
+	);
+	expect(optional.required).toBeUndefined();
+});
 
-	test("it should allow option binding keys that do not collide with condition keys because only collisions are ambiguous", () => {
-		const document = baseDocument({
-			conditions: {
-				framework: {
-					label: "Framework",
-					kind: RegistryConditionKind.SELECT,
-					values: [
-						{
-							value: "react",
-							label: "React",
-							bindings: { lintCommand: "pnpm lint" },
-						},
-					],
-				},
+test("it should allow option binding keys that do not collide with condition keys because only collisions are ambiguous", () => {
+	const document = baseDocument({
+		conditions: {
+			framework: {
+				label: "Framework",
+				kind: RegistryConditionKind.SELECT,
+				values: [
+					{
+						value: "react",
+						label: "React",
+						bindings: { lintCommand: "pnpm lint" },
+					},
+				],
 			},
-			items: { button: baseItem({ requires: ["framework"] }) },
-		});
-		const registry = parseRegistryDocument(document);
-		expect(registry.conditions?.framework?.values?.[0]?.bindings).toEqual({
-			lintCommand: "pnpm lint",
-		});
+		},
+		items: { button: baseItem({ requires: ["framework"] }) },
 	});
+	const registry = parseRegistryDocument(document);
+	expect(registry.conditions?.framework?.values?.[0]?.bindings).toEqual({
+		lintCommand: "pnpm lint",
+	});
+});
 
-	test("it should reject non-object condition maps because condition definitions must be keyed records", () => {
-		const document = baseDocument({});
-		document.conditions = [];
-		expect(() => parseRegistryDocument(document)).toThrowError(
-			"Registry.conditions must be an object.",
-		);
-		const nullDocument = baseDocument({});
-		nullDocument.conditions = null;
-		expect(() => parseRegistryDocument(nullDocument)).toThrowError(
-			"Registry.conditions must be an object.",
-		);
-	});
+test("it should reject non-object condition maps because condition definitions must be keyed records", () => {
+	const document = baseDocument({});
+	document.conditions = [];
+	expect(() => parseRegistryDocument(document)).toThrowError(
+		"Registry.conditions must be an object.",
+	);
+	const nullDocument = baseDocument({});
+	nullDocument.conditions = null;
+	expect(() => parseRegistryDocument(nullDocument)).toThrowError(
+		"Registry.conditions must be an object.",
+	);
 });
 
 describe("item-local option bindings", () => {
