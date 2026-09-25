@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { OperationCanceledError } from "./errors";
+import { confirmInput } from "./prompts/confirm";
 import {
-	confirmInput,
 	groupedSelectInput,
 	multiselectInput,
 	selectInput,
-	textInput,
-} from "./prompts";
+} from "./prompts/select";
+import { textInput } from "./prompts/text";
 
 /** Captured shape of the SelectPrompt config groupedSelectInput builds. */
 type CapturedSelectConfig = {

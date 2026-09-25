@@ -18,12 +18,9 @@ import {
 	type RequiredCondition,
 } from "@recipebook/core";
 import { primaryText } from "../cli/labels";
-import {
-	confirmInput,
-	multiselectInput,
-	selectInput,
-	textInput,
-} from "../cli/prompts";
+import { confirmInput } from "../cli/prompts/confirm";
+import { multiselectInput, selectInput } from "../cli/prompts/select";
+import { textInput } from "../cli/prompts/text";
 import { projectScriptHelpers } from "./scripts";
 
 /**

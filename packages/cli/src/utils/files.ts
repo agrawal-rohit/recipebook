@@ -7,7 +7,7 @@ import {
 	writeFileAsync,
 } from "@recipebook/core";
 import { primaryText } from "../cli/labels";
-import { confirmInput } from "../cli/prompts";
+import { confirmInput } from "../cli/prompts/confirm";
 
 /** One file that should be created or replaced on disk. */
 export interface PlannedFileWrite {

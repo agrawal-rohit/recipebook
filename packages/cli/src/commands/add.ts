@@ -29,7 +29,7 @@ import {
 } from "@recipebook/core";
 import chalk from "chalk";
 import { dimText, primaryText } from "../cli/labels";
-import { groupedSelectInput, selectInput } from "../cli/prompts";
+import { groupedSelectInput, selectInput } from "../cli/prompts/select";
 import { runWithTasks, task, taskGroup } from "../cli/tasks";
 import {
 	captureItemLocalConditionsForPlan,

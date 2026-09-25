@@ -17,7 +17,9 @@ import {
 const promptsMocks = vi.hoisted(() => ({
 	confirmInput: vi.fn(),
 }));
-vi.mock("../cli/prompts", () => promptsMocks);
+vi.mock("../cli/prompts/confirm", () => ({
+	confirmInput: promptsMocks.confirmInput,
+}));
 
 /** Prepared install item fixture wrapping a compiled payload. */
 function item(

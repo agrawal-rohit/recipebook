@@ -12,7 +12,7 @@ import {
 	writeConfig,
 } from "../cli/config";
 import { dimText, primaryText } from "../cli/labels";
-import { textInput } from "../cli/prompts";
+import { textInput } from "../cli/prompts/text";
 
 /**
  * Print the registry state and config file path to stdout.

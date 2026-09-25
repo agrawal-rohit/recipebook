@@ -4,14 +4,14 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { configPath, readConfig, writeConfig } from "../cli/config";
-import { textInput } from "../cli/prompts";
+import { textInput } from "../cli/prompts/text";
 import {
 	configGetCommand,
 	configSetCommand,
 	configUnsetCommand,
 } from "./config";
 
-vi.mock("../cli/prompts", () => ({ textInput: vi.fn() }));
+vi.mock("../cli/prompts/text", () => ({ textInput: vi.fn() }));
 vi.mock("../cli/animated-intro", () => ({
 	animatedIntro: vi.fn(async () => {}),
 }));

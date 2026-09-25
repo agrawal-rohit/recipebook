@@ -26,7 +26,9 @@ vi.mock("@recipebook/core", async (importOriginal) => ({
 const promptsMocks = vi.hoisted(() => ({
 	confirmInput: vi.fn(),
 }));
-vi.mock("../cli/prompts", () => promptsMocks);
+vi.mock("../cli/prompts/confirm", () => ({
+	confirmInput: promptsMocks.confirmInput,
+}));
 
 const tasksMocks = vi.hoisted(() => ({
 	runWithTasks: vi.fn(async (_title: string, work: () => Promise<void>) =>

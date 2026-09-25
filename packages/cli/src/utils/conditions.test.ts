@@ -20,7 +20,16 @@ const promptsMocks = vi.hoisted(() => ({
 	selectInput: vi.fn(),
 	textInput: vi.fn(),
 }));
-vi.mock("../cli/prompts", () => promptsMocks);
+vi.mock("../cli/prompts/confirm", () => ({
+	confirmInput: promptsMocks.confirmInput,
+}));
+vi.mock("../cli/prompts/select", () => ({
+	multiselectInput: promptsMocks.multiselectInput,
+	selectInput: promptsMocks.selectInput,
+}));
+vi.mock("../cli/prompts/text", () => ({
+	textInput: promptsMocks.textInput,
+}));
 
 /** Handler runtime stub; infer handlers are disabled in these flows. */
 function stubRuntime(): HandlerRuntime {

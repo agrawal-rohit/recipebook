@@ -21,7 +21,7 @@ import {
 	writeFileAsync,
 } from "@recipebook/core";
 import { primaryText } from "../cli/labels";
-import { confirmInput } from "../cli/prompts";
+import { confirmInput } from "../cli/prompts/confirm";
 import { runWithTasks } from "../cli/tasks";
 
 /**

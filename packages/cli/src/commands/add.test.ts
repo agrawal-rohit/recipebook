@@ -53,7 +53,10 @@ const promptsMocks = vi.hoisted(() => ({
 	groupedSelectInput: vi.fn(),
 	selectInput: vi.fn(),
 }));
-vi.mock("../cli/prompts", () => promptsMocks);
+vi.mock("../cli/prompts/select", () => ({
+	groupedSelectInput: promptsMocks.groupedSelectInput,
+	selectInput: promptsMocks.selectInput,
+}));
 
 const tasksMocks = vi.hoisted(() => ({
 	task: vi.fn((title: string, fn: () => Promise<void>) => ({
