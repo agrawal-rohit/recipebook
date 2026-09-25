@@ -1,6 +1,6 @@
 {
 	"name": "recipebook",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "A CLI for consuming recipebook code registries.",
 	"license": "MIT",
 	"repository": {
