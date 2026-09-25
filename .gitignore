@@ -34,3 +34,5 @@ reports/
 AGENTS.md
 AGENT.md
 graphify-out/
+.memory/
+
