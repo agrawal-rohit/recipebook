@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.2](https://github.com/agrawal-rohit/recipebook/compare/recipebook@v0.3.1...recipebook@v0.3.2) (2026-09-25)
+
+
+### Fixed
+
+* added repository for npm publishing ([06f7c84](https://github.com/agrawal-rohit/recipebook/commit/06f7c849ba2c3dca1609d903e3cde93695bfd4f6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * recipebook-core bumped to 0.3.2
+
 ## [0.3.1](https://github.com/agrawal-rohit/recipebook/compare/recipebook@v0.3.0...recipebook@v0.3.1) (2026-09-25)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/agrawal-rohit/recipebook/compare/core@v0.3.1...core@v0.3.2) (2026-09-25)
+
+
+### Fixed
+
+* added repository for npm publishing ([06f7c84](https://github.com/agrawal-rohit/recipebook/commit/06f7c849ba2c3dca1609d903e3cde93695bfd4f6))
+
 ## [0.3.1](https://github.com/agrawal-rohit/recipebook/compare/core@v0.3.0...core@v0.3.1) (2026-09-25)
 
 
