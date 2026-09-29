@@ -41,7 +41,6 @@ export enum NpmPackageManager {
 	PNPM = "pnpm",
 	YARN = "yarn",
 	BUN = "bun",
-	NUB = "nub",
 }
 
 /** Package manager selected for a registry ecosystem. Add a manager enum to this union when introducing a new language. */
@@ -195,20 +194,6 @@ export const ecosystemManagers = {
 			exec: [],
 			installRegular: ["install"],
 			installCi: ["install", "--frozen-lockfile"],
-			publish: ["publish", "--access", "public"],
-			install: {
-				[RegistryDependencyKind.RUNTIME]: ["add", "--ignore-scripts"],
-				[RegistryDependencyKind.DEV]: ["add", "--ignore-scripts", "-D"],
-			},
-		},
-		{
-			manager: NpmPackageManager.NUB,
-			label: "Nub",
-			lockfiles: ["nub.lock"],
-			run: ["run"],
-			exec: ["exec"],
-			installRegular: ["install"],
-			installCi: ["install", "--ignore-scripts", "--frozen-lockfile"],
 			publish: ["publish", "--access", "public"],
 			install: {
 				[RegistryDependencyKind.RUNTIME]: ["add", "--ignore-scripts"],

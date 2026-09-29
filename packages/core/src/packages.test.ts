@@ -414,7 +414,6 @@ describe("selectPackageManager prompt fallback", () => {
 					{ label: "pnpm", value: "pnpm" },
 					{ label: "Yarn", value: "yarn" },
 					{ label: "Bun", value: "bun" },
-					{ label: "Nub", value: "nub" },
 				],
 			},
 			"npm",
