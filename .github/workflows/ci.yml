@@ -29,8 +29,8 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup
 
-      - name: Run typechecks
-        run: pnpm typecheck
+      - name: Run code checks
+        run: pnpm check
 
       - name: Build
         run: pnpm build
@@ -49,23 +49,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Run tests with coverage
-        run: pnpm cov
-
-  biome:
-    name: Code Quality (Biome)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup workspace
-        uses: ./.github/actions/setup
-
-      - name: Run Biome check
-        run: pnpm exec biome check .
+        run: pnpm coverage
 
   fallow:
     name: Code Quality (Fallow)
@@ -115,7 +99,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Run tests with coverage
-        run: pnpm cov
+        run: pnpm coverage
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1

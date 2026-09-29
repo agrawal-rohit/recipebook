@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Keep GitHub Actions current on main (trunk)
+  # Keep GitHub Actions current on the default branch
   - package-ecosystem: github-actions
     directory: /
     target-branch: main
@@ -10,7 +10,7 @@ updates:
       time: "06:00"
     open-pull-requests-limit: 5
     cooldown:
-      default-days: 3
+      default-days: 7
     labels:
       - dependencies
       - github-actions
@@ -18,7 +18,7 @@ updates:
       prefix: "ci"
       include: scope
 
-  # pnpm dependency updates flow into main (trunk)
+  # Dependency updates
   - package-ecosystem: npm
     directory: /
     target-branch: main
@@ -30,14 +30,14 @@ updates:
     rebase-strategy: auto
     open-pull-requests-limit: 10
     cooldown:
-      default-days: 3
+      default-days: 7
     labels:
       - dependencies
       - node
       - pnpm
     commit-message:
-      prefix: "fix" # for production/runtime deps
-      prefix-development: "chore" # for dev-only deps
+      prefix: "fix"
+      prefix-development: "chore"
       include: scope
     groups:
       runtime-deps:
@@ -56,9 +56,6 @@ updates:
           - "@commitlint/*"
           - "husky"
           - "lint-staged"
-      git-cliff:
-        patterns:
-          - "git-cliff"
       biome:
         patterns:
           - "@biomejs/*"

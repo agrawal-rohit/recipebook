@@ -101,7 +101,7 @@ Common development commands:
 ```bash
 pnpm run check          # typecheck and lint (writes fixes)
 pnpm run build          # build all packages
-pnpm cov                # run tests with coverage
+pnpm run coverage                # run tests with coverage
 pnpm run quality:changes # quality gate on changed files (pre-PR)
 pnpm run quality         # full codebase quality scan
 ```
