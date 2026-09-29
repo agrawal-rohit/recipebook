@@ -30,20 +30,20 @@
 		"docs:build": "pnpm --filter docs run build"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.3.10",
-		"@commitlint/cli": "^20.4.4",
-		"@commitlint/config-conventional": "^20.4.4",
-		"@stryker-mutator/core": "^9.6.1",
-		"@stryker-mutator/typescript-checker": "^9.6.1",
-		"@stryker-mutator/vitest-runner": "^9.6.1",
-		"@types/node": "^24.3.1",
-		"@vitest/coverage-v8": "3.2.4",
-		"fallow": "^3.16.0",
+		"@biomejs/biome": "2.5.14",
+		"@commitlint/cli": "^21.2.3",
+		"@commitlint/config-conventional": "^21.2.3",
+		"@stryker-mutator/core": "^10.0.0",
+		"@stryker-mutator/typescript-checker": "^10.0.0",
+		"@stryker-mutator/vitest-runner": "^10.0.0",
+		"@types/node": "^26.6.2",
+		"@vitest/coverage-v8": "5.0.1",
+		"fallow": "^3.27.0",
 		"husky": "^9.1.7",
-		"lint-staged": "^16.1.6",
-		"tsx": "^4.20.5",
+		"lint-staged": "^17.5.1",
+		"tsx": "^4.23.15",
 		"typescript": "^6.0.3",
-		"vitest": "^3.2.4"
+		"vitest": "^5.0.1"
 	},
 	"packageManager": "pnpm@10.15.1+sha512.34e538c329b5553014ca8e8f4535997f96180a1d0f614339357449935350d924e22f8614682191264ec33d1462ac21561aff97f6bb18065351c162c7e8f6de67",
 	"pnpm": {
