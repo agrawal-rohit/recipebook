@@ -3,9 +3,9 @@
 	"files": {
 		"includes": [
 			"packages/**/*.{js,ts,jsx,tsx,json,cjs,mjs,yaml,css}",
+			"docs/**/*.{js,ts,tsx,mjs,json,css}",
 			"!packages/*/dist",
 			"!packages/*/coverage",
-			"docs/**/*.{js,ts,tsx,mjs,json,css}",
 			"!docs/node_modules",
 			"!docs/.next",
 			"!docs/.source",
