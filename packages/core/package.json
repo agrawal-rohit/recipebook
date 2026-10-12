@@ -25,9 +25,9 @@
 		"test": "pnpm run build && vitest run"
 	},
 	"dependencies": {
-		"esbuild": "^0.25.0",
+		"esbuild": "^0.28.2",
 		"mustache": "^4.2.0",
-		"zod": "^4.4.3"
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
 		"@types/mustache": "^4.2.6"
